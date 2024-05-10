@@ -4,12 +4,13 @@
 #include "../modcomp_utility_library/modcomp_utility_library.h"
 
 
-void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTRY* parsed_file_entry, char* directory) {
+void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTRY* parsed_file_entry, char* directory, int max_line_bytes) {
 
 	/* -------- see if this is from an attached file. */
 	if (USL_log_file != 0) {
 		char cancode[4] = { 0, 0, 0, 0 };
-		strcpy_s( cancode, 4, from_can_code(USL_log_file));
+		char temp_string[10] = { 0 };
+		strcpy_s( cancode, 4, from_can_code(USL_log_file, temp_string));
 		printf("\n *** ERROR *** Attached files not supported. File extract not processed. Attached file: %s\n", cancode );
 	}
 
@@ -78,7 +79,7 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 				char previous_byte = 0;
 				char next_byte = 0;
 				int  remaining_negative_count_to_process = 0;
-				char current_output_line[4000];
+				char current_output_line[4000] = { 0 };
 				int  current_output_line_index = 0;
 
 
@@ -96,7 +97,7 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 							printf("\n==========reading sector %d ==============\n", current_sector);
 							stat = read_sector_lba(inpart, current_sector, 1, &sector_data, &return_count, &end_of_file);
 							if (stat != 0 || return_count <= 0 || end_of_file != 0) {
-								printf("\n *** ERROR *** trouble reading data sector of USL file. status = %d, count = %lld, eof = %d\n", stat, return_count, end_of_file);
+								printf("\n *** ERROR *** trouble reading data sector of USL file. status = %d, count = %zd, eof = %d\n", stat, return_count, end_of_file);
 								not_done = false;
 								break;
 								printf("\n ---- file break -----\n");
@@ -149,7 +150,8 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 					/* -------- add byte to output string */
 
 					/* --------see if line is full (>80 chars) and the byte isn't line terminator, output line */
-					if (byte_to_process != 0 && current_output_line_index >= 80) {
+					/* --------use a parameter for the max line bytes to accomodate JAS extension from the 90s...*/
+					if (byte_to_process != 0 && current_output_line_index >= max_line_bytes) {
 						current_output_line[current_output_line_index] = 0;
 						// printf("line:%s", current_output_line);
 						fprintf(tempfile, "%s\n", current_output_line);

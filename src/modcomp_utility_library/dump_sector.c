@@ -19,6 +19,7 @@ void dump_sector(unsigned __int16* sector_buffer) {
     unsigned char cancode2[4] = { 0, 0, 0, 0 };
     unsigned char cancode3[4] = { 0, 0, 0, 0 };
     unsigned char cancode4[4] = { 0, 0, 0, 0 };
+    unsigned char temp_string[10] = { 0 };
 
 
     for (start_word = 0; start_word < 128; start_word += 4) {
@@ -34,10 +35,10 @@ void dump_sector(unsigned __int16* sector_buffer) {
         chars[7] = MAX(sector_buffer[start_word + 3] & 0x007f, 32);
         chars[6] = MAX((sector_buffer[start_word + 3] >> 8) & 0x007f, 32);
 
-        strcpy_s(cancode1, 4, from_can_code(sector_buffer[start_word]));
-        strcpy_s(cancode2, 4, from_can_code(sector_buffer[start_word + 1]));
-        strcpy_s(cancode3, 4, from_can_code(sector_buffer[start_word + 2]));
-        strcpy_s(cancode4, 4, from_can_code(sector_buffer[start_word + 3]));
+        strcpy_s(cancode1, 4, from_can_code(sector_buffer[start_word], temp_string));
+        strcpy_s(cancode2, 4, from_can_code(sector_buffer[start_word + 1], temp_string));
+        strcpy_s(cancode3, 4, from_can_code(sector_buffer[start_word + 2], temp_string));
+        strcpy_s(cancode4, 4, from_can_code(sector_buffer[start_word + 3], temp_string));
 
         printf("   %6d  | %08s | %6d %6d %6d %6d | 0x%04X 0x%04X 0x%04X 0x%04X | %3s %3s %3s %3s | \n",
                         start_word, chars,

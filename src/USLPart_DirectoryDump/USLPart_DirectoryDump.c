@@ -15,7 +15,6 @@ int main(int argc, char* argv[]) {
 
     int j;
 
-
     /* -------- annouce our program  */
     printf("\nUSLPart_DirectoryDump - List all directory entries for a USL formatted disk partition\n");
 
@@ -46,8 +45,15 @@ int main(int argc, char* argv[]) {
                 if (j < argc)
                     USL_dump_directory(argv[j]);
             }
+
+            /* --------unrecognized parameter */
+            else {
+                if (j != 0)
+                    printf("\n *** ERROR **** Unrecognized command line parameter '%s', ignored.\n", argv[j]);
+            }
         }
     }
+
 
     exit(0);
 

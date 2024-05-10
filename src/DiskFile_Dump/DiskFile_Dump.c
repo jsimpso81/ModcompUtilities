@@ -61,6 +61,12 @@ int main(int argc, char* argv[]) {
                 if (j < argc)
                     dump_file(argv[j], swap_bytes);
             }
+
+            /* --------unrecognized parameter */
+            else {
+                if ( j != 0) 
+                    printf("\n *** ERROR **** Unrecognized command line parameter '%s', ignored.\n", argv[j]);
+            }
         }
     }
     exit(0);

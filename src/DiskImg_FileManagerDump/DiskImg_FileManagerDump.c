@@ -66,6 +66,12 @@ int main(int argc, char* argv[]) {
                     strncpy_s(image_name, 1000, argv[j], strlen(argv[j]));
             }
 
+            /* --------unrecognized parameter */
+            else {
+                if (j != 0)
+                    printf("\n *** ERROR **** Unrecognized command line parameter '%s', ignored.\n", argv[j]);
+            }
+
         }
     }
 

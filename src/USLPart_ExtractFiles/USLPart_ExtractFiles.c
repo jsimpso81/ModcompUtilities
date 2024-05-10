@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
     bool  have_partition = false;
     bool  have_extract_dir = false;
     bool  have_recovery_dir = false;
+    int   max_line_bytes = 80;
 
 
     /* -------- annouce our program  */
@@ -29,6 +30,7 @@ int main(int argc, char* argv[]) {
     /*      -f partition file      */
     /*      -d extract directory   */
     /*      -r recovered file directory */
+    /*      -m max line byte len */    
     /*      -h                     */
     /*      -?                     */
     /*                             */
@@ -48,6 +50,7 @@ int main(int argc, char* argv[]) {
                 printf("        -f file       extract individual files from this USL partition file\n");
                 printf("        -d directory  extract files to this directory\n");
                 printf("        -r directory  extract recoverd (deleted) files to this directory\n");
+                printf("        -m rec_bytes  max line length in bytes, default = 80\n");
                 exit(0);
             }
 
@@ -78,11 +81,29 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            /* -------- max line byte length */
+            else if (strcmp(argv[j], "-m") == 0) {
+                j++;
+                if (j < argc) {
+                    max_line_bytes = 80;
+                    sscanf_s(argv[j], "%d", &max_line_bytes);
+                    if (max_line_bytes < 0 || max_line_bytes > 1500) {
+                        printf("\n *** ERROR **** Max line bytes parameter: %d invalid, using default of 80\n", max_line_bytes);
+                        max_line_bytes = 80;
+                    }
+                }
+            }
+
+            /* --------unrecognized parameter */
+            else {
+                if (j != 0)
+                    printf("\n *** ERROR **** Unrecognized command line parameter '%s', ignored.\n", argv[j]);
+            }
         }
     }
 
     if (have_partition && have_extract_dir && have_recovery_dir) {
-        USL_extract_all_files( partition_name, extract_directory, recovery_directory);
+        USL_extract_all_files( partition_name, extract_directory, recovery_directory, max_line_bytes );
     }
     else {
         printf("\n *** ERROR ***  not all required parameters specified.\n");

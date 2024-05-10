@@ -8,8 +8,14 @@
 
 int main()
 {
+
+    unsigned char temp_string[10] = {0};
+    int junk = 0;
+
     printf("\n %d \n", to_can_code("ABC"));
-    printf("\n %s \n", from_can_code(1683));
+    printf("\n %s \n", from_can_code(1683, temp_string));
+
+    junk = getchar();
 
 }
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

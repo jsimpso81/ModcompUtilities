@@ -79,6 +79,13 @@ int main(int argc, char* argv[]) {
                 if (j < argc)
                     sscanf_s(argv[j], "%lld", &sector_count);
             }
+
+            /* --------unrecognized parameter */
+            else {
+                if (j != 0)
+                    printf("\n *** ERROR **** Unrecognized command line parameter '%s', ignored.\n", argv[j]);
+            }
+
         }
     }
 

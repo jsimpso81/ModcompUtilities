@@ -20,10 +20,11 @@ void USL_Directory_Print_Initial_Entry(USL_DIRECTORY_ENTRY* direct_entry) {
 	unsigned char cancode1[4] = { 0, 0, 0, 0 };
 	unsigned char cancode2[4] = { 0, 0, 0, 0 };
 	unsigned char cancode3[4] = { 0, 0, 0, 0 };
+	unsigned char temp_string[10] = { 0 };
 
-	strcpy_s(cancode1, 4, from_can_code(direct_entry->initial_entry.usl_id_1));
-	strcpy_s(cancode2, 4, from_can_code(direct_entry->initial_entry.usl_id_2));
-	strcpy_s(cancode3, 4, from_can_code(direct_entry->initial_entry.usl_id_3));
+	strcpy_s(cancode1, 4, from_can_code(direct_entry->initial_entry.usl_id_1, temp_string));
+	strcpy_s(cancode2, 4, from_can_code(direct_entry->initial_entry.usl_id_2, temp_string));
+	strcpy_s(cancode3, 4, from_can_code(direct_entry->initial_entry.usl_id_3, temp_string));
 
 
 	printf("Initial directory entry ----------------------------\n");

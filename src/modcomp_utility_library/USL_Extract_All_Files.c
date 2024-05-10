@@ -49,7 +49,7 @@
 //      word 8          unused = 0
 // 
 //      
-void USL_extract_all_files(char* partition_file, char* extract_dir, char* recover_dir ) {
+void USL_extract_all_files(char* partition_file, char* extract_dir, char* recover_dir, int max_line_bytes ) {
 
     FILE* inpart;
     __int64 sector;
@@ -136,11 +136,11 @@ void USL_extract_all_files(char* partition_file, char* extract_dir, char* recove
                         USL_Directory_Print_File_Entry(&file_entry);
                         if (beyond_end) {
                             printf(" recover file - %s, start %d, len %d\n", file_entry.file_name, file_entry.starting_sector, file_entry.sector_count);
-                            USL_Extract_File( inpart, USL_log_file, &file_entry, recover_dir);
+                            USL_Extract_File( inpart, USL_log_file, &file_entry, recover_dir, max_line_bytes);
                         }
                         else {
                             printf(" extract file - %s, start %d, len %d\n", file_entry.file_name, file_entry.starting_sector, file_entry.sector_count);
-                            USL_Extract_File(inpart, USL_log_file, &file_entry, extract_dir);
+                            USL_Extract_File(inpart, USL_log_file, &file_entry, extract_dir, max_line_bytes);
                         }
                      }
 
