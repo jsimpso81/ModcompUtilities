@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="modcomp_utility_library.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="read_sector_lba.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="to_can_code.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="from_can_code.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="to_rad50.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="from_rad50.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="get_can_index.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="read_disk_image_sector_lba.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bswap16.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Dump_Directory.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="extract_partition.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Dump_File.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Directory_Print_Initial_Entry.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Directory_Print_Raw_Entry.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Directory_Print_LogFile_Entry.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Directory_Print_DirectSector_Entry.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Directory_Print_File_Entry.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dump_sector.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Extract_All_Files.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Parse_File_Entry.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USL_Extract_File.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
