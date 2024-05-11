@@ -102,6 +102,8 @@ unsigned char* from_can_code(unsigned int can_value, unsigned char* result_strin
 unsigned int get_can_index(unsigned int ascii_code);
 int read_disk_image_sector_lba(FILE* fp, __int64 sector, void* buf);
 int read_sector_lba(FILE* fp, __int64 sector, size_t  sector_count, void* buf, size_t* return_count, int* end_of_file);
+void TapeImg_dump_records(char* filename, bool swap_bytes);
+int TapeImg_read_next_record(FILE* fp, __int64* current_file_position, void* buf, int max_buf_bytes, size_t* bytes_read, int* end_of_file);
 unsigned int to_can_code(unsigned char* ascii_string);
 void USL_Directory_Print_DirectSector_Entry(USL_DIRECTORY_ENTRY* direct_entry);
 void USL_Directory_Print_File_Entry(USL_FILE_ENTRY* file_entry);
