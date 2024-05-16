@@ -88,8 +88,16 @@ void process_user_commands() {
 			}
 
 			// --------fill
+			// TODO: add switch value for device address
 			else if (strcmp(cmd_line_parsed[0], "fill") == 0) {
 				if (!gbl_fp_runlight) {
+					gbl_mem[0] = 0x401a;
+					gbl_mem[1] = 0x484a;
+					gbl_mem[2] = 0x7648;
+					gbl_mem[3] = 0x0000;
+					gbl_mem[4] = 0x4c4a;
+					gbl_mem[5] = 0xaf42;
+					gbl_mem[6] = 0x7000;
 				}
 			}
 
