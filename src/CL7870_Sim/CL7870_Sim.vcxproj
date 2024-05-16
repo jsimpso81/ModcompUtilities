@@ -131,6 +131,10 @@
     <ClCompile Include="classic_7860_cpu.c" />
     <ClCompile Include="cmd_process_parse.c" />
     <ClCompile Include="cmd_process_print_prompt.c" />
+    <ClCompile Include="device_console.c" />
+    <ClCompile Include="device_null.c" />
+    <ClCompile Include="init_cpu_data.c" />
+    <ClCompile Include="init_iop_data.c" />
     <ClCompile Include="process_user_commands.c" />
     <ClCompile Include="start_cpu_thread.c" />
   </ItemGroup>

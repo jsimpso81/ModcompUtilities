@@ -6,6 +6,20 @@
 #include "modcomp_opcodes.h"
 #include "modcomp_sim_procedures.h"
 
+static unsigned __int16 program_counter = 0;	// use local mapping, value 0=65k
+static unsigned __int16 cpu_current_register_block = 0;
+static unsigned __int16 cpu_register[16][16] = { 0 }; // [register][registerblock] TODO: Ensure initializtion is complete.
+
+
+// TODO: only set if halted.
+void cpu_set_register_value(unsigned __int16 reg_index, unsigned __int16 reg_value) {
+	cpu_register[reg_index][cpu_current_register_block] = reg_value;
+}
+
+void cpu_set_program_counter(unsigned __int16 pc) {
+	program_counter = pc;
+}
+
 void classic_7860_cpu() {
 
 	// -------- local constants
@@ -18,7 +32,6 @@ void classic_7860_cpu() {
 
 
 	// -------- local values	
-	static unsigned __int16 program_counter = 0;	// use local mapping, value 0=65k
 	static unsigned __int16 instruction = 0;
 	static unsigned __int16 opcode;
 	// unsigned __int16 source_reg = 0;
@@ -28,8 +41,6 @@ void classic_7860_cpu() {
 	static unsigned __int16 cpu_interrupt_active = 0;
 	static unsigned __int16 cpu_interrupt_enabled = 0;
 	static unsigned __int16 cpu_interrupt_request = 0;
-	static unsigned __int16 cpu_register[16][16] = { 0 }; // [register][registerblock] TODO: Ensure initializtion is complete.
-	static unsigned __int16 cpu_current_register_block = 0;
 	static unsigned __int16 cpu_current_operand_map = 0;
 	static unsigned __int16 cpu_current_instruction_map = 0;
 	static bool cpu_virtual_mode = false;
@@ -385,40 +396,68 @@ void classic_7860_cpu() {
 
 
 		case  OP_OCA:			// 0x40
+			tempu16_regs = GET_SOURCE_REGISTER;
+			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
+			if (iop_output_cmd_proc[tempu16_regs] != NULL) {
+				(*iop_output_cmd_proc[tempu16_regs])(tempu16_val1);
+			}
+			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_OCB:			// 0x41
+			tempu16_regs = GET_SOURCE_REGISTER | 0x0010;
+			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
+			if (iop_output_cmd_proc[tempu16_regs] != NULL) {
+				(*iop_output_cmd_proc[tempu16_regs])(tempu16_val1);
+			}
+			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_OCC:			// 0x42
+			tempu16_regs = GET_SOURCE_REGISTER | 0x0020;
+			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
+			if (iop_output_cmd_proc[tempu16_regs] != NULL) {
+				(*iop_output_cmd_proc[tempu16_regs])(tempu16_val1);
+			}
+			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_OCD:			// 0x43
+			tempu16_regs = GET_SOURCE_REGISTER | 0x0030;
+			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
+			if (iop_output_cmd_proc[tempu16_regs] != NULL) {
+				(*iop_output_cmd_proc[tempu16_regs])(tempu16_val1);
+			}
+			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ODA:			// 0x44
+			UNIMPLEMENTED_INSTRUCTION;
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ODB:			// 0x45
+			UNIMPLEMENTED_INSTRUCTION;
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ODC:			// 0x46
+			UNIMPLEMENTED_INSTRUCTION;
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ODD:			// 0x47
+			UNIMPLEMENTED_INSTRUCTION;
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ISA:			// 0x48 -- DONE
 			tempu16_regs = GET_SOURCE_REGISTER;
-			if ( &iop_input_status_proc[tempu16_regs] != 0) {
+			if ( iop_input_status_proc[tempu16_regs] != NULL) {
 				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])();
 			}
 			else {
@@ -428,9 +467,9 @@ void classic_7860_cpu() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_ISB:			// 0x49 -- DONE
+		case  OP_ISB:			// 0x49
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0010;
-			if (&iop_input_status_proc[tempu16_regs] != 0) {
+			if (iop_input_status_proc[tempu16_regs] != NULL) {
 				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])();
 			}
 			else {
@@ -440,9 +479,9 @@ void classic_7860_cpu() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_ISC:			// 0x4a -- DONE
+		case  OP_ISC:			// 0x4a
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0020;
-			if (&iop_input_status_proc[tempu16_regs] != 0) {
+			if (iop_input_status_proc[tempu16_regs] != 0) {
 				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])();
 			}
 			else {
@@ -452,9 +491,9 @@ void classic_7860_cpu() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_ISD:			// 0x4b -- DONE
+		case  OP_ISD:			// 0x4b
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0030;
-			if (&iop_input_status_proc[tempu16_regs] != 0) {
+			if (iop_input_status_proc[tempu16_regs] != 0) {
 				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])();
 			}
 			else {
@@ -464,9 +503,9 @@ void classic_7860_cpu() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_IDA:			// 0x4c  --  DONE
+		case  OP_IDA:			// 0x4c
 			tempu16_regs = GET_SOURCE_REGISTER;
-			if (&iop_input_data_proc[tempu16_regs] != 0) {
+			if (iop_input_data_proc[tempu16_regs] != 0) {
 				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])();
 			}
 			else {
@@ -476,9 +515,9 @@ void classic_7860_cpu() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_IDB:			// 0x4d  --  DONE
+		case  OP_IDB:			// 0x4d
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0010;
-			if (&iop_input_data_proc[tempu16_regs] != 0) {
+			if (iop_input_data_proc[tempu16_regs] != 0) {
 				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])();
 			}
 			else {
@@ -488,9 +527,9 @@ void classic_7860_cpu() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_IDC:			// 0x4e  --  DONE
+		case  OP_IDC:			// 0x4e
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0020;
-			if (&iop_input_data_proc[tempu16_regs] != 0) {
+			if (iop_input_data_proc[tempu16_regs] != 0) {
 				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])();
 			}
 			else {
@@ -500,9 +539,9 @@ void classic_7860_cpu() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_IDD:			// 0x4f  --  DONE
+		case  OP_IDD:			// 0x4f
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0030;
-			if (&iop_input_data_proc[tempu16_regs] != 0) {
+			if (iop_input_data_proc[tempu16_regs] != 0) {
 				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])();
 			}
 			else {

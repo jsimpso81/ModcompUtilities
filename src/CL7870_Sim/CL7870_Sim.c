@@ -19,6 +19,9 @@ int main(int argc, char* argv[]) {
     int j;
     // pthread_t cpu_thread_id;
 
+    init_cpu_data();
+    init_iop_data();
+
     /* -------- annouce our program  */
     printf("\nCL7870_Sim - Modcomp classic 7870 simulator.\n");
 

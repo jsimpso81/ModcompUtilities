@@ -33,6 +33,18 @@
     <ClCompile Include="start_cpu_thread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="init_cpu_data.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="init_iop_data.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_null.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_console.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

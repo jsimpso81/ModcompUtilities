@@ -98,16 +98,26 @@ void process_user_commands() {
 					gbl_mem[4] = 0x4c4a;
 					gbl_mem[5] = 0xaf42;
 					gbl_mem[6] = 0x7000;
+					cpu_set_register_value(1, 0x8800);
+					cpu_set_register_value(2, 0x002e);
+					cpu_set_register_value(3, 0xffb1);
+					cpu_set_register_value(4, 0xbd8f);		// unused
+					cpu_set_register_value(5, 0);
+					cpu_set_register_value(6, 0);
+					cpu_set_register_value(7, 0);
 				}
 			}
 
 			// --------master clear
 			else if (strcmp(cmd_line_parsed[0], "mc") == 0) {
+				cpu_set_program_counter(0);
 			}
 
 			// --------help
 			else if (strcmp(cmd_line_parsed[0], "help") == 0) {
 				printf("\nCommands:\n");
+				printf("      device console <comx> - define console device and assign to com port\n");
+				printf("      device console tcp <port> - define console device and assign to tcp port\n");
 				printf("      fill - fill\n");
 				printf("      halt - halt cpu\n");
 				printf("      help - print this list of commands\n");
@@ -121,6 +131,10 @@ void process_user_commands() {
 				printf("      show swtiches - show console switches\n");
 				printf("      step - execute a single instruction\n");
 				printf("\n");
+			}
+
+			else {
+				printf(" *** ERROR *** Unrecognized command: %s\n", cmd_line_parsed[0]);
 			}
 
 		}
