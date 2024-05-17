@@ -201,7 +201,9 @@ void classic_7860_cpu() {
 			break;
 
 		case  OP_IBR:			// 0x0a
-			UNIMPLEMENTED_INSTRUCTION;
+			tempu16_val1 = GET_SOURCE_REGISTER_VALUE;
+			tempu16_val2 = ((tempu16_val1 << 8) & 0xff00) | ((tempu16_val1 >> 8) & 0x00ff);
+			SET_DESGINATION_REGISTER_VALUE(tempu16_val2);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
@@ -399,7 +401,7 @@ void classic_7860_cpu() {
 			tempu16_regs = GET_SOURCE_REGISTER;
 			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
 			if (iop_output_cmd_proc[tempu16_regs] != NULL) {
-				(*iop_output_cmd_proc[tempu16_regs])(tempu16_val1);
+				(*iop_output_cmd_proc[tempu16_regs])(tempu16_regs, tempu16_val1);
 			}
 			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -409,7 +411,7 @@ void classic_7860_cpu() {
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0010;
 			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
 			if (iop_output_cmd_proc[tempu16_regs] != NULL) {
-				(*iop_output_cmd_proc[tempu16_regs])(tempu16_val1);
+				(*iop_output_cmd_proc[tempu16_regs])(tempu16_regs, tempu16_val1);
 			}
 			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -419,7 +421,7 @@ void classic_7860_cpu() {
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0020;
 			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
 			if (iop_output_cmd_proc[tempu16_regs] != NULL) {
-				(*iop_output_cmd_proc[tempu16_regs])(tempu16_val1);
+				(*iop_output_cmd_proc[tempu16_regs])(tempu16_regs, tempu16_val1);
 			}
 			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -429,36 +431,56 @@ void classic_7860_cpu() {
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0030;
 			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
 			if (iop_output_cmd_proc[tempu16_regs] != NULL) {
-				(*iop_output_cmd_proc[tempu16_regs])(tempu16_val1);
+				(*iop_output_cmd_proc[tempu16_regs])(tempu16_regs, tempu16_val1);
 			}
 			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ODA:			// 0x44
-			UNIMPLEMENTED_INSTRUCTION;
+			tempu16_regs = GET_SOURCE_REGISTER;
+			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
+			if (iop_output_data_proc[tempu16_regs] != NULL) {
+				(*iop_output_data_proc[tempu16_regs])(tempu16_regs, tempu16_val1);
+			}
+			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ODB:			// 0x45
-			UNIMPLEMENTED_INSTRUCTION;
+			tempu16_regs = GET_SOURCE_REGISTER | 0x0010;
+			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
+			if (iop_output_data_proc[tempu16_regs] != NULL) {
+				(*iop_output_data_proc[tempu16_regs])(tempu16_regs, tempu16_val1);
+			}
+			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ODC:			// 0x46
-			UNIMPLEMENTED_INSTRUCTION;
+			tempu16_regs = GET_SOURCE_REGISTER | 0x0020;
+			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
+			if (iop_output_data_proc[tempu16_regs] != NULL) {
+				(*iop_output_data_proc[tempu16_regs])(tempu16_regs, tempu16_val1);
+			}
+			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ODD:			// 0x47
-			UNIMPLEMENTED_INSTRUCTION;
+			tempu16_regs = GET_SOURCE_REGISTER | 0x0030;
+			tempu16_val1 = GET_REGISTER_VALUE(GET_DESTINATION_REGISTER);
+			if (iop_output_data_proc[tempu16_regs] != NULL) {
+				(*iop_output_data_proc[tempu16_regs])(tempu16_regs, tempu16_val1);
+			}
+			SET_DESTINATION_REGISTER_VALUE(tempu16_val1);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_ISA:			// 0x48 -- DONE
 			tempu16_regs = GET_SOURCE_REGISTER;
 			if ( iop_input_status_proc[tempu16_regs] != NULL) {
-				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])();
+				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])(tempu16_regs);
 			}
 			else {
 				tempu16_val1 = 0;
@@ -470,7 +492,7 @@ void classic_7860_cpu() {
 		case  OP_ISB:			// 0x49
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0010;
 			if (iop_input_status_proc[tempu16_regs] != NULL) {
-				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])();
+				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])(tempu16_regs);
 			}
 			else {
 				tempu16_val1 = 0;
@@ -482,7 +504,7 @@ void classic_7860_cpu() {
 		case  OP_ISC:			// 0x4a
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0020;
 			if (iop_input_status_proc[tempu16_regs] != 0) {
-				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])();
+				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])(tempu16_regs);
 			}
 			else {
 				tempu16_val1 = 0;
@@ -494,7 +516,7 @@ void classic_7860_cpu() {
 		case  OP_ISD:			// 0x4b
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0030;
 			if (iop_input_status_proc[tempu16_regs] != 0) {
-				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])();
+				tempu16_val1 = (*iop_input_status_proc[tempu16_regs])(tempu16_regs);
 			}
 			else {
 				tempu16_val1 = 0;
@@ -506,7 +528,7 @@ void classic_7860_cpu() {
 		case  OP_IDA:			// 0x4c
 			tempu16_regs = GET_SOURCE_REGISTER;
 			if (iop_input_data_proc[tempu16_regs] != 0) {
-				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])();
+				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])(tempu16_regs);
 			}
 			else {
 				tempu16_val1 = 0;
@@ -518,7 +540,7 @@ void classic_7860_cpu() {
 		case  OP_IDB:			// 0x4d
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0010;
 			if (iop_input_data_proc[tempu16_regs] != 0) {
-				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])();
+				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])(tempu16_regs);
 			}
 			else {
 				tempu16_val1 = 0;
@@ -530,7 +552,7 @@ void classic_7860_cpu() {
 		case  OP_IDC:			// 0x4e
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0020;
 			if (iop_input_data_proc[tempu16_regs] != 0) {
-				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])();
+				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])(tempu16_regs);
 			}
 			else {
 				tempu16_val1 = 0;
@@ -542,7 +564,7 @@ void classic_7860_cpu() {
 		case  OP_IDD:			// 0x4f
 			tempu16_regs = GET_SOURCE_REGISTER | 0x0030;
 			if (iop_input_data_proc[tempu16_regs] != 0) {
-				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])();
+				tempu16_val1 = (*iop_input_data_proc[tempu16_regs])(tempu16_regs);
 			}
 			else {
 				tempu16_val1 = 0;

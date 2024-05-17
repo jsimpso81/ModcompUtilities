@@ -55,9 +55,7 @@ int main(int argc, char* argv[]) {
 
             /* -------- print help */
             if (strcmp(argv[j], "-h") == 0 || strcmp(argv[j], "-?") == 0) {
-                printf("\n\nCL7870_sim - Simulate a classic 7870 CPU \n\n");
-                printf("        -h       print help message and exit\n");
-                printf("        -?       print help message and exit\n");
+                user_cmd_print_help();
                 exit(0);
             }
 
@@ -77,6 +75,7 @@ int main(int argc, char* argv[]) {
     process_user_commands();
 
     stop_cpu_thread();
+    device_common_stop_all();
 
     printf("\nCL7860_sim -- terminating.\n");
     exit(0);

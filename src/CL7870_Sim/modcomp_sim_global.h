@@ -1,5 +1,7 @@
+// =================================================================================
 #pragma once
 
+#include <windows.h>
 #include <stdbool.h>
 
 #include "modcomp_sim_types.h"
@@ -35,4 +37,9 @@ DEVICE_OUTPUT_CMD   iop_output_cmd_proc[64] = { 0 };
 DEVICE_INPUT_DATA   iop_input_data_proc[64] = { 0 };
 DEVICE_INPUT_STATUS iop_input_status_proc[64] = { 0 };
 
+void* iop_device_buffer[64];
+int iop_thread_stop_request[64];
+HANDLE  iop_device_thread_handle[64];
+DWORD   iop_device_thread_id[64];
 
+// =================================================================================

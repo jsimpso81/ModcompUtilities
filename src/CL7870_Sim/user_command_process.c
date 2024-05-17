@@ -115,22 +115,23 @@ void process_user_commands() {
 
 			// --------help
 			else if (strcmp(cmd_line_parsed[0], "help") == 0) {
-				printf("\nCommands:\n");
-				printf("      device console <comx> - define console device and assign to com port\n");
-				printf("      device console tcp <port> - define console device and assign to tcp port\n");
-				printf("      fill - fill\n");
-				printf("      halt - halt cpu\n");
-				printf("      help - print this list of commands\n");
-				printf("      mc - master clear\n");
-				printf("      run - run cpu\n");
-				printf("      set swtiches <value> - set console switches\n");
-				printf("      show pc - show program counter\n");
-				printf("      show psw - show processor status word\n");
-				printf("      show reg <0-15> - show current register value\n");
-				printf("      show run - show current cpu run state\n");
-				printf("      show swtiches - show console switches\n");
-				printf("      step - execute a single instruction\n");
-				printf("\n");
+				user_cmd_print_help();
+			}
+
+			// --------just in case 1
+			else if (strcmp(cmd_line_parsed[0], "shit") == 0) {
+				printf(" Please dont.  The smell would be unbearable.\n");
+			}
+
+			// --------just in case 2
+			else if (strcmp(cmd_line_parsed[0], "fuck") == 0) {
+				printf(" No thanks.  Im not that kind of simulator.\n");
+			}
+
+			// ------- exit
+			else if (strcmp(cmd_line_parsed[0], "exit") == 0) {
+				exit_request = true;
+				printf("\nExit requested.\n");
 			}
 
 			else {
@@ -140,11 +141,6 @@ void process_user_commands() {
 		}
 
 
-		// ------- CRUDE
-		if (  strncmp( cmd_line, "exit", 4) == 0 ) {
-			exit_request = true;
-			printf("\nExit requested.\n");
-		}
 
 	}
 

@@ -18,12 +18,14 @@ void init_iop_data() {
 		iop_output_cmd_proc[j] =  NULL ;
 		iop_input_data_proc[j] =  NULL ;
 		iop_input_status_proc[j] =  NULL ;
+
+		iop_device_buffer[j] = NULL;
+		iop_thread_stop_request[j] = 0;
+		iop_device_thread_handle[j] = 0;
+		iop_device_thread_id[j] = 0;
+
 	}
 
-	iop_output_data_proc[0x0a] = device_null_output_data;
-	iop_output_cmd_proc[0x0a] = device_null_output_cmd;
-	iop_input_data_proc[0x0a] = device_null_input_data;
-	iop_input_status_proc[0x0a] = device_null_input_status;
-
+	device_null_init(0x0a);
 
 }

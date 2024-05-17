@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{a21d31b2-614a-49c9-a2ed-d9d68fec66b9}</ProjectGuid>
-    <RootNamespace>CL7870Sim</RootNamespace>
+    <ProjectGuid>{662fe664-b1a3-4c47-b4aa-7eefc1e6b914}</ProjectGuid>
+    <RootNamespace>Comporttest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -127,27 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CL7870_Sim.c" />
-    <ClCompile Include="cpu_classic_7860.c" />
-    <ClCompile Include="device_common_remove.c" />
-    <ClCompile Include="device_common_serial_set_params.c" />
-    <ClCompile Include="device_common_stop_all.c" />
-    <ClCompile Include="user_cmd_parse.c" />
-    <ClCompile Include="user_cmd_print_help.c" />
-    <ClCompile Include="user_cmd_print_prompt.c" />
-    <ClCompile Include="device_console.c" />
-    <ClCompile Include="device_null.c" />
-    <ClCompile Include="cpu_init_data.c" />
-    <ClCompile Include="iop_init_data.c" />
-    <ClCompile Include="user_command_process.c" />
-    <ClCompile Include="cpu_start_thread.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="modcomp_opcodes.h" />
-    <ClInclude Include="modcomp_sim_external_globals.h" />
-    <ClInclude Include="modcomp_sim_global.h" />
-    <ClInclude Include="modcomp_sim_procedures.h" />
-    <ClInclude Include="modcomp_sim_types.h" />
+    <ClCompile Include="Com_port_test.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

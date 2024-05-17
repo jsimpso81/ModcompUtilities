@@ -1,0 +1,28 @@
+classic cpu notes
+
+
+master clear
+	- turns off pipeline mode
+	- reset int level 1 enable
+	- master clear is different than power up!
+	- memory DM and CM are set, BM reset
+	- normalizes all devices...( not busy, no int req, no dmp req, no int ena, device normalized 
+	- pr (pc) set to 0
+	- cpu logic reset
+	- can be done while in RUN
+	- clear switch value if not latched.
+	- disables memory management
+	- clear pipe-line mode
+
+power up (ICB)
+	- memory DM and CM are set, BM reset
+	- disables memory management
+	- clear pipe-line mode
+	
+maintenance clear
+	- master clear and csl int at the same time!
+		leaves some status alone to allow for maintenance.
+
+
+fill
+	- can fill when in run mode.

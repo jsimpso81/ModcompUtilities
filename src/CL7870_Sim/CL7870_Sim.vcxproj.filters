@@ -18,31 +18,43 @@
     <ClCompile Include="CL7870_Sim.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="classic_7860_cpu.c">
+    <ClCompile Include="cpu_classic_7860.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cmd_process_print_prompt.c">
+    <ClCompile Include="user_cmd_print_prompt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="process_user_commands.c">
+    <ClCompile Include="user_command_process.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cmd_process_parse.c">
+    <ClCompile Include="user_cmd_parse.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="start_cpu_thread.c">
+    <ClCompile Include="cpu_start_thread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="init_cpu_data.c">
+    <ClCompile Include="cpu_init_data.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="init_iop_data.c">
+    <ClCompile Include="iop_init_data.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="device_null.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="device_console.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_remove.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_stop_all.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="user_cmd_print_help.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_serial_set_params.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
