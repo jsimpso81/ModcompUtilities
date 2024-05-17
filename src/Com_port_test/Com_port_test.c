@@ -4,6 +4,7 @@
 #include <windows.h>
 //#include <tchar.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 // --------------------------------------------------------------------------------
 void PrintCommState(DCB dcb)
@@ -14,6 +15,28 @@ void PrintCommState(DCB dcb)
         dcb.ByteSize,
         dcb.Parity,
         dcb.StopBits);
+
+    // --------this must be true -- windows only supports binery
+    printf("  fBinary = %d\n",    dcb.fBinary );
+
+    // --------Set DTR to always be on.(input hardware handshaking)
+    printf("  fRtsControl = %d\n", dcb.fRtsControl);
+    printf("  fDtrControl = %d\n", dcb.fDtrControl);
+
+    // --------it sounds like this is input
+    printf("  fDsrSensitivity = %d\n", dcb.fDsrSensitivity);
+
+    // --------turn off any input xon/xoff handshaking
+    printf("  fInX = %d\n", dcb.fInX);
+
+    // --------Turn off any output Xon/Xoff handshaking
+    printf("  fOutX = %d\n", dcb.fOutX);
+
+    // --------hardware output handshaking
+    printf("  fOutxCtsFlow = %d\n", dcb.fOutxCtsFlow);
+    printf("  fOutxDsrFlow = %d\n", dcb.fOutxDsrFlow);
+
+
 }
 
 
@@ -62,6 +85,26 @@ int device_common_serial_set_params() {
     dcb.ByteSize = 8;             //  data size, xmit and rcv
     dcb.Parity = NOPARITY;      //  parity bit
     dcb.StopBits = ONESTOPBIT;    //  stop bit
+
+    // --------this must be true -- windows only supports binery
+    dcb.fBinary = true;
+
+    // --------Set DTR to always be on.(input hardware handshaking)
+    dcb.fRtsControl = RTS_CONTROL_ENABLE;
+    dcb.fDtrControl = DTR_CONTROL_ENABLE;
+
+    // --------it sounds like this is input
+    dcb.fDsrSensitivity = false;
+
+    // --------turn off any input xon/xoff handshaking
+    dcb.fInX = false;
+
+    // --------Turn off any output Xon/Xoff handshaking
+    dcb.fOutX = false;
+
+    // --------hardware output handshaking
+    dcb.fOutxCtsFlow = false;
+    dcb.fOutxDsrFlow = false;
 
     fSuccess = SetCommState(hCom, &dcb);
 

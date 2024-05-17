@@ -57,6 +57,15 @@
     <ClCompile Include="device_common_serial_set_params.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="device_common_serial_open.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_serial_close.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_serial_print_settings.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

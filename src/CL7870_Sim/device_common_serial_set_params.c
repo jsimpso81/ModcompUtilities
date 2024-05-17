@@ -1,28 +1,12 @@
 #include <windows.h>
 #include <stdio.h>
+#include <stdbool.h>
 
-int device_common_serial_set_params() {
+int device_common_serial_set_params( HANDLE hCom ) {
 
     DCB dcb;
-    HANDLE hCom;
     BOOL fSuccess;
     LPCSTR pcCommPort = "COM1"; //  Most systems have a COM1 port //TODO: pass as a parameter
-
-
-    // -------- Open a handle to the specified com port.
-    hCom = CreateFileA(pcCommPort,
-        GENERIC_READ | GENERIC_WRITE,
-        0,      //  must be opened with exclusive-access
-        NULL,   //  default security attributes
-        OPEN_EXISTING, //  must use OPEN_EXISTING
-        0,      //  not overlapped I/O
-        NULL); //  hTemplate must be NULL for comm devices
-
-    // -------- Handle the error.
-    if (hCom == INVALID_HANDLE_VALUE) {
-        printf("\n *** ERROR *** CreateFile failed with error %d.\n", GetLastError());
-        return (1);
-    }
 
     // -------- Initialize the DCB structure.
     SecureZeroMemory(&dcb, sizeof(DCB));
@@ -34,11 +18,12 @@ int device_common_serial_set_params() {
 
     // -------- Handle the error.
     if (!fSuccess) {
-        printf("\n *** ERROR *** GetCommState failed with error %d.\n", GetLastError());
+        printf("\n *** ERROR *** GetCommState failed with error 0x%08x.\n", GetLastError());
         return (2);
     }
 
-    // PrintCommState(dcb);       //  Output to console
+    // -------- debug print out the current settings
+    serial_common_serial_print_settings(dcb);
 
     // -------- Fill in some DCB values and set the com state: 
     // -------- 9600 bps, 8 data bits, no parity, and 1 stop bit.
@@ -47,6 +32,27 @@ int device_common_serial_set_params() {
     dcb.Parity = NOPARITY;      //  parity bit
     dcb.StopBits = ONESTOPBIT;    //  stop bit
 
+    // --------this must be true -- windows only supports binery
+    dcb.fBinary = true;
+
+    // --------Set DTR to always be on.(input hardware handshaking)
+    dcb.fRtsControl = RTS_CONTROL_ENABLE;
+    dcb.fDtrControl = DTR_CONTROL_ENABLE;
+
+    // --------it sounds like this is input
+    dcb.fDsrSensitivity = false;
+
+    // --------turn off any input xon/xoff handshaking
+    dcb.fInX = false;
+
+    // --------Turn off any output Xon/Xoff handshaking
+    dcb.fOutX = false;
+
+    // --------hardware output handshaking
+    dcb.fOutxCtsFlow = false;
+    dcb.fOutxDsrFlow = false;
+
+    // --------update the settings.
     fSuccess = SetCommState(hCom, &dcb);
 
     // -------- Handle the error.
