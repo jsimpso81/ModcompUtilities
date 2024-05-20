@@ -2,11 +2,13 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-int device_common_serial_set_params( HANDLE hCom ) {
+#include "modcomp_sim_procedures.h"
+
+// -------- set com parameters -- for now 9600,8,N,1 - no hand shaking.
+int device_common_serial_set_params( HANDLE hCom, DWORD *last_error ) {
 
     DCB dcb;
     BOOL fSuccess;
-    LPCSTR pcCommPort = "COM1"; //  Most systems have a COM1 port //TODO: pass as a parameter
 
     // -------- Initialize the DCB structure.
     SecureZeroMemory(&dcb, sizeof(DCB));
@@ -18,12 +20,12 @@ int device_common_serial_set_params( HANDLE hCom ) {
 
     // -------- Handle the error.
     if (!fSuccess) {
-        printf("\n *** ERROR *** GetCommState failed with error 0x%08x.\n", GetLastError());
-        return (2);
+        *last_error = GetLastError();
+        return (1);
     }
 
     // -------- debug print out the current settings
-    serial_common_serial_print_settings(dcb);
+    device_common_serial_print_settings(dcb);
 
     // -------- Fill in some DCB values and set the com state: 
     // -------- 9600 bps, 8 data bits, no parity, and 1 stop bit.
@@ -57,8 +59,8 @@ int device_common_serial_set_params( HANDLE hCom ) {
 
     // -------- Handle the error.
     if (!fSuccess) {
-        printf("\n *** ERROR *** SetCommState failed with error %d.\n", GetLastError());
-        return (3);
+        *last_error = GetLastError();
+        return (2);
     }
 
     // -------- Get the comm config again.
@@ -66,15 +68,14 @@ int device_common_serial_set_params( HANDLE hCom ) {
 
     // --------- Handle the error.
     if (!fSuccess) {
-        printf("\n *** ERROR *** GetCommState failed with error %d.\n", GetLastError());
-        return (2);
+        *last_error =  GetLastError();
+        return (3);
     }
 
-    // PrintCommState(dcb);       //  Output to console
+    // -------- debug print out the current settings
+    device_common_serial_print_settings(dcb);
 
-    CloseHandle(hCom);
-
-    //  printf("Serial port %s successfully reconfigured.\n", pcCommPort);
+    *last_error = 0;
     return (0);
 
 }

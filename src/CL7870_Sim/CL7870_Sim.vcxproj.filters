@@ -66,6 +66,21 @@
     <ClCompile Include="device_common_serial_print_settings.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="device_common_thread_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_device_buffer_allocate.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="que_uword_send.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="que_uword_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="que_uword_recv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

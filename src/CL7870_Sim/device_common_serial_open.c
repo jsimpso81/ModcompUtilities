@@ -1,12 +1,11 @@
 
 #include <windows.h>
-#include <stdio.h>
 
-int device_common_serial_open(char* com_port, HANDLE* com_handle ) {
+// -------- open com port 0 = good status
+int device_common_serial_open(char* com_port, HANDLE* com_handle, DWORD* last_error ) {
 
     HANDLE hCom;
     LPCSTR pcCommPort;
-
 
     pcCommPort = com_port;
 
@@ -23,10 +22,10 @@ int device_common_serial_open(char* com_port, HANDLE* com_handle ) {
 
     // -------- Handle the error.
     if (hCom == INVALID_HANDLE_VALUE) {
-        printf("\n *** ERROR *** CreateFile failed with error %d.\n", GetLastError());
+        *last_error = GetLastError();
         return (1);
     }
+    *last_error = 0;
     return(0);
 
 }
-

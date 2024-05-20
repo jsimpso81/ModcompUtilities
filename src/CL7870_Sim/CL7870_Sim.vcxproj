@@ -80,6 +80,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);synchronization.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -96,6 +97,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);synchronization.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -108,6 +110,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);synchronization.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -124,17 +127,23 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);synchronization.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CL7870_Sim.c" />
     <ClCompile Include="cpu_classic_7860.c" />
+    <ClCompile Include="device_common_device_buffer_allocate.c" />
     <ClCompile Include="device_common_remove.c" />
     <ClCompile Include="device_common_serial_close.c" />
     <ClCompile Include="device_common_serial_open.c" />
     <ClCompile Include="device_common_serial_print_settings.c" />
     <ClCompile Include="device_common_serial_set_params.c" />
     <ClCompile Include="device_common_stop_all.c" />
+    <ClCompile Include="device_common_thread_init.c" />
+    <ClCompile Include="que_uword_init.c" />
+    <ClCompile Include="que_uword_recv.c" />
+    <ClCompile Include="que_uword_send.c" />
     <ClCompile Include="user_cmd_parse.c" />
     <ClCompile Include="user_cmd_print_help.c" />
     <ClCompile Include="user_cmd_print_prompt.c" />

@@ -1,19 +1,17 @@
 #include <windows.h>
-#include <stdio.h>
 
-
-int device_common_close(HANDLE com_handle) {
+// -------- close an open com port, 0 = no error
+int device_common_serial_close(HANDLE com_handle, DWORD* last_error) {
 
 	BOOL status;
-	DWORD last_error;
 
 	status = CloseHandle(com_handle);
 
 	if (!status) {
-		last_error = GetLastError();
-		printf("\n *** ERROR *** Trouble closinig serial port, status = 0x%08x\n", last_error);
+		*last_error = GetLastError();
 		return(1);
 	}
 
+	*last_error = 0;
 	return(0);
 }
