@@ -5,7 +5,7 @@
 #include "modcomp_sim_types.h"
 
 // -------- cpu
-void init_cpu_data();
+void cpu_init_data();
 unsigned __int16 cpu_get_program_counter();
 unsigned __int16 cpu_get_register_value(unsigned __int16 reg_index);
 void cpu_set_register_value(unsigned __int16 reg_index, unsigned __int16 reg_value);
@@ -21,7 +21,7 @@ void cmd_process_print_prompt();
 void cmd_process_parse(char* cmd_line, int max_len, char* cmd_line_parse[], int max_items, int* count_found);
 
 // -------- iop
-void init_iop_data();
+void iop_init_data();
 
 // -------- device common
 void* device_common_buffer_allocate(unsigned __int16 device_address, size_t buffer_size);
@@ -31,7 +31,7 @@ int device_common_serial_close( HANDLE com_handle, DWORD* last_error);
 int device_common_serial_open( char* com_port, HANDLE *com_handle, DWORD *last_error );
 void device_common_serial_print_settings(DCB this_dcb);
 int device_common_serial_set_params(HANDLE hCom, DWORD* last_error);
-void device_common_thread_init(unsigned __int16 device_address,
+void device_common_thread_init(LPVOID data_buffer,
 	DEVICE_WORKER_THREAD worker_proc,
 	DEVICE_OUTPUT_DATA output_data_proc,
 	DEVICE_OUTPUT_CMD output_cmd_proc,

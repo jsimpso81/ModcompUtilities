@@ -43,4 +43,5 @@ extern int iop_thread_stop_request[64];
 extern HANDLE  iop_device_thread_handle[64];
 extern DWORD   iop_device_thread_id[64];
 
+extern bool gbl_verbose_debug;
 // =================================================================================

@@ -6,6 +6,7 @@ void user_cmd_print_help() {
 	printf("\n   Command line parameters:\n");
 	printf("        -h       print help message and exit\n");
 	printf("        -?       print help message and exit\n");
+	printf("        -v       verbose debug messages.\n");
 	printf("\n   Commands:\n");
 	printf("      device console <comx> - define console device and assign to com port\n");
 	printf("      device console tcp <port> - define console device and assign to tcp port\n");

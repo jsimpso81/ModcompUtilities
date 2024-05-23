@@ -92,5 +92,11 @@
     <ClCompile Include="TapeImg_DumpRecords.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dump_sector_as_byte_variable.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dump_file_as_byte_variable.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

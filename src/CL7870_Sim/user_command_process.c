@@ -15,6 +15,30 @@ void process_user_commands() {
 	static char* parsed_list[100];
 	static int j = 0;
 	static int k = 0;
+	static unsigned int uj = 0;
+
+// -------- commands
+//      mc - master clear
+//      help - get a help message, show command list
+//      set switches <value>
+//      set regdisplay <value>
+//		set verbose <on|off>
+//      show switches
+//      show pc  - program counter
+//      show ps  - processor status
+//		show verbose
+//      fill - issue a fill command
+//      run - run cpu
+//      step - single step cpu
+//      halt = halt cpu
+//      device bus dev_addr pri dmp model/type file
+//                          types:  console  - cons <comx or tcp port>
+//                                  mag tape --  mt <unit> <tape file name>
+//                                  disk --  lx <unit> <disk file img>
+//                                  async -- as <unit> <comx or tcp port>
+//
+
+
 
 	// --------jim this is crude.  has is really been so long since we have programmed in C...
 	for (j = 0; j < 100; j++) {
@@ -65,6 +89,11 @@ void process_user_commands() {
 						printf(" Run / Halt mode :%s\n", (gbl_fp_runlight ? "Run" : "Halt"));
 					}
 
+					//--------verbose
+					else if (strcmp(cmd_line_parsed[1], "verbose") == 0) {
+						printf(" Verbose debug mode : %s\n", (gbl_verbose_debug ? "On" : "Off"));
+					}
+
 					//--------reg
 					else if (strcmp(cmd_line_parsed[1], "reg") == 0) {
 						printf(" Current register block\n");
@@ -91,19 +120,38 @@ void process_user_commands() {
 
 					//--------mem
 					else if (strcmp(cmd_line_parsed[1], "mem") == 0) {
+						unsigned __int32 start_mem = 0;
+						unsigned __int32 end_mem = 511;
+						unsigned __int32 parm_parse = 0;
+						if (cmd_count_found >= 3) {
+							if (sscanf_s(cmd_line_parsed[2], "%li", &parm_parse) == 1) {
+								start_mem = parm_parse;
+							}
+						}
+						if (cmd_count_found >= 4) {
+							if (sscanf_s(cmd_line_parsed[3], "%li", &parm_parse) == 1) {
+								end_mem = parm_parse;
+							}
+						}
+
 						printf(" Memory\n");
-						for (j = 0; j < 512; j += 8) {
-							printf("  0x%04x:  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n", j,
-								gbl_mem[j],
-								gbl_mem[j + 1],
-								gbl_mem[j + 2],
-								gbl_mem[j + 3],
-								gbl_mem[j + 4],
-								gbl_mem[j + 5],
-								gbl_mem[j + 6],
-								gbl_mem[j + 7]
+						for (uj = start_mem; uj < (end_mem+8); uj += 8) {
+							printf("  0x%04x:  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n", uj,
+								gbl_mem[uj],
+								gbl_mem[uj + 1],
+								gbl_mem[uj + 2],
+								gbl_mem[uj + 3],
+								gbl_mem[uj + 4],
+								gbl_mem[uj + 5],
+								gbl_mem[uj + 6],
+								gbl_mem[uj + 7]
 								);
 						}
+					}
+
+					// --------unrecognozed show sub command.
+					else {
+						printf(" *** ERROR *** Unrecognized show sub-command: %s.\n", cmd_line_parsed[1]);
 					}
 				}
 				else {
@@ -116,6 +164,40 @@ void process_user_commands() {
 				if (cmd_count_found >= 2) {
 
 					//--------switches
+					if (strcmp(cmd_line_parsed[1], "switches") == 0) {
+						unsigned __int16 new_switch_value = 0;
+						unsigned __int16 parm_parse = 0;
+						if (cmd_count_found >= 3) {
+							if (sscanf_s(cmd_line_parsed[2], "%hi", &parm_parse) == 1) {
+								new_switch_value = parm_parse;
+								gbl_fp_switches = new_switch_value;
+								cpu_set_register_value(0, new_switch_value);
+							}
+							else {
+								printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
+							}
+						}
+						else {
+							printf(" *** ERROR *** Command requires another parameter. \n");
+						}
+					}
+					//--------verbose
+					else if ( strcmp(cmd_line_parsed[1], "verbose") == 0) {
+						if (cmd_count_found >= 3) {
+							if (strcmp(cmd_line_parsed[2], "on") == 0) {
+								gbl_verbose_debug = true;
+							}
+							else if (strcmp(cmd_line_parsed[2], "off") == 0) {
+								gbl_verbose_debug = false;
+							}
+							else {
+								printf(" *** ERROR *** Expecting either on or off\n");
+							}
+						}
+						else {
+							printf(" *** ERROR *** Command requires another parameter. \n");
+						}
+					}
 				}
 				else {
 					printf(" *** ERROR *** Too few command parameters.\n");
@@ -136,7 +218,7 @@ void process_user_commands() {
 			// --------step
 			else if (strcmp(cmd_line_parsed[0], "step") == 0) {
 				if (cmd_count_found >= 2) {
-					if (sscanf_s(cmd_line_parsed[1], "%d", &k) == 1 ) {
+					if (sscanf_s(cmd_line_parsed[1], "%i", &k) == 1 ) {
 						if (!gbl_fp_runlight) {
 							bool diffval = true;
 							for (j = 0; j < k; j++) {

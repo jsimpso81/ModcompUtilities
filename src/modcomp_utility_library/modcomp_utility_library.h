@@ -96,7 +96,9 @@ typedef struct {
 /* -------- function prototypes */
 unsigned __int16  bswap16(unsigned __int16 a);
 void dump_file(char* filename, bool swap_bytes);
+void dump_file_as_byte_variable(char* filename, bool swap_bytes, int start_sector, int end_sector);
 void dump_sector(unsigned __int16* sector_buffer);
+void dump_sector_as_byte_variable(unsigned __int16 sector_buffer[]);
 void extract_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count);
 unsigned char* from_can_code(unsigned int can_value, unsigned char* result_string);
 unsigned int get_can_index(unsigned int ascii_code);

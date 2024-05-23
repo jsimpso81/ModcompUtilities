@@ -68,7 +68,7 @@ DWORD WINAPI cpu_thread_proc(LPVOID lpParam) {
 			classic_7860_cpu();
 		}
 		else {
-			Sleep(50);
+			Sleep(30);
 		}
 	}
 

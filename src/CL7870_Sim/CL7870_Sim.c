@@ -17,33 +17,10 @@ int main(int argc, char* argv[]) {
 
     bool done = false;
     int j;
-    // pthread_t cpu_thread_id;
 
-    init_cpu_data();
-    init_iop_data();
 
     /* -------- annouce our program  */
     printf("\nCL7870_Sim - Modcomp classic 7870 simulator.\n");
-
-    // -------- commands
-    //      mc - master clear
-    //      help - get a help message, show command list
-    //      set switches <value>
-    //      set regdisplay <value>
-    //      show switches
-    //      show pc  - program counter
-    //      show ps  - processor status
-    //      fill - issue a fill command
-    //      run - run cpu
-    //      step - single step cpu
-    //      halt = halt cpu
-    //      device bus dev_addr pri dmp model/type file
-    //                          types:  console  - cons <comx or tcp port>
-    //                                  mag tape --  mt <unit> <tape file name>
-    //                                  disk --  lx <unit> <disk file img>
-    //                                  async -- as <unit> <comx or tcp port>
-    //
-
 
     /* printf("\n arc = % d \n", argc); */
 
@@ -59,6 +36,11 @@ int main(int argc, char* argv[]) {
                 exit(0);
             }
 
+            /* -------- verbose debug messges */
+            if (strcmp(argv[j], "-v") == 0 ) {
+                gbl_verbose_debug = true;
+            }
+
 
             /* --------unrecognized parameter */
             else {
@@ -68,8 +50,16 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // --------initialize data
+    cpu_init_data();
+    iop_init_data();
+    //fp_init_data();
+
     // -------- start CPU thread.
     start_cpu_thread();
+
+    // --------wait a little for things to start
+    Sleep(2000);
 
     // -------- process user commands.   it returns when the exit command is given.
     process_user_commands();

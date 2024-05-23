@@ -6,7 +6,7 @@
 #include "modcomp_opcodes.h"
 #include "modcomp_sim_procedures.h"
 
-void init_cpu_data() {
+void cpu_init_data() {
 
 
 

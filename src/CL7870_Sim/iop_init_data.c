@@ -6,7 +6,7 @@
 #include "modcomp_opcodes.h"
 #include "modcomp_sim_procedures.h"
 
-void init_iop_data() {
+void iop_init_data() {
 
 	int j;
 

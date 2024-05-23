@@ -42,4 +42,9 @@ int iop_thread_stop_request[64];
 HANDLE  iop_device_thread_handle[64];
 DWORD   iop_device_thread_id[64];
 
+
+// -------- execution options
+bool gbl_verbose_debug = false;
+
+
 // =================================================================================

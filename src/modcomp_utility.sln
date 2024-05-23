@@ -23,6 +23,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CL7870_Sim", "CL7870_Sim\CL
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Com_port_test", "Com_port_test\Com_port_test.vcxproj", "{662FE664-B1A3-4C47-B4AA-7EEFC1E6B914}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Math_Test", "Math_Test\Math_Test.vcxproj", "{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiskFile_ExtractCharString", "DiskFile_ExtractCharString\DiskFile_ExtractCharString.vcxproj", "{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -111,6 +115,22 @@ Global
 		{662FE664-B1A3-4C47-B4AA-7EEFC1E6B914}.Release|x64.Build.0 = Release|x64
 		{662FE664-B1A3-4C47-B4AA-7EEFC1E6B914}.Release|x86.ActiveCfg = Release|Win32
 		{662FE664-B1A3-4C47-B4AA-7EEFC1E6B914}.Release|x86.Build.0 = Release|Win32
+		{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}.Debug|x64.ActiveCfg = Debug|x64
+		{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}.Debug|x64.Build.0 = Debug|x64
+		{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}.Debug|x86.ActiveCfg = Debug|Win32
+		{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}.Debug|x86.Build.0 = Debug|Win32
+		{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}.Release|x64.ActiveCfg = Release|x64
+		{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}.Release|x64.Build.0 = Release|x64
+		{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}.Release|x86.ActiveCfg = Release|Win32
+		{F6F8BB94-BDF5-4812-9858-49F2CE5769DB}.Release|x86.Build.0 = Release|Win32
+		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Debug|x64.ActiveCfg = Debug|x64
+		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Debug|x64.Build.0 = Debug|x64
+		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Debug|x86.ActiveCfg = Debug|Win32
+		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Debug|x86.Build.0 = Debug|Win32
+		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Release|x64.ActiveCfg = Release|x64
+		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Release|x64.Build.0 = Release|x64
+		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Release|x86.ActiveCfg = Release|Win32
+		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

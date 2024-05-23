@@ -1,6 +1,12 @@
 #pragma once
 #include <windows.h>
 
+
+typedef union {
+	unsigned __int16 uval;
+	signed __int16 sval;
+} VAL16;
+
 typedef struct {
 	unsigned __int16 pc;		// program counter
 	unsigned __int16 ps;		// status word
@@ -26,9 +32,19 @@ typedef struct {
 } QUEUE_UWORD;
 
 
+// -------- data block for generic device --- ALL DEVICES MUST START WITH THIS AND ADD VALUES TO END OF STRUCT.
+typedef struct {
+	unsigned __int16 device_address;
+	volatile unsigned __int16 ctrl_wake;
+	volatile unsigned __int16 ctrl_status;
+	QUEUE_UWORD ctrl_command_que;
+} DEVICE_GENERIC_DATA;
+
+
 // -------- data block for console device
 #define DEVICE_CONSOLE_MAX_BUFFER 8000
 typedef struct {
+	unsigned __int16 device_address;
 	volatile unsigned __int16 ctrl_wake;
 	volatile unsigned __int16 ctrl_status;
 	QUEUE_UWORD ctrl_command_que;
@@ -42,8 +58,9 @@ typedef struct {
 
 
 // -------- data block for null device
-#define DEVICE_NULL_MAX_BUFFER 8000
+#define DEVICE_NULL_MAX_BUFFER 12000
 typedef struct {
+	unsigned __int16 device_address;
 	volatile unsigned __int16 ctrl_wake;
 	volatile unsigned __int16 ctrl_status;
 	QUEUE_UWORD ctrl_command_que;
