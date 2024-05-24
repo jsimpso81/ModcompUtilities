@@ -133,6 +133,7 @@
   <ItemGroup>
     <ClCompile Include="CL7870_Sim.c" />
     <ClCompile Include="cpu_classic_7860.c" />
+    <ClCompile Include="cpu_set_switches.c" />
     <ClCompile Include="device_common_device_buffer_allocate.c" />
     <ClCompile Include="device_common_remove.c" />
     <ClCompile Include="device_common_serial_close.c" />
@@ -155,6 +156,9 @@
     <ClCompile Include="cpu_start_thread.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="device_null_initial_boot_block.h" />
+    <ClInclude Include="device_null_sal.h" />
+    <ClInclude Include="device_null_salprep.h" />
     <ClInclude Include="modcomp_opcodes.h" />
     <ClInclude Include="modcomp_sim_external_globals.h" />
     <ClInclude Include="modcomp_sim_global.h" />

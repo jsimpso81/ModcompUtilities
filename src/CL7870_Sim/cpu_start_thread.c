@@ -11,7 +11,7 @@ static int cpu_thread_stop = 0;
 
 DWORD WINAPI cpu_thread_proc(LPVOID lpParam);
 
-void start_cpu_thread() {
+void cpu_start_thread() {
 
 
 	cpu_thread_stop = 0;
@@ -40,7 +40,7 @@ void start_cpu_thread() {
 }
 
 
-void stop_cpu_thread() {
+void cpu_stop_thread() {
 
 	cpu_thread_stop = 1;
 	gbl_fp_runlight = false;
@@ -62,13 +62,15 @@ void stop_cpu_thread() {
 
 DWORD WINAPI cpu_thread_proc(LPVOID lpParam) {
 
+	bool other = false;
+
 	while (cpu_thread_stop == 0) {
 
 		if (gbl_fp_runlight || gbl_fp_single_step) {
-			classic_7860_cpu();
+			cpu_classic_7860();
 		}
 		else {
-			Sleep(30);
+			WaitOnAddress(&gbl_fp_single_step, &other, sizeof(gbl_fp_single_step), 10);
 		}
 	}
 

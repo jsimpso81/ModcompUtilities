@@ -17,6 +17,9 @@ void process_user_commands() {
 	static int k = 0;
 	static unsigned int uj = 0;
 
+	static unsigned __int32 last_starting_mem_address = 0;
+	static unsigned __int32 last_ending_mem_address = 1023;
+
 // -------- commands
 //      mc - master clear
 //      help - get a help message, show command list
@@ -50,8 +53,6 @@ void process_user_commands() {
 
 		cmd_process_print_prompt();
 		fgets(cmd_line, 1023, stdin);
-
-		// printf("cmd: %s\n", cmd_line);
 
 		cmd_process_parse(cmd_line, 1023, parsed_list, 100, &cmd_count_found);
 
@@ -97,7 +98,8 @@ void process_user_commands() {
 					//--------reg
 					else if (strcmp(cmd_line_parsed[1], "reg") == 0) {
 						printf(" Current register block\n");
-						printf("          0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n", 
+						printf("  0  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
+							cpu_get_register_value(0),
 							cpu_get_register_value(1),
 							cpu_get_register_value(2),
 							cpu_get_register_value(3),
@@ -106,7 +108,7 @@ void process_user_commands() {
 							cpu_get_register_value(6),
 							cpu_get_register_value(7)
 							);
-						printf("  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
+						printf("  8  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
 							cpu_get_register_value(8),
 							cpu_get_register_value(9),
 							cpu_get_register_value(10),
@@ -120,23 +122,27 @@ void process_user_commands() {
 
 					//--------mem
 					else if (strcmp(cmd_line_parsed[1], "mem") == 0) {
-						unsigned __int32 start_mem = 0;
-						unsigned __int32 end_mem = 511;
 						unsigned __int32 parm_parse = 0;
 						if (cmd_count_found >= 3) {
 							if (sscanf_s(cmd_line_parsed[2], "%li", &parm_parse) == 1) {
-								start_mem = parm_parse;
+								last_starting_mem_address = parm_parse;
+							}
+							else {
+								printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
 							}
 						}
 						if (cmd_count_found >= 4) {
 							if (sscanf_s(cmd_line_parsed[3], "%li", &parm_parse) == 1) {
-								end_mem = parm_parse;
+								last_ending_mem_address = parm_parse;
+							}
+							else {
+								printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[3]);
 							}
 						}
 
 						printf(" Memory\n");
-						for (uj = start_mem; uj < (end_mem+8); uj += 8) {
-							printf("  0x%04x:  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n", uj,
+						for (uj = last_starting_mem_address; uj < (last_ending_mem_address+8); uj += 8) {
+							printf("  0x%04x  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n", uj,
 								gbl_mem[uj],
 								gbl_mem[uj + 1],
 								gbl_mem[uj + 2],
@@ -147,6 +153,16 @@ void process_user_commands() {
 								gbl_mem[uj + 7]
 								);
 						}
+					}
+
+					// --------just in case 1
+					else if (strcmp(cmd_line_parsed[1], "shit") == 0) {
+						printf(" It is brown gross and smelly.\n");
+					}
+
+					// --------just in case 2
+					else if (strcmp(cmd_line_parsed[1], "fuck") == 0) {
+						printf(" No thanks.  That cant be simulated here.\n");
 					}
 
 					// --------unrecognozed show sub command.
@@ -170,8 +186,7 @@ void process_user_commands() {
 						if (cmd_count_found >= 3) {
 							if (sscanf_s(cmd_line_parsed[2], "%hi", &parm_parse) == 1) {
 								new_switch_value = parm_parse;
-								gbl_fp_switches = new_switch_value;
-								cpu_set_register_value(0, new_switch_value);
+								cpu_set_switches(new_switch_value);
 							}
 							else {
 								printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
@@ -181,6 +196,57 @@ void process_user_commands() {
 							printf(" *** ERROR *** Command requires another parameter. \n");
 						}
 					}
+
+					//--------set memory
+					else if (strcmp(cmd_line_parsed[1], "mem") == 0) {
+						if (cmd_count_found >= 4) {
+							unsigned __int32 parm_parse = 0;
+							unsigned __int32 set_addr = 0;
+							unsigned __int16 set_value = 0;
+							if (sscanf_s(cmd_line_parsed[2], "%i", &parm_parse) == 1) {
+								set_addr = parm_parse;
+								if (sscanf_s(cmd_line_parsed[3], "%i", &parm_parse) == 1) {
+									set_value = parm_parse;
+									gbl_mem[set_addr] = set_value;
+								}
+								else {
+									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[3]);
+								}
+							}
+							else {
+								printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
+							}
+						}
+						else {
+							printf(" *** ERROR *** Expecting two numeric values following set mem\n");
+						}
+					}
+
+					//--------set register
+					else if (strcmp(cmd_line_parsed[1], "reg") == 0) {
+						if (cmd_count_found >= 4) {
+							unsigned __int32 parm_parse = 0;
+							unsigned __int16 set_reg = 0;
+							unsigned __int16 set_value = 0;
+							if (sscanf_s(cmd_line_parsed[2], "%i", &parm_parse) == 1) {
+								set_reg = parm_parse;
+								if (sscanf_s(cmd_line_parsed[3], "%i", &parm_parse) == 1) {
+									set_value = parm_parse;
+									cpu_set_register_value( set_reg, set_value );
+								}
+								else {
+									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[3]);
+								}
+							}
+							else {
+								printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
+							}
+						}
+						else {
+							printf(" *** ERROR *** Expecting two numeric values following set mem\n");
+						}
+					}
+
 					//--------verbose
 					else if ( strcmp(cmd_line_parsed[1], "verbose") == 0) {
 						if (cmd_count_found >= 3) {
@@ -198,6 +264,31 @@ void process_user_commands() {
 							printf(" *** ERROR *** Command requires another parameter. \n");
 						}
 					}
+
+
+					//--------set pc
+					else if (strcmp(cmd_line_parsed[1], "pc") == 0) {
+						if (cmd_count_found >= 3) {
+							unsigned __int32 parm_parse = 0;
+							unsigned __int32 set_pc = 0;
+							if (sscanf_s(cmd_line_parsed[2], "%i", &parm_parse) == 1) {
+								set_pc = parm_parse;
+								cpu_set_program_counter(set_pc);
+							}
+							else {
+								printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
+							}
+						}
+						else {
+							printf(" *** ERROR *** Expecting two numeric values following set mem\n");
+						}
+					}
+
+					// --------not a valid set command
+					else {
+						printf(" *** ERROR *** Not a valid set command %s.\n",cmd_line_parsed[1]);
+					}
+
 				}
 				else {
 					printf(" *** ERROR *** Too few command parameters.\n");
@@ -223,8 +314,12 @@ void process_user_commands() {
 							bool diffval = true;
 							for (j = 0; j < k; j++) {
 								gbl_fp_single_step = true;
+								WakeByAddressSingle(&gbl_fp_single_step);
 								WaitOnAddress( &gbl_fp_single_step, &diffval, sizeof(gbl_fp_single_step), INFINITE );
 							}
+						}
+						else {
+							printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
 						}
 					}
 					else {
@@ -241,17 +336,33 @@ void process_user_commands() {
 			// TODO: add switch value for device address
 			else if (strcmp(cmd_line_parsed[0], "fill") == 0) {
 				if (!gbl_fp_runlight) {
-					gbl_mem[0] = 0x401a;
-					gbl_mem[1] = 0x484a;
+					unsigned __int16 fill_device_address = 10;
+					if (cmd_count_found >= 2) {
+						unsigned __int16 new_switch_value = 0;
+						unsigned __int16 parm_parse = 0;
+						if (sscanf_s(cmd_line_parsed[1], "%hi", &parm_parse) == 1) {
+							new_switch_value = parm_parse;
+							cpu_set_switches(new_switch_value);
+							fill_device_address = new_switch_value & 0x000f;
+						}
+						else {
+							printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
+						}
+					}
+					else {
+						fill_device_address = gbl_fp_switches & 0x000f;
+					}
+					gbl_mem[0] = 0x4010 | fill_device_address;
+					gbl_mem[1] = 0x4840 | fill_device_address;
 					gbl_mem[2] = 0x7648;
 					gbl_mem[3] = 0x0000;
-					gbl_mem[4] = 0x4c4a;
+					gbl_mem[4] = 0x4c40 | fill_device_address;
 					gbl_mem[5] = 0xaf42;
 					gbl_mem[6] = 0x7000;
 					cpu_set_register_value(1, 0x8800);
 					cpu_set_register_value(2, 0x002e);
 					cpu_set_register_value(3, 0xffb1);
-					cpu_set_register_value(4, 0xbd8f);		// unused
+					cpu_set_register_value(4, 0xbd8f);		// unused 
 					cpu_set_register_value(5, 0);
 					cpu_set_register_value(6, 0);
 					cpu_set_register_value(7, 0);

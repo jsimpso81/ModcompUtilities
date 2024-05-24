@@ -147,7 +147,7 @@
 #define OP_DVRD_DVMD		        0xa3
 #define OP_LFM				        0xa4
 #define OP_SFM				        0xa5
-#define OP_HHI				        0xa6
+#define OP_HHI_HNH				    0xa6
 #define OP_AUGA7			        0xa7
 #define OP_HNS_HNR			        0xa8
 #define OP_HZS_HZR			        0xa9

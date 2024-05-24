@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     //fp_init_data();
 
     // -------- start CPU thread.
-    start_cpu_thread();
+    cpu_start_thread();
 
     // --------wait a little for things to start
     Sleep(2000);
@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     // -------- process user commands.   it returns when the exit command is given.
     process_user_commands();
 
-    stop_cpu_thread();
+    cpu_stop_thread();
     device_common_stop_all();
 
     printf("\nCL7860_sim -- terminating.\n");

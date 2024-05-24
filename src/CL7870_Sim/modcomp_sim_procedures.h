@@ -10,9 +10,10 @@ unsigned __int16 cpu_get_program_counter();
 unsigned __int16 cpu_get_register_value(unsigned __int16 reg_index);
 void cpu_set_register_value(unsigned __int16 reg_index, unsigned __int16 reg_value);
 void cpu_set_program_counter(unsigned __int16 pc);
-void classic_7860_cpu();
-void start_cpu_thread();
-void stop_cpu_thread();
+void cpu_set_switches(unsigned __int16 switch_value);
+void cpu_classic_7860();
+void cpu_start_thread();
+void cpu_stop_thread();
 
 // -------- user command
 void process_user_commands();

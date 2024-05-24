@@ -81,6 +81,9 @@
     <ClCompile Include="que_uword_recv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpu_set_switches.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">
@@ -96,6 +99,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="modcomp_sim_external_globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="device_null_sal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="device_null_salprep.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="device_null_initial_boot_block.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
