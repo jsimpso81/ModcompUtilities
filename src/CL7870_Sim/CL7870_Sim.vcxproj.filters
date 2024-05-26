@@ -84,6 +84,21 @@
     <ClCompile Include="cpu_set_switches.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="disp_psw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disp_pc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disp_cur_reg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util_get_opcode_disp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disp_devices.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">
@@ -111,6 +126,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="generic_device_variables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="modcomp_opcode_string.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

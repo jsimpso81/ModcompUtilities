@@ -19,10 +19,12 @@ void user_cmd_print_help() {
 	printf("      run - run cpu\n");
 
 	printf("      set mem <addr> <value> - set memory value\n");
+	printf("      set pc <value> - set program counter value\n");
 	printf("      set reg <reg> <value> - set register value\n");
 	printf("      set switches <value> - set console switches\n");
 	printf("      set verbose <on/off> - set verbose debug mode\n");
 
+	printf("      show devices - show all configured devices\n");
 	printf("      show mem <start> <end> - show memory\n");
 	printf("      show pc - show program counter\n");
 	printf("      show psw - show processor status word\n");

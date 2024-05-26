@@ -20,6 +20,15 @@ typedef union {
 	PSW_BITS sep;
 } PSW;
 
+typedef union {
+	struct {
+		unsigned __int8	src_reg : 4;
+		unsigned __int8 dest_reg : 4;
+		unsigned __int8 op_code : 8;
+	} parts;
+	unsigned __int16 all;
+} INSTRUCTION;
+
 
 typedef union {
 	unsigned __int16 uval;

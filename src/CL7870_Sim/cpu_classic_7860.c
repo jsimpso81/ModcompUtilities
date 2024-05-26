@@ -105,14 +105,8 @@ void cpu_classic_7860() {
 
 
 	// -------- local values
-	union {
-		struct {
-			unsigned __int8	src_reg : 4;
-			unsigned __int8 dest_reg : 4;
-			unsigned __int8 op_code : 8;
-		} parts;
-		unsigned __int16 all;
-	} instruction = { .all = 0 };
+	
+	INSTRUCTION instruction = { .all = 0 };
 
 	//	static unsigned __int16 instruction = 0;
 	// static unsigned __int16 opcode;
@@ -180,6 +174,7 @@ void cpu_classic_7860() {
 	static int j = 0;
 	bool do_branch = false;
 
+	char op_code_string[20] = "";
 
 #define UNIMPLEMENTED_INSTRUCTION {\
 					printf("\n unimplemented instruction %04x\n",instruction.all);\
@@ -289,10 +284,23 @@ void cpu_classic_7860() {
 				cpu_cond_code_c = (COND_C); \
 				}
 
-#define TEST_CC_LE	( cpu_cond_code_z || (cpu_cond_code_n != cpu_cond_code_o) )
-
-
-// TODO: finish SET_CC_CHAR macro
+//	TODO: Verify these CC test macros !!!
+// -------- less than or equal to
+#define TEST_CC_LE (   cpu_cond_code_z || (cpu_cond_code_n != cpu_cond_code_o) )
+// -------- greater than
+#define TEST_CC_GT ( !(cpu_cond_code_z || (cpu_cond_code_n != cpu_cond_code_o) ))
+			
+// -------- greater than or equal to
+#define TEST_CC_GE (cpu_cond_code_z || ( !cpu_cond_code_z && ( cpu_cond_code_n != cpu_cond_code_c ) ) )
+// -------- less than
+#define TEST_CC_LT (cpu_cond_code_n != cpu_cond_code_o) 
+				    
+// -------- Not higher
+#define TEST_CC_NH	( !cpu_cond_code_c || cpu_cond_code_z )
+// -------- Higher than
+#define TEST_CC_HI	( !(!cpu_cond_code_c || cpu_cond_code_z) )
+					
+					// TODO: finish SET_CC_CHAR macro
 #define SET_CC_CHAR( VAL ) {\
 				}
 
@@ -337,14 +345,18 @@ void cpu_classic_7860() {
 			// --------get register file index
 		}
 
-
+		// -------- fetch the next instruction
 		instruction.all = gbl_mem[program_counter];
 
-		// -------- decode opcode
-		//  opcode = (instruction >> (unsigned __int16)8) & 0xff;
 
-		if ( gbl_verbose_debug )
-			printf("pc: %04X, instruction: %04x, op code: %04x\n", program_counter, instruction.all, instruction.parts.op_code);
+		// -------- if verbose display the instruction.
+		if (gbl_verbose_debug) {
+
+			util_get_opcode_disp(instruction.all, op_code_string, 20);
+
+			printf("\npc: %04X \t%s  \tinstruction: %04x,  op code: %04x   \n",
+				program_counter, op_code_string, instruction.all, instruction.parts.op_code  );
+		}
 
 		switch ( instruction.parts.op_code) {
 
@@ -1400,13 +1412,13 @@ void cpu_classic_7860() {
 					do_branch = cpu_cond_code_c;
 					break;
 				case 4:		// --  BXLS	Branch (Short-Indexed) on Less Than Condition      
-					do_branch = cpu_cond_code_n != cpu_cond_code_o;
+					do_branch = TEST_CC_LT;
 					break;
 				case 5:		// --  BXLE	Branch (Short-Indexed) on Less Than or Equal Condition    
 					do_branch = TEST_CC_LE;  // CCZ .OR. (CCN .XOR. CCO)
 					break;
 				case 6:		// --  BXHI	Branch (Short-Indexed) on Magnitude Higher Condition      
-					do_branch = !cpu_cond_code_c || cpu_cond_code_z;	// !CCC .or. CCZ
+					do_branch = TEST_CC_HI;	// !CCC .or. CCZ
 					break;
 				case 8:		// --  BXNR	Branch (Short-Indexed) on Condition Code N Reset     
 					do_branch = !cpu_cond_code_n;
@@ -1421,13 +1433,13 @@ void cpu_classic_7860() {
 					do_branch = !cpu_cond_code_c;
 					break;
 				case 12:		// --  BXGE	Branch (Short-Indexed) on Greater Than or Equal Condition    
-					do_branch = cpu_cond_code_z || (!cpu_cond_code_z && (cpu_cond_code_n != cpu_cond_code_c));  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
+					do_branch = TEST_CC_GE;  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
 					break;
 				case 13:		// --  BXGT	Branch (Short-Indexed) on Greater Than Condition      
-					do_branch = !(cpu_cond_code_z || ( cpu_cond_code_n != cpu_cond_code_o));  //  CCZ .or. (CCN .XOR. CCO)
+					do_branch = TEST_CC_GT;  //  CCZ .or. (CCN .XOR. CCO)
 					break;
 				case 14:		// --  BXNH	Branch (Short-Indexed) on Magnitude Not Higher Condition     
-					do_branch = !cpu_cond_code_c || cpu_cond_code_z;  // !CCC .or CCZ
+					do_branch = TEST_CC_NH;  // !CCC .or CCZ
 					break;
 				default:
 					ILLEGAL_INSTRUCTION;
@@ -1654,11 +1666,11 @@ void cpu_classic_7860() {
 		case  OP_HHI_HNH:			// 	        0xa6
 			// HNH  --  Hop on Magnitude Not Higher Condition      
 			if (instruction.all & 0x0080) {
-				CONDITIONAL_BRANCH(!cpu_cond_code_c | cpu_cond_code_z, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_NH, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			// HHI  --  Hop on Magnitude Higher Condition        
 			else {
-				CONDITIONAL_BRANCH(cpu_cond_code_c & !cpu_cond_code_z, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_HI && !cpu_cond_code_z, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			break;
 
@@ -1678,13 +1690,13 @@ void cpu_classic_7860() {
 					do_branch = cpu_cond_code_c;
 					break;
 				case 4:		// --  BLLS	Branch and Link on Less Than Condition     
-					do_branch = cpu_cond_code_n != cpu_cond_code_o;
+					do_branch = TEST_CC_LT;
 					break;
 				case 5:		// --  BLLE	Branch and Link on Less Than or Equal Condition   
 					do_branch = TEST_CC_LE;	// CCZ .OR. (CCN .XOR. CCO)
 					break;
 				case 6:		// --  BLHI	Branch and Link on Magnitude Higher Condition     
-					do_branch = !cpu_cond_code_c || cpu_cond_code_z;	// !CCC .or. CCZ
+					do_branch = TEST_CC_HI;	// !CCC .or. CCZ
 					break;
 				case 8:		// --  BLNR	Branch and Link on Condition Code N Reset    
 					do_branch = !cpu_cond_code_n;
@@ -1699,13 +1711,13 @@ void cpu_classic_7860() {
 					do_branch = !cpu_cond_code_c;
 					break;
 				case 12:		// --  BLGE	Branch and Link on Greater Than or Equal Condition   
-					do_branch = cpu_cond_code_z || ( !cpu_cond_code_z && ( cpu_cond_code_n != cpu_cond_code_c ) );  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
+					do_branch = TEST_CC_GE;  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
 					break;
 				case 13:		// --  BLGT	Branch and Link on Greater Than Condition     
-					do_branch = !(cpu_cond_code_z || (cpu_cond_code_n != cpu_cond_code_o));  //  CCZ .or. (CCN .XOR. CCO)
+					do_branch = TEST_CC_GT;  //  CCZ .or. (CCN .XOR. CCO)
 					break;
 				case 14:		// --  BLNH	Branch and Link on Magnitude Not Higher Condition    
-					do_branch = !cpu_cond_code_c || cpu_cond_code_z;  // !CCC .or CCZ
+					do_branch = TEST_CC_NH;  // !CCC .or CCZ
 					break;
 				default:
 					ILLEGAL_INSTRUCTION;
@@ -1768,18 +1780,18 @@ void cpu_classic_7860() {
 		case  OP_HLS_HGE:			//         0xac
 			//       HGE	Hop oh Greater than or Equal Condition     
 			if (instruction.all & 0x0080) {
-				CONDITIONAL_BRANCH( (cpu_cond_code_z || (!cpu_cond_code_z && (cpu_cond_code_n != cpu_cond_code_c))), GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH( TEST_CC_GE, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			//  HLS	Hop on Less Than Condition            
 			else {
-				CONDITIONAL_BRANCH( (cpu_cond_code_n != cpu_cond_code_o), GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH( TEST_CC_LT, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			break;
 
 		case  OP_HLE_HGT:			//         0xad
 			//       HGT	Hop on Greater Than Condition       
 			if (instruction.all & 0x0080) {
-				CONDITIONAL_BRANCH( !(cpu_cond_code_z || (cpu_cond_code_n != cpu_cond_code_o) ), GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH( TEST_CC_GT, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			//       HLE	Hop on Less Than or Equal Condition     
 			else {

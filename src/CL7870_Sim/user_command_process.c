@@ -72,13 +72,19 @@ void process_user_commands() {
 					//--------processor status word 
 					// TODO: get and show psw
 					if (strcmp(cmd_line_parsed[1], "psw") == 0) {
-						printf(" Proessor status word 0x%04x\n", cpu_get_current_PSW().all);
+						disp_psw( cpu_get_current_PSW() );
 					}
 
 					//--------program counter
 					else if (strcmp(cmd_line_parsed[1], "pc") == 0) {
-						printf(" Program counter 0x%04x\n", cpu_get_program_counter());
+						disp_pc(cpu_get_program_counter());
 					}
+
+					//--------devices
+					else if (strcmp(cmd_line_parsed[1], "devices") == 0) {
+						disp_devices();
+					}
+
 
 					//--------switches
 					else if (strcmp(cmd_line_parsed[1], "switches") == 0) {
@@ -97,27 +103,7 @@ void process_user_commands() {
 
 					//--------reg
 					else if (strcmp(cmd_line_parsed[1], "reg") == 0) {
-						printf(" Current register block\n");
-						printf("  0  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
-							cpu_get_register_value(0),
-							cpu_get_register_value(1),
-							cpu_get_register_value(2),
-							cpu_get_register_value(3),
-							cpu_get_register_value(4),
-							cpu_get_register_value(5),
-							cpu_get_register_value(6),
-							cpu_get_register_value(7)
-							);
-						printf("  8  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
-							cpu_get_register_value(8),
-							cpu_get_register_value(9),
-							cpu_get_register_value(10),
-							cpu_get_register_value(11),
-							cpu_get_register_value(12),
-							cpu_get_register_value(13),
-							cpu_get_register_value(14),
-							cpu_get_register_value(15)
-							);
+						disp_cur_reg();
 					}
 
 					//--------mem
@@ -316,6 +302,9 @@ void process_user_commands() {
 								gbl_fp_single_step = true;
 								WakeByAddressSingle(&gbl_fp_single_step);
 								WaitOnAddress( &gbl_fp_single_step, &diffval, sizeof(gbl_fp_single_step), INFINITE );
+								disp_pc( cpu_get_program_counter());
+								disp_psw(cpu_get_current_PSW());
+								disp_cur_reg();
 							}
 						}
 						else {
@@ -327,8 +316,15 @@ void process_user_commands() {
 					}
 				}
 				else {
-					if (!gbl_fp_runlight)
+					if (!gbl_fp_runlight) {
+						bool diffval = true;
 						gbl_fp_single_step = true;
+						WakeByAddressSingle(&gbl_fp_single_step);
+						WaitOnAddress(&gbl_fp_single_step, &diffval, sizeof(gbl_fp_single_step), INFINITE);
+						disp_pc(cpu_get_program_counter());
+						disp_psw(cpu_get_current_PSW());
+						disp_cur_reg();
+					}
 				}
 			}
 

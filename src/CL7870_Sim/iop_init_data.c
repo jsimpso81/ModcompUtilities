@@ -26,6 +26,6 @@ void iop_init_data() {
 
 	}
 
-	device_null_init(0x0a);
+	device_null_init(0x0a, 0, 15, 0);
 
 }

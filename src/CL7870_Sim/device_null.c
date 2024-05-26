@@ -123,6 +123,11 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 		unsigned __int16 uword;
 	} chksum2 = { .word = 0 };
 
+	union {
+		unsigned __int8 byte[2];
+		signed __int16 word;
+		unsigned __int16 uword;
+	} chksum3 = { .word = 0 };
 
 	union {
 		unsigned __int8 byte[2];
@@ -156,17 +161,15 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	loc_status = (status_exists | status_data_not_ready);
 	device_data->ctrl_status = loc_status;
 
-
+	// ========================================== Buffer for booting =============================================================================
 	// --------add specific bytes for different I/O cards.  For now use 4809... (these differences may be ignorned
 	// --------anyway by the console controller.
 	//	FIL100(B3LDR) = Z'8000'
 	//	FIL100(B4LDR) = Z'8080'
 	//	FIL100(SMBTI) = Z'8023'
 
-	// --------this is to calculate a running checksum that is sent after all of SAL is sent.
-	chksum.word = 0;
-
 	// --------calculate word checksum of 100 boot block.
+	chksum.word = 0;
 	maxj = sizeof(boot100_data);
 	for (j = 0; j < maxj; j += 2) {
 		tmp16.byte[1] = boot100_data[j];	
@@ -176,6 +179,7 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	chksum_neg.word = -1 * chksum.word;	// so it adds up to zero.
 	printf("\n 100 block checksum = 0x%04hx\n", chksum.uword);
 
+	// --------store in buffer.
 	boot100_data[maxj - 4] = chksum_neg.byte[1];
 	boot100_data[maxj - 3] = chksum_neg.byte[0];
 
@@ -194,14 +198,14 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	}
 	printf("\n 100 boot block offset / size  - bytes %d, buffer end %d\n", maxj, device_data->ctrl_input_buffer_count - 1);
 
-
 	// --------copy 100 boot block to device input data global.
 	maxj = sizeof(boot100_data);
 	for (j = 0; j < maxj; j++) {
 		device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = boot100_data[j];
 	}
 	printf("\n 100 boot block   - bytes %d, buffer end %d\n", maxj, device_data->ctrl_input_buffer_count - 1);
-	
+
+
 	// --------copy salprep (400) boot block to device input data global.
 	maxj = sizeof(salprep_data);
 	for (j = 0; j < maxj; j++) {
@@ -218,52 +222,50 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 		chksum2.uword += tmp16.uword;
 	}
 
-	chksum.uword = chksum2.uword;
+	chksum.word = chksum2.word * -1;
 
-	chksum2.word *= -1;
-	printf("\n 400 block (salprep) checksum = 0x%04hx\n", chksum2.uword);
+	printf("\n 400 block (salprep) checksum = 0x%04hx\n", chksum.uword);
 
-	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum2.byte[1];
-	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum2.byte[0];
+	//	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum2.byte[1];
+	//	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum2.byte[0];
+	
 	// device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
 	//device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
 
 
 
-	/*
 	// --------copy sal  to device input data global.
 	maxj = sizeof(sal_data);
 	for (j = 0; j < maxj; j++) {
 		device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = sal_data[j];
 	}
 	printf("\n sal  - bytes %d, buffer end %d\n", maxj, device_data->ctrl_input_buffer_count - 1);
-	*/
 
-	// --------calculate word checksum of 400 boot block.
-	chksum2.uword = 0;
+	// --------calculate word checksum of sal block.
+	// -------- this is a running checksum so dont start at zero.
+	chksum3.uword = 0;
 	maxj = sizeof(sal_data);
 	for (j = 0; j < maxj; j += 2) {
 		tmp16.byte[1] = sal_data[j];
 		tmp16.byte[0] = sal_data[j + 1];
-		chksum2.uword += tmp16.uword;
+		chksum3.uword += tmp16.uword;
 	}
 
-	chksum.uword += chksum2.uword;
+	chksum.uword = chksum3.word * -1;
+
+	printf("\n sal checksum = 0x%04hx\n", chksum.uword);
+
+	chksum.uword = chksum2.uword + chksum3.uword;
 	chksum.word *= -1;
-
-	chksum2.word *= -1;
-	printf("\n sal checksum = 0x%04hx\n", chksum2.uword);
-
 	printf("\n over all checksum = 0x%04hx\n", chksum.uword);
 
-	/*
 	// --------copy running 400 boot and sal checksum to input buffer.
-	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum.byte[1];
-	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum.byte[0];
-	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
-	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
+	// device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum.byte[1];
+	// device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum.byte[0];
+	// device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
+	// device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
 
-	*/
+
 	printf("\n Null device -- input buffer data filled size = %d\n", device_data->ctrl_input_buffer_count);
 
 	// -------------------------------------------------------------------------------------------
@@ -401,21 +403,21 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 			
 			}
 			// -------- if reading and data available, update status.
-			if (dev_reading) {
+			// if (dev_reading) {
 				if (device_data->ctrl_input_buffer_count > device_data->ctrl_input_buffer_index) {
 					loc_status &= (~(status_busy | status_data_not_ready));
 				}
 				else {
 					loc_status |= status_data_not_ready;
 				}
-			}
+			//}
 
 			// --------if writing and buffer space available, update status.
-			if (dev_writing) {
+			// if (dev_writing) {
 				// if (device_data->ctrl_output_buffer_count > device_data->ctrl_output_buffer_index) {
-					loc_status &= (~(status_busy | status_data_not_ready));
+				//	loc_status &= (~(status_busy | status_data_not_ready));
 				// }
-			}
+			//}
 
 
 			// --------update device status
@@ -429,21 +431,22 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 		loc_status &= (~status_busy);
 
 		// -------- if reading and data available, update status.
-		if (dev_reading) {
+		//if (dev_reading) {
 			if (device_data->ctrl_input_buffer_count > device_data->ctrl_input_buffer_index) {
 				loc_status &= (~( status_busy | status_data_not_ready));
 			}
 			else {
 				loc_status |= status_data_not_ready;
 			}
-		}
+		//}
 
 		// --------if writing and buffer space available, update status.
-		if (dev_writing) {
+		//if (dev_writing) {
 			// if (device_data->ctrl_output_buffer_count > device_data->ctrl_output_buffer_index) {
-				loc_status &= (~(status_busy | status_data_not_ready));
+			//	loc_status &= (~(status_busy | status_data_not_ready));
 			// }
-		}
+		//}
+		
 		// --------update device status
 		device_data->ctrl_status = loc_status;
 		// if ( our_status != orig_status )
@@ -466,7 +469,7 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 // ============================================================================================================================
 // --------initialize the device.  calls common routines.  Only custom thing is to initialize the 
 // --------data buffer after it is created.
-void device_null_init(unsigned __int16 device_address) {
+void device_null_init(unsigned __int16 device_address, unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dmp) {
 
 	DEVICE_NULL_DATA* device_data = 0;
 	unsigned __int16 loc_dev_addr;
@@ -479,10 +482,17 @@ void device_null_init(unsigned __int16 device_address) {
 	if ( device_data != NULL ) {
 
 		// -------- fill in global buffer.
+		// -------- standard information for ALL controllers
 		device_data->device_address = loc_dev_addr;
 		device_data->ctrl_status = 0x8080;
 		que_uword_init(&(device_data->ctrl_command_que));
 		device_data->ctrl_wake = 0;
+		device_data->bus = bus;
+		device_data->pri = prio;
+		device_data->dmp = dmp;
+		strcpy_s(device_data->info, 40, "Null (console)");
+
+		// --------data specific to this device.
 		device_data->ctrl_input_buffer_count = 0;
 		device_data->ctrl_input_buffer_index = 0;
 		device_data->ctrl_output_buffer_count = 0;
