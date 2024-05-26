@@ -1,11 +1,38 @@
 #pragma once
 #include <windows.h>
+#include <stdbool.h>
+
+// --------processor status word.
+typedef struct {
+	bool cc_c : 1;
+	bool cc_o : 1;
+	bool cc_z : 1;
+	bool cc_n : 1;
+	bool oh : 1;
+	unsigned __int8 om : 3;
+	unsigned _int8  grb : 4;
+	bool prv : 1;
+	unsigned __int8 im : 3;
+}  PSW_BITS;
+
+typedef union {
+	unsigned __int16 all;
+	PSW_BITS sep;
+} PSW;
 
 
 typedef union {
 	unsigned __int16 uval;
 	signed __int16 sval;
 } VAL16;
+
+
+typedef union {
+	unsigned __int32 uval;
+	signed __int32 sval;
+} VAL32;
+
+
 
 typedef struct {
 	unsigned __int16 pc;		// program counter
@@ -34,20 +61,14 @@ typedef struct {
 
 // -------- data block for generic device --- ALL DEVICES MUST START WITH THIS AND ADD VALUES TO END OF STRUCT.
 typedef struct {
-	unsigned __int16 device_address;
-	volatile unsigned __int16 ctrl_wake;
-	volatile unsigned __int16 ctrl_status;
-	QUEUE_UWORD ctrl_command_que;
+#include "generic_device_variables.h"
 } DEVICE_GENERIC_DATA;
 
 
 // -------- data block for console device
 #define DEVICE_CONSOLE_MAX_BUFFER 8000
 typedef struct {
-	unsigned __int16 device_address;
-	volatile unsigned __int16 ctrl_wake;
-	volatile unsigned __int16 ctrl_status;
-	QUEUE_UWORD ctrl_command_que;
+#include "generic_device_variables.h"
 	volatile unsigned __int16 ctrl_input_buffer_count;
 	volatile unsigned int ctrl_input_buffer_index;
 	volatile unsigned __int8 ctrl_input_buffer[DEVICE_CONSOLE_MAX_BUFFER];
@@ -60,10 +81,7 @@ typedef struct {
 // -------- data block for null device
 #define DEVICE_NULL_MAX_BUFFER 12000
 typedef struct {
-	unsigned __int16 device_address;
-	volatile unsigned __int16 ctrl_wake;
-	volatile unsigned __int16 ctrl_status;
-	QUEUE_UWORD ctrl_command_que;
+#include "generic_device_variables.h"
 	volatile unsigned __int16 ctrl_input_buffer_count;
 	volatile unsigned int ctrl_input_buffer_index;
 	volatile unsigned __int8 ctrl_input_buffer[DEVICE_NULL_MAX_BUFFER];

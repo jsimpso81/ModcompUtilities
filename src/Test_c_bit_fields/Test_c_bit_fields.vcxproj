@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{a21d31b2-614a-49c9-a2ed-d9d68fec66b9}</ProjectGuid>
-    <RootNamespace>CL7870Sim</RootNamespace>
+    <ProjectGuid>{bedf0ed8-d362-4642-9877-ce9c64f0ee30}</ProjectGuid>
+    <RootNamespace>Testcbitfields</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -80,7 +80,6 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);synchronization.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -97,7 +96,6 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);synchronization.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -110,7 +108,6 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);synchronization.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -127,44 +124,10 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);synchronization.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CL7870_Sim.c" />
-    <ClCompile Include="cpu_classic_7860.c" />
-    <ClCompile Include="cpu_set_switches.c" />
-    <ClCompile Include="device_common_device_buffer_allocate.c" />
-    <ClCompile Include="device_common_remove.c" />
-    <ClCompile Include="device_common_serial_close.c" />
-    <ClCompile Include="device_common_serial_open.c" />
-    <ClCompile Include="device_common_serial_print_settings.c" />
-    <ClCompile Include="device_common_serial_set_params.c" />
-    <ClCompile Include="device_common_stop_all.c" />
-    <ClCompile Include="device_common_thread_init.c" />
-    <ClCompile Include="que_uword_init.c" />
-    <ClCompile Include="que_uword_recv.c" />
-    <ClCompile Include="que_uword_send.c" />
-    <ClCompile Include="user_cmd_parse.c" />
-    <ClCompile Include="user_cmd_print_help.c" />
-    <ClCompile Include="user_cmd_print_prompt.c" />
-    <ClCompile Include="device_console.c" />
-    <ClCompile Include="device_null.c" />
-    <ClCompile Include="cpu_init_data.c" />
-    <ClCompile Include="iop_init_data.c" />
-    <ClCompile Include="user_command_process.c" />
-    <ClCompile Include="cpu_start_thread.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="device_null_initial_boot_block.h" />
-    <ClInclude Include="device_null_sal.h" />
-    <ClInclude Include="device_null_salprep.h" />
-    <ClInclude Include="generic_device_variables.h" />
-    <ClInclude Include="modcomp_opcodes.h" />
-    <ClInclude Include="modcomp_sim_external_globals.h" />
-    <ClInclude Include="modcomp_sim_global.h" />
-    <ClInclude Include="modcomp_sim_procedures.h" />
-    <ClInclude Include="modcomp_sim_types.h" />
+    <ClCompile Include="Test_c_bit_fields.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

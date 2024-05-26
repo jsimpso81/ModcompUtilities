@@ -7,6 +7,7 @@
 // -------- cpu
 void cpu_init_data();
 unsigned __int16 cpu_get_program_counter();
+PSW cpu_get_current_PSW();
 unsigned __int16 cpu_get_register_value(unsigned __int16 reg_index);
 void cpu_set_register_value(unsigned __int16 reg_index, unsigned __int16 reg_value);
 void cpu_set_program_counter(unsigned __int16 pc);

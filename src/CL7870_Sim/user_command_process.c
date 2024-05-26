@@ -72,7 +72,7 @@ void process_user_commands() {
 					//--------processor status word 
 					// TODO: get and show psw
 					if (strcmp(cmd_line_parsed[1], "psw") == 0) {
-						printf(" TODO Proessor status word 0x%04x\n", 0);
+						printf(" Proessor status word 0x%04x\n", cpu_get_current_PSW().all);
 					}
 
 					//--------program counter

@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Math_Test", "Math_Test\Math
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiskFile_ExtractCharString", "DiskFile_ExtractCharString\DiskFile_ExtractCharString.vcxproj", "{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test_c_bit_fields", "Test_c_bit_fields\Test_c_bit_fields.vcxproj", "{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -131,6 +133,14 @@ Global
 		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Release|x64.Build.0 = Release|x64
 		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Release|x86.ActiveCfg = Release|Win32
 		{DC8C8071-31F5-4FF0-A00C-4EEB52CF0C48}.Release|x86.Build.0 = Release|Win32
+		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Debug|x64.ActiveCfg = Debug|x64
+		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Debug|x64.Build.0 = Debug|x64
+		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Debug|x86.ActiveCfg = Debug|Win32
+		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Debug|x86.Build.0 = Debug|Win32
+		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Release|x64.ActiveCfg = Release|x64
+		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Release|x64.Build.0 = Release|x64
+		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Release|x86.ActiveCfg = Release|Win32
+		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
