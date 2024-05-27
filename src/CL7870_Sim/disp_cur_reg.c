@@ -2,7 +2,7 @@
 #include <stdbool.h>
 
 #include "modcomp_sim_types.h"
-
+#include "modcomp_sim_procedures.h"
 
 void disp_cur_reg() {
 

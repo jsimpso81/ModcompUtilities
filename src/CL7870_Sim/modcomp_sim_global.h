@@ -39,8 +39,11 @@ DEVICE_INPUT_STATUS iop_input_status_proc[64] = { 0 };
 
 void* iop_device_buffer[64];
 int iop_thread_stop_request[64];
+int iop_thread_stop_request2[64];
 HANDLE  iop_device_thread_handle[64];
+HANDLE  iop_device_thread_handle2[64];
 DWORD   iop_device_thread_id[64];
+DWORD   iop_device_thread_id2[64];
 
 
 // -------- execution options

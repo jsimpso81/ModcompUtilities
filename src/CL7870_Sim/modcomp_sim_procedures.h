@@ -26,13 +26,23 @@ void cmd_process_parse(char* cmd_line, int max_len, char* cmd_line_parse[], int 
 void iop_init_data();
 
 // -------- device common
-void* device_common_buffer_allocate(unsigned __int16 device_address, size_t buffer_size);
+void* device_common_device_buffer_allocate(unsigned __int16 device_address, size_t buffer_size);
 void device_common_remove(unsigned __int16 device_address);
+HANDLE device_common_start_thread(LPVOID data_buffer, DEVICE_WORKER_THREAD thread_proc, LPDWORD thread_id);
 void device_common_stop_all();
+
 int device_common_serial_close( HANDLE com_handle, DWORD* last_error);
 int device_common_serial_open( char* com_port, HANDLE *com_handle, DWORD *last_error );
 void device_common_serial_print_settings(DCB this_dcb);
 int device_common_serial_set_params(HANDLE hCom, DWORD* last_error);
+
+void device_common_buffer_init(DEVICE_BUFFER* buff);
+bool device_common_buffer_isempty(DEVICE_BUFFER* buff);
+bool device_common_buffer_isfull(DEVICE_BUFFER* buff);
+bool device_common_buffer_get(DEVICE_BUFFER* buff, unsigned __int8* to_get);
+void device_common_buffer_put(DEVICE_BUFFER* buff, unsigned __int8 to_put);
+device_common_buffer_set_empty(DEVICE_BUFFER* buff);
+
 void device_common_thread_init(LPVOID data_buffer,
 	DEVICE_WORKER_THREAD worker_proc,
 	DEVICE_OUTPUT_DATA output_data_proc,
@@ -42,6 +52,7 @@ void device_common_thread_init(LPVOID data_buffer,
 
 // -------- specific devices
 void device_null_init(unsigned __int16 device_address, unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dmp);
+void device_console_init(unsigned __int16 device_address, unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dmp);
 
 // -------- generic queue routines
 void que_uword_init(QUEUE_UWORD* que);

@@ -54,7 +54,7 @@ void cpu_stop_thread() {
 		printf("\n *** ERROR *** Cpu thread didnt respond normally.  It was forcefully terminated.\n");
 	}
 	else {
-		printf("\nCpu thread stopped.\n");
+		printf(" Cpu thread stopped.\n");
 	}
 
 }

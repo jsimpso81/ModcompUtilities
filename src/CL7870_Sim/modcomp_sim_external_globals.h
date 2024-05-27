@@ -40,8 +40,11 @@ extern DEVICE_INPUT_STATUS iop_input_status_proc[64];
 
 extern void* iop_device_buffer[64];
 extern int iop_thread_stop_request[64];
+extern int iop_thread_stop_request2[64];
 extern HANDLE  iop_device_thread_handle[64];
+extern HANDLE  iop_device_thread_handle2[64];
 extern DWORD   iop_device_thread_id[64];
+extern DWORD   iop_device_thread_id2[64];
 
 extern bool gbl_verbose_debug;
 // =================================================================================

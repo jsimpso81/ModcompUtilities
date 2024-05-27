@@ -300,26 +300,23 @@ void process_user_commands() {
 							bool diffval = true;
 							for (j = 0; j < k; j++) {
 								gbl_fp_single_step = true;
-								WakeByAddressSingle(&gbl_fp_single_step);
-								WaitOnAddress( &gbl_fp_single_step, &diffval, sizeof(gbl_fp_single_step), INFINITE );
-								disp_pc( cpu_get_program_counter());
+								WakeByAddressSingle((LPVOID)&gbl_fp_single_step);
+								WaitOnAddress(&gbl_fp_single_step, &diffval, sizeof(gbl_fp_single_step), INFINITE);
+								disp_pc(cpu_get_program_counter());
 								disp_psw(cpu_get_current_PSW());
 								disp_cur_reg();
 							}
 						}
-						else {
-							printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
-						}
 					}
 					else {
-						printf(" *** ERROR *** second parameter, invalid %s\n", cmd_line_parsed[1]);
+						printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
 					}
 				}
 				else {
 					if (!gbl_fp_runlight) {
 						bool diffval = true;
 						gbl_fp_single_step = true;
-						WakeByAddressSingle(&gbl_fp_single_step);
+						WakeByAddressSingle((LPVOID)& gbl_fp_single_step);
 						WaitOnAddress(&gbl_fp_single_step, &diffval, sizeof(gbl_fp_single_step), INFINITE);
 						disp_pc(cpu_get_program_counter());
 						disp_psw(cpu_get_current_PSW());
@@ -388,7 +385,7 @@ void process_user_commands() {
 			// ------- exit
 			else if (strcmp(cmd_line_parsed[0], "exit") == 0) {
 				exit_request = true;
-				printf("\nExit requested.\n");
+				printf(" Exit requested.\n");
 			}
 
 			else {

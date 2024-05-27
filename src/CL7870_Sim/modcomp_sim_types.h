@@ -73,17 +73,21 @@ typedef struct {
 #include "generic_device_variables.h"
 } DEVICE_GENERIC_DATA;
 
+// TODO: Make this a macro to support different sizes.
+#define DEVICE_BUFFER_MAX_LEN 12000
+typedef struct {
+	unsigned int buf_len;
+	unsigned int last_byte_writen_index;		// when next write index = last read index = buffer is full.
+	unsigned int last_byte_read_index;			//  when index = nothing to read. 
+	unsigned __int8 buffer[DEVICE_BUFFER_MAX_LEN];
+} DEVICE_BUFFER;
 
 // -------- data block for console device
-#define DEVICE_CONSOLE_MAX_BUFFER 8000
 typedef struct {
 #include "generic_device_variables.h"
-	volatile unsigned __int16 ctrl_input_buffer_count;
-	volatile unsigned int ctrl_input_buffer_index;
-	volatile unsigned __int8 ctrl_input_buffer[DEVICE_CONSOLE_MAX_BUFFER];
-	volatile unsigned __int16 ctrl_output_buffer_count;
-	volatile unsigned __int16 ctrl_output_buffer_index;
-	volatile unsigned __int8 ctrl_output_buffer[DEVICE_CONSOLE_MAX_BUFFER];
+	volatile HANDLE com_handle;
+	DEVICE_BUFFER in_buff;
+	DEVICE_BUFFER out_buff;
 } DEVICE_CONSOLE_DATA;
 
 
@@ -91,10 +95,6 @@ typedef struct {
 #define DEVICE_NULL_MAX_BUFFER 12000
 typedef struct {
 #include "generic_device_variables.h"
-	volatile unsigned __int16 ctrl_input_buffer_count;
-	volatile unsigned int ctrl_input_buffer_index;
-	volatile unsigned __int8 ctrl_input_buffer[DEVICE_NULL_MAX_BUFFER];
-	volatile unsigned __int16 ctrl_output_buffer_count;
-	volatile unsigned __int16 ctrl_output_buffer_index;
-	volatile unsigned __int8 ctrl_output_buffer[DEVICE_NULL_MAX_BUFFER];
+	DEVICE_BUFFER in_buff;
+	DEVICE_BUFFER out_buff;
 } DEVICE_NULL_DATA;

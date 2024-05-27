@@ -29,6 +29,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiskFile_ExtractCharString"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test_c_bit_fields", "Test_c_bit_fields\Test_c_bit_fields.vcxproj", "{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mtty", "mtty\mtty.vcxproj", "{5401F531-F29D-473F-81A1-4AB9516388A1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -141,6 +143,14 @@ Global
 		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Release|x64.Build.0 = Release|x64
 		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Release|x86.ActiveCfg = Release|Win32
 		{BEDF0ED8-D362-4642-9877-CE9C64F0EE30}.Release|x86.Build.0 = Release|Win32
+		{5401F531-F29D-473F-81A1-4AB9516388A1}.Debug|x64.ActiveCfg = Debug|x64
+		{5401F531-F29D-473F-81A1-4AB9516388A1}.Debug|x64.Build.0 = Debug|x64
+		{5401F531-F29D-473F-81A1-4AB9516388A1}.Debug|x86.ActiveCfg = Debug|Win32
+		{5401F531-F29D-473F-81A1-4AB9516388A1}.Debug|x86.Build.0 = Debug|Win32
+		{5401F531-F29D-473F-81A1-4AB9516388A1}.Release|x64.ActiveCfg = Release|x64
+		{5401F531-F29D-473F-81A1-4AB9516388A1}.Release|x64.Build.0 = Release|x64
+		{5401F531-F29D-473F-81A1-4AB9516388A1}.Release|x86.ActiveCfg = Release|Win32
+		{5401F531-F29D-473F-81A1-4AB9516388A1}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

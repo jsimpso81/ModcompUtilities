@@ -1,4 +1,4 @@
-#include <windows.h>
+ #include <windows.h>
 #include <stdio.h>
 
 #include "modcomp_sim_types.h"
@@ -39,15 +39,9 @@ void device_common_thread_init(LPVOID data_buffer,
 
 		// --------start thread
 		iop_thread_stop_request[device_address] = 0;
+		iop_thread_stop_request2[device_address] = 0;
 
-		device_thread = CreateThread(
-			NULL,					// default security attributes
-			0,							// use default stack size  
-			worker_proc,				// thread function name
-			(LPVOID)data_buffer,	// argument to thread function 
-			0,							// use default creation flags 
-			&device_thread_id);			// returns the thread identifier 
-
+		device_thread = device_common_start_thread(data_buffer, worker_proc, &device_thread_id);
 
 		// Check the return value for success.
 		// If CreateThread fails, terminate execution. 

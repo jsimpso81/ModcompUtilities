@@ -134,6 +134,12 @@
     <ClCompile Include="CL7870_Sim.c" />
     <ClCompile Include="cpu_classic_7860.c" />
     <ClCompile Include="cpu_set_switches.c" />
+    <ClCompile Include="device_common_buffer_get.c" />
+    <ClCompile Include="device_common_buffer_init.c" />
+    <ClCompile Include="device_common_buffer_isempty.c" />
+    <ClCompile Include="device_common_buffer_isfull.c" />
+    <ClCompile Include="device_common_buffer_put.c" />
+    <ClCompile Include="device_common_buffer_set_empty.c" />
     <ClCompile Include="device_common_device_buffer_allocate.c" />
     <ClCompile Include="device_common_remove.c" />
     <ClCompile Include="device_common_serial_close.c" />
@@ -159,6 +165,7 @@
     <ClCompile Include="user_command_process.c" />
     <ClCompile Include="cpu_start_thread.c" />
     <ClCompile Include="util_get_opcode_disp.c" />
+    <ClCompile Include="device_common_start_thread.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="device_null_initial_boot_block.h" />

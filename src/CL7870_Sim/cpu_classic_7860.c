@@ -2567,7 +2567,7 @@ void cpu_classic_7860() {
 		// -------- reset single step if active
 		if (gbl_fp_single_step) {
 			gbl_fp_single_step = false;
-			WakeByAddressSingle(&gbl_fp_single_step);
+			WakeByAddressSingle((LPVOID)& gbl_fp_single_step);
 		}
 
 		// --------update some front panel values

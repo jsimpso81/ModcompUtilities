@@ -99,6 +99,27 @@
     <ClCompile Include="disp_devices.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="device_common_start_thread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_buffer_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_buffer_put.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_buffer_get.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_buffer_isempty.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_buffer_set_empty.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_buffer_isfull.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

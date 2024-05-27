@@ -34,10 +34,16 @@
 
 // ============================================================================================================================
 void  device_null_output_data(unsigned __int16 device_address, unsigned __int16 data_value) {
+
 	DEVICE_NULL_DATA* databuffer = (DEVICE_NULL_DATA*)iop_device_buffer[device_address];
+
 	char junk = data_value & 0x00ff;
+
 	//printf("\n\n device null output data -- 0x%02hx\n\n", data_value);
+
+	// --------for now just write character to stdout, no buffering.
 	putchar(junk);
+
 	//if (databuffer->ctrl_output_buffer_index >= DEVICE_NULL_MAX_BUFFER) {
 	//	printf("\n Null device output buffer overflow.\n");
 	//} 
@@ -51,35 +57,53 @@ void  device_null_output_data(unsigned __int16 device_address, unsigned __int16 
 
 // ============================================================================================================================
 void  device_null_output_cmd(unsigned __int16 device_address, unsigned __int16 cmd_value) {
+
 	DEVICE_NULL_DATA* databuffer = (DEVICE_NULL_DATA*)iop_device_buffer[device_address];
+
 	//printf("\n device_null output cmd -- called - %04x\n", cmd_value);
+
+	// --------this is a command - set the controller busy.
 	databuffer->ctrl_status |= (status_busy);
+
+	// --------add the command to the work queue.
 	que_uword_send(&(databuffer->ctrl_command_que), cmd_value);
+	
+	// ---------wake the thread to process this command.
 	databuffer->ctrl_wake++;
-	WakeByAddressSingle(&(databuffer->ctrl_wake));
+	WakeByAddressSingle((LPVOID) & (databuffer->ctrl_wake));
 }
 
 // ============================================================================================================================
 unsigned __int16  device_null_input_data(unsigned __int16 device_address) {
-	unsigned __int16 ourvalue = 0;
-	DEVICE_NULL_DATA* databuffer = (DEVICE_NULL_DATA*)iop_device_buffer[device_address];
 
-	if (databuffer->ctrl_input_buffer_count > databuffer->ctrl_input_buffer_index) {
-		ourvalue = databuffer->ctrl_input_buffer[databuffer->ctrl_input_buffer_index++];
-	}
-	if (databuffer->ctrl_input_buffer_count <= databuffer->ctrl_input_buffer_index) {
+	DEVICE_NULL_DATA* databuffer = (DEVICE_NULL_DATA*)iop_device_buffer[device_address];
+	unsigned __int16 ourvalue = 0;
+	unsigned __int8 ourbyte = 0;
+
+	device_common_buffer_get(&databuffer->in_buff, &ourbyte);
+
+	ourvalue = ourbyte;
+
+	// --------If buffer is empty,, set data_not_ready flag in status word.
+	if (device_common_buffer_isempty(&databuffer->in_buff) ) {
 		databuffer->ctrl_status |= (status_data_not_ready);
 	}
 
-	printf("\n device_null input data -- called - 0x%04x, index %d \n",ourvalue, (databuffer->ctrl_input_buffer_index-1) );
+	printf("\n device_null input data -- called - 0x%04x, index %d \n",ourvalue, databuffer->in_buff.last_byte_read_index );
+
 	return ourvalue;
 }
 
 // ============================================================================================================================
 unsigned __int16  device_null_input_status(unsigned __int16 device_address) {
+
 	DEVICE_NULL_DATA* databuffer = (DEVICE_NULL_DATA*)iop_device_buffer[device_address];
+
 	unsigned __int16 loc_status;
+
+	// --------get current control status and return to user.
 	loc_status = databuffer->ctrl_status;
+
 	// printf("\n device_null input status -- called - 0x%04x\n", loc_status);
 	return loc_status;
 }
@@ -95,8 +119,6 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 #include "device_null_salprep.h"
 #include "device_null_sal.h"
 
-	int next_char_inx_to_read = 0;
-	int last_char_inx_in_string = 338;
 	bool dev_reading = false;
 	bool dev_writing = false;
 	bool si_enabled = false;
@@ -187,31 +209,31 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	// --------copy initial boot block to device input data global.
 	maxj = sizeof(initial_boot_block);
 	for (j = 0; j < maxj; j++) {
-		device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = initial_boot_block[j];
+		device_common_buffer_put(&device_data->in_buff, initial_boot_block[j]);
 	}
-	printf("\n initial boot block - bytes %d, buffer end %d\n", maxj, device_data->ctrl_input_buffer_count-1);
+	printf("\n initial boot block - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
 	
 	// --------copy 100 boot block start and size to device input data global.
 	maxj = sizeof(boot100_loc_size);
 	for (j = 0; j < maxj; j++) {
-		device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = boot100_loc_size[j];
+		device_common_buffer_put(&device_data->in_buff, boot100_loc_size[j] );
 	}
-	printf("\n 100 boot block offset / size  - bytes %d, buffer end %d\n", maxj, device_data->ctrl_input_buffer_count - 1);
+	printf("\n 100 boot block offset / size  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
 
 	// --------copy 100 boot block to device input data global.
 	maxj = sizeof(boot100_data);
 	for (j = 0; j < maxj; j++) {
-		device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = boot100_data[j];
+		device_common_buffer_put(&device_data->in_buff, boot100_data[j] );
 	}
-	printf("\n 100 boot block   - bytes %d, buffer end %d\n", maxj, device_data->ctrl_input_buffer_count - 1);
+	printf("\n 100 boot block   - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
 
 
 	// --------copy salprep (400) boot block to device input data global.
 	maxj = sizeof(salprep_data);
 	for (j = 0; j < maxj; j++) {
-		device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = salprep_data[j];
+		device_common_buffer_put(&device_data->in_buff, salprep_data[j] );
 	}
-	printf("\n salprep - bytes %d, buffer end %d\n", maxj, device_data->ctrl_input_buffer_count - 1);
+	printf("\n salprep - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
 
 	// --------calculate word checksum of 400 boot block.
 	chksum2.uword = 0;
@@ -237,9 +259,9 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	// --------copy sal  to device input data global.
 	maxj = sizeof(sal_data);
 	for (j = 0; j < maxj; j++) {
-		device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = sal_data[j];
+		device_common_buffer_put(&device_data->in_buff, sal_data[j]);
 	}
-	printf("\n sal  - bytes %d, buffer end %d\n", maxj, device_data->ctrl_input_buffer_count - 1);
+	printf("\n sal  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
 
 	// --------calculate word checksum of sal block.
 	// -------- this is a running checksum so dont start at zero.
@@ -266,7 +288,7 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	// device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
 
 
-	printf("\n Null device -- input buffer data filled size = %d\n", device_data->ctrl_input_buffer_count);
+	printf("\n Null device -- input buffer data filled size = %d\n", device_data->in_buff.last_byte_writen_index);
 
 	// -------------------------------------------------------------------------------------------
 	// -------- do forever, until requested to stop and exit.
@@ -310,10 +332,10 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 							loc_status &= (~status_busy);
 							si_enabled = false;
 							di_enabled = false;
-							device_data->ctrl_input_buffer_count = 0;
-							device_data->ctrl_input_buffer_index = 0;
-							device_data->ctrl_output_buffer_count = 0;
-							device_data->ctrl_output_buffer_index = 0;
+							// device_data->ctrl_input_buffer_count = 0;
+							// device_data->ctrl_input_buffer_index = 0;
+							// device_data->ctrl_output_buffer_count = 0;
+							// device_data->ctrl_output_buffer_index = 0;
 						}
 						else {
 							// printf("\n Device null - terminate requested.\n");
@@ -404,7 +426,7 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 			}
 			// -------- if reading and data available, update status.
 			// if (dev_reading) {
-				if (device_data->ctrl_input_buffer_count > device_data->ctrl_input_buffer_index) {
+				if ( !device_common_buffer_isempty( &device_data->in_buff) ) {
 					loc_status &= (~(status_busy | status_data_not_ready));
 				}
 				else {
@@ -432,7 +454,7 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 
 		// -------- if reading and data available, update status.
 		//if (dev_reading) {
-			if (device_data->ctrl_input_buffer_count > device_data->ctrl_input_buffer_index) {
+			if (!device_common_buffer_isempty(&device_data->in_buff)) {
 				loc_status &= (~( status_busy | status_data_not_ready));
 			}
 			else {
@@ -460,6 +482,8 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	device_common_remove(loc_device_addr);
 	iop_thread_stop_request[loc_device_addr] = 0;
 
+	printf(" Device worker thread exit. Device address %d\n", loc_device_addr);
+
 	ExitThread(0);
 
 	return 0;
@@ -477,7 +501,7 @@ void device_null_init(unsigned __int16 device_address, unsigned __int16 bus, uns
 	loc_dev_addr = device_address;
 
 	// --------make certain we aren't double allocating a device and allocate buffer memory for device.
-	device_data = device_common_buffer_allocate(device_address, sizeof( DEVICE_NULL_DATA) );
+	device_data = device_common_device_buffer_allocate(device_address, sizeof( DEVICE_NULL_DATA) );
 
 	if ( device_data != NULL ) {
 
@@ -493,10 +517,8 @@ void device_null_init(unsigned __int16 device_address, unsigned __int16 bus, uns
 		strcpy_s(device_data->info, 40, "Null (console)");
 
 		// --------data specific to this device.
-		device_data->ctrl_input_buffer_count = 0;
-		device_data->ctrl_input_buffer_index = 0;
-		device_data->ctrl_output_buffer_count = 0;
-		device_data->ctrl_output_buffer_index = 0;
+		device_common_buffer_init(&device_data->in_buff);
+		device_common_buffer_init(&device_data->out_buff);
 
 		// --------initialize worker thread.
 		device_common_thread_init( (LPVOID)device_data, 

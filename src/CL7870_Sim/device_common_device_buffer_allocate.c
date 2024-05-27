@@ -7,7 +7,7 @@
 
 
 // ---------this just allocates the memory, nothing else....
-void* device_common_buffer_allocate(unsigned __int16 device_address, size_t buffer_size) {
+void* device_common_device_buffer_allocate(unsigned __int16 device_address, size_t buffer_size) {
 
 	unsigned __int16 loc_dev_addr;
 

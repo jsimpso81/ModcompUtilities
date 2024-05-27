@@ -14,7 +14,7 @@ bool que_uword_recv( QUEUE_UWORD* que, __int16* cmd_word ) {
 	else {
 		*cmd_word = que->data[que->last_proc_index++];
 		que->proc_count++;
-		WakeByAddressSingle(&(que->last_proc_index));
+		WakeByAddressSingle((LPVOID) & (que->last_proc_index));
 	}
 	return true;
 }
