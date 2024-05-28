@@ -419,6 +419,9 @@ void cpu_classic_7860() {
 #define RIE_ALLOWED_NOT	( ~0x53ff )		// -- not allowed to reset enable 0, 2, 4, 5 	
 #define RIR_ALLOWED_NOT ( ~0xffff )
 
+#define PRIV_INSTR_TRAP {\
+				}
+
 	// printf("\n CPU started.\n");
 
 	while (gbl_fp_runlight | gbl_fp_single_step) {
@@ -474,11 +477,17 @@ void cpu_classic_7860() {
 
 			// --------00 -- HLT -- Halt (Privileged)          
 		case  OP_HLT:			// 0x00
-			// cpu_run = false;
-			gbl_fp_runlight = false;
-			printf("\nCpu halted.  pc = 0x%04x\n",program_counter);
-			cmd_process_print_prompt();
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+			if (cpu_priv_mode) {
+				// cpu_run = false;
+				gbl_fp_runlight = false;
+				printf("\nCpu halted.  pc = 0x%04x\n", program_counter);
+				cmd_process_print_prompt();
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+			}
+			else {
+				PRIV_INSTR_TRAP;
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+			}
 			break;
 
 		case  OP_AUG01:			// 0x01	
@@ -486,53 +495,74 @@ void cpu_classic_7860() {
 
 				// --  0	RMI -- Request Multi·processor Interrupt
 				case 0:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  1	EVMO -- Enter Virtual Mode of CPU Execution
 				case 1:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  2	SIOM -- Select Another Program's IM
 				case 2:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  3	SOOM -- Select Another Program's OM as Current OM
 				case 3:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  4	SZOM -- Select Map Zero as Current OM
 				case 4:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  5	SCRB -- Select Current Register Block in PSD
 				case 5:
+					if (cpu_priv_mode) {
+						tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
+						tmp16_val1.uval = (tmp16_val1.uval & 0x0f00) >> 8;
+						cpu_register_block = tmp16_val1.uval;
+					}
+					else {
+						PRIV_INSTR_TRAP;
+					}
 					break;
+
 				// --  6	EXMA -- Enter Extended Memory Addressing Mode
 				// --  7	EXMA -- Enter Extended Memory Addressing Mode
 				case 6:
 				case 7:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  8	XVMO -- Exit Virtual Mode of CPU Execution
 				case 8:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  9	ZIMP -- Zero Section of Instruction Map
 				case 9:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  B	ZOMP -- Zero Section of Operand Map
 				case 11:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  D	LIMP -- Load Instruction Map Image into Hardware Map
 				case 13:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  E	LOMP -- Load Operand Map Image Into Hardware Map
 				case 14:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 				// --  F	SOMP -- Store Operand Map into Map Image
 				case 15:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 					// --  A	UIT
 				case 10:
 					// --  C	UIT
 				case 12:
 				default:
+					UNIMPLEMENTED_INSTRUCTION;
 					break;
 			}
-			UNIMPLEMENTED_INSTRUCTION;
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
@@ -759,7 +789,7 @@ void cpu_classic_7860() {
 			}
 			// --------not priviledged.
 			else {
-				UNIMPLEMENTED_INSTRUCTION;
+				PRIV_INSTR_TRAP;
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			break;
@@ -800,7 +830,7 @@ void cpu_classic_7860() {
 			}
 			// --------not priviledged.
 			else {
-				UNIMPLEMENTED_INSTRUCTION;
+				PRIV_INSTR_TRAP;
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			break;
