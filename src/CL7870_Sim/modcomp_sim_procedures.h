@@ -64,6 +64,7 @@ void disp_devices();
 void disp_cur_reg();
 void disp_pc(unsigned __int16 loc_pc);
 void disp_psw(PSW loc_psw);
+void disp_instruction_use();
 
 // -------- util
 void util_get_opcode_disp(unsigned __int16 instruction, char* op_buffer, size_t buf_size);

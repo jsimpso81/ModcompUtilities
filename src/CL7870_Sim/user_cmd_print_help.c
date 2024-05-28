@@ -25,6 +25,7 @@ void user_cmd_print_help() {
 	printf("      set verbose <on/off> - set verbose debug mode\n");
 
 	printf("      show devices - show all configured devices\n");
+	printf("      show inst - show instruction use counts\n");
 	printf("      show mem <start> <end> - show memory\n");
 	printf("      show pc - show program counter\n");
 	printf("      show psw - show processor status word\n");

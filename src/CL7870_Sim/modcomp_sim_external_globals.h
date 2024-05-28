@@ -29,6 +29,9 @@ extern volatile bool gbl_fp_single_step ;
 
 // -------- not done more front panel info
 
+// -------- CPU ITEMS (for debug)
+extern volatile unsigned __int32 cpu_inst_used[256];
+
 
 // -------- IO DEVICES
 extern volatile unsigned __int16 iop_last_dev_status[64];

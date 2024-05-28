@@ -149,6 +149,7 @@
     <ClCompile Include="device_common_stop_all.c" />
     <ClCompile Include="device_common_thread_init.c" />
     <ClCompile Include="disp_cur_reg.c" />
+    <ClCompile Include="disp_instruction_use.c" />
     <ClCompile Include="disp_pc.c" />
     <ClCompile Include="disp_psw.c" />
     <ClCompile Include="disp_devices.c" />

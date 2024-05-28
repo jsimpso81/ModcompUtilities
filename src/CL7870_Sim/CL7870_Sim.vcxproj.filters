@@ -120,6 +120,9 @@
     <ClCompile Include="device_common_buffer_isfull.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="disp_instruction_use.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

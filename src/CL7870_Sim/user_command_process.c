@@ -141,6 +141,11 @@ void process_user_commands() {
 						}
 					}
 
+					//--------instruction use (deug
+					else if (strcmp(cmd_line_parsed[1], "inst") == 0) {
+						disp_instruction_use();
+					}
+
 					// --------just in case 1
 					else if (strcmp(cmd_line_parsed[1], "shit") == 0) {
 						printf(" It is brown gross and smelly.\n");
@@ -364,7 +369,7 @@ void process_user_commands() {
 
 			// --------master clear
 			else if (strcmp(cmd_line_parsed[0], "mc") == 0) {
-				cpu_set_program_counter(0);
+				cpu_set_program_counter(1);
 			}
 
 			// --------help

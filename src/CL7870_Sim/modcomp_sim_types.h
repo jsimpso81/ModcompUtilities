@@ -39,6 +39,7 @@ typedef union {
 typedef union {
 	unsigned __int32 uval;
 	signed __int32 sval;
+	unsigned __int16 zval[2];
 } VAL32;
 
 

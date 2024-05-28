@@ -88,7 +88,7 @@ unsigned __int16  device_console_input_data(unsigned __int16 device_address) {
 		databuffer->ctrl_status |= (status_data_not_ready);
 	}
 
-	printf("\n device_null input data -- called - 0x%04x, index %d \n", ourvalue, databuffer->in_buff.last_byte_read_index);
+	printf("\n device_console input data -- called - 0x%04x, index %d \n", ourvalue, databuffer->in_buff.last_byte_read_index);
 
 	return ourvalue;
 }
@@ -124,6 +124,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 	DWORD bytes_to_write = 0;
 	DWORD bytes_written = 0;
 	BOOL write_status = false;
+	DWORD j = 0;
 
 	// -------- get local device address from calling parameter to this routine 
 	loc_device_addr = *(unsigned __int16*)lpParam;
@@ -144,7 +145,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
 	// -------------------------------------------------------------------------------------------
 	// -------- do forever, until requested to stop and exit.
-	while ((iop_thread_stop_request[loc_device_addr] == 0) && (loc_stop_request == 0)) {
+	while ((iop_thread_stop_request2[loc_device_addr] == 0) && (loc_stop_request == 0)) {
 
 		last_wake = device_data->ctrl_wake;
 
@@ -162,13 +163,22 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 			case 1:
 
 				// --------do a read.
-				desired_read_bytes = 1;
+				desired_read_bytes = 100;
 				actual_read_bytes = 0;
 				read_status = ReadFile(loc_comm_handle, &loc_read_data, 
 									desired_read_bytes, &actual_read_bytes,NULL );
 				if (actual_read_bytes > 0) {
 					printf(" Console bytes read %d.  Device Addr %d\n", actual_read_bytes, loc_device_addr);
-					device_common_buffer_put(&device_data->in_buff, loc_read_data[0]);
+					for (j = 0; j < actual_read_bytes; j++) {
+						device_common_buffer_put(&device_data->in_buff, loc_read_data[j]);
+					}
+					device_data->ctrl_status &= ~status_data_not_ready;
+
+				}
+				if (!read_status) {
+					DWORD my_last_error = 0;
+					my_last_error = GetLastError();
+					printf(" Console read error 0x%08x\n", my_last_error);
 				}
 
 				// --------if a write is needed, do the write.
@@ -276,7 +286,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 		// -------- Configure read and write operations to time out after 100 ms.
 		COMMTIMEOUTS timeouts = { 0 };
 		timeouts.ReadIntervalTimeout = 0;
-		timeouts.ReadTotalTimeoutConstant = 20;	// ms
+		timeouts.ReadTotalTimeoutConstant = 40;	// ms
 		timeouts.ReadTotalTimeoutMultiplier = 0;
 		timeouts.WriteTotalTimeoutConstant = 1500;	// ms
 		timeouts.WriteTotalTimeoutMultiplier = 0;
@@ -372,7 +382,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 						dev_writing = false;
 						loc_status |= (status_data_not_ready);
 						loc_status &= (~status_busy);
-						device_common_buffer_set_empty(&device_data->in_buff);
+						// device_common_buffer_set_empty(&device_data->in_buff);
 						// device_common_buffer_set_empty(&device_data->out_buff);
 						// TODO: Console investigate clearing output buffer on terminate 
 						if (si_enabled) {
@@ -444,13 +454,13 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 				// --------for some reason the console is backwards !
 				// TODO: Investigate console transfer initiate.
 				if ( !( loc_cmd & transinit_write ) ) {
-					printf(" Device console - transfer initiate - write requested.  Dev addr: %d\n",loc_device_addr);
+					// printf(" Device console - transfer initiate - write requested.  Dev addr: %d\n",loc_device_addr);
 					dev_reading = false;
 					dev_writing = true;	
 					loc_status &= ~status_data_not_ready;
 				}
 				else {
-					printf(" Device console - transfer initiate - read requested.  Dev addr: %d\n", loc_device_addr);
+					// printf(" Device console - transfer initiate - read requested.  Dev addr: %d\n", loc_device_addr);
 					dev_reading = true;
 					dev_writing = false;	
 					loc_status |= status_data_not_ready;
@@ -460,11 +470,11 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 			}
 			// -------- if reading and data available, update status.
 			if (dev_reading) {
-				if (!device_common_buffer_isempty(&device_data->in_buff)) {
-					loc_status &= ~status_data_not_ready;
+				if (device_common_buffer_isempty(&device_data->in_buff)) {
+					loc_status |= status_data_not_ready;
 				}
 				else {
-					loc_status |= status_data_not_ready;
+					loc_status &= ~status_data_not_ready;
 				}
 			}
 
@@ -491,11 +501,11 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 
 		// -------- if reading and data available, update status.
 		if (dev_reading) {
-			if (!device_common_buffer_isempty(&device_data->in_buff)) {
-				loc_status &= ~status_data_not_ready;
+			if (device_common_buffer_isempty(&device_data->in_buff)) {
+				loc_status |= status_data_not_ready;
 			}
 			else {
-				loc_status |= status_data_not_ready;
+				loc_status &= ~status_data_not_ready;
 			}
 		}
 
