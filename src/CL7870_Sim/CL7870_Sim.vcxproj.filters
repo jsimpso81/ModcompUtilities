@@ -123,6 +123,9 @@
     <ClCompile Include="disp_instruction_use.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rmi_request.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">
@@ -153,6 +156,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="modcomp_opcode_string.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu_macro_register_access.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu_register_memory_macros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu_cond_code_macros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="no_no_no_no_cpu_register_macros.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

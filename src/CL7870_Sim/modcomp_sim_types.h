@@ -75,7 +75,7 @@ typedef struct {
 } DEVICE_GENERIC_DATA;
 
 // TODO: Make this a macro to support different sizes.
-#define DEVICE_BUFFER_MAX_LEN 12000
+#define DEVICE_BUFFER_MAX_LEN 60000
 typedef struct {
 	unsigned int buf_len;
 	unsigned int last_byte_writen_index;		// when next write index = last read index = buffer is full.
@@ -93,7 +93,7 @@ typedef struct {
 
 
 // -------- data block for null device
-#define DEVICE_NULL_MAX_BUFFER 12000
+// #define DEVICE_NULL_MAX_BUFFER 12000
 typedef struct {
 #include "generic_device_variables.h"
 	DEVICE_BUFFER in_buff;

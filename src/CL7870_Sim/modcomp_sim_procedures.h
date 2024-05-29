@@ -69,5 +69,6 @@ void disp_instruction_use();
 // -------- util
 void util_get_opcode_disp(unsigned __int16 instruction, char* op_buffer, size_t buf_size);
 
-
+// --------templates for external interface
+void rmi_request(unsigned __int16 rmi_request);
 

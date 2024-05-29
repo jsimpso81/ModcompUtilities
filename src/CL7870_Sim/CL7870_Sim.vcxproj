@@ -156,6 +156,7 @@
     <ClCompile Include="que_uword_init.c" />
     <ClCompile Include="que_uword_recv.c" />
     <ClCompile Include="que_uword_send.c" />
+    <ClCompile Include="rmi_request.c" />
     <ClCompile Include="user_cmd_parse.c" />
     <ClCompile Include="user_cmd_print_help.c" />
     <ClCompile Include="user_cmd_print_prompt.c" />
@@ -169,6 +170,10 @@
     <ClCompile Include="device_common_start_thread.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cpu_cond_code_macros.h" />
+    <ClInclude Include="no_no_no_no_cpu_register_macros.h" />
+    <ClInclude Include="cpu_macro_register_access.h" />
+    <ClInclude Include="cpu_register_memory_macros.h" />
     <ClInclude Include="device_null_initial_boot_block.h" />
     <ClInclude Include="device_null_sal.h" />
     <ClInclude Include="device_null_salprep.h" />
