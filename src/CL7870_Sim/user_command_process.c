@@ -72,17 +72,17 @@ void process_user_commands() {
 					//--------processor status word 
 					// TODO: get and show psw
 					if (strcmp(cmd_line_parsed[1], "psw") == 0) {
-						disp_psw( cpu_get_current_PSW() );
+						disp_psw( stdout, cpu_get_current_PSW() );
 					}
 
 					//--------program counter
 					else if (strcmp(cmd_line_parsed[1], "pc") == 0) {
-						disp_pc(cpu_get_program_counter());
+						disp_pc(stdout,cpu_get_program_counter());
 					}
 
 					//--------devices
 					else if (strcmp(cmd_line_parsed[1], "devices") == 0) {
-						disp_devices();
+						disp_devices(stdout);
 					}
 
 
@@ -103,7 +103,7 @@ void process_user_commands() {
 
 					//--------reg
 					else if (strcmp(cmd_line_parsed[1], "reg") == 0) {
-						disp_cur_reg();
+						disp_cur_reg(stdout);
 					}
 
 					//--------mem
@@ -143,7 +143,7 @@ void process_user_commands() {
 
 					//--------instruction use (deug
 					else if (strcmp(cmd_line_parsed[1], "inst") == 0) {
-						disp_instruction_use();
+						disp_instruction_use(stdout);
 					}
 
 					// --------just in case 1
@@ -223,7 +223,12 @@ void process_user_commands() {
 								set_reg = parm_parse;
 								if (sscanf_s(cmd_line_parsed[3], "%i", &parm_parse) == 1) {
 									set_value = parm_parse;
-									cpu_set_register_value( set_reg, set_value );
+									if (set_reg >= 1 && set_reg <= 15) {
+										cpu_set_register_value(set_reg, set_value);
+									}
+									else {
+										printf(" *** ERROR *** Register number must be within 1 to 15 : %d\n", set_reg);
+									}
 								}
 								else {
 									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[3]);
@@ -307,9 +312,9 @@ void process_user_commands() {
 								gbl_fp_single_step = true;
 								WakeByAddressSingle((LPVOID)&gbl_fp_single_step);
 								WaitOnAddress(&gbl_fp_single_step, &diffval, sizeof(gbl_fp_single_step), INFINITE);
-								disp_pc(cpu_get_program_counter());
-								disp_psw(cpu_get_current_PSW());
-								disp_cur_reg();
+								disp_pc(stdout, cpu_get_program_counter());
+								disp_psw(stdout, cpu_get_current_PSW());
+								disp_cur_reg(stdout);
 							}
 						}
 					}
@@ -323,9 +328,9 @@ void process_user_commands() {
 						gbl_fp_single_step = true;
 						WakeByAddressSingle((LPVOID)& gbl_fp_single_step);
 						WaitOnAddress(&gbl_fp_single_step, &diffval, sizeof(gbl_fp_single_step), INFINITE);
-						disp_pc(cpu_get_program_counter());
-						disp_psw(cpu_get_current_PSW());
-						disp_cur_reg();
+						disp_pc(stdout, cpu_get_program_counter());
+						disp_psw(stdout, cpu_get_current_PSW());
+						disp_cur_reg(stdout);
 					}
 				}
 			}

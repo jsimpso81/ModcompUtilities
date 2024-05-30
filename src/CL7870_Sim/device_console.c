@@ -88,7 +88,7 @@ unsigned __int16  device_console_input_data(unsigned __int16 device_address) {
 		databuffer->ctrl_status |= (status_data_not_ready);
 	}
 
-	printf("\n device_console input data -- called - 0x%04x, index %d \n", ourvalue, databuffer->in_buff.last_byte_read_index);
+	fprintf(stderr,"\n device_console input data -- called - 0x%04x, index %d \n", ourvalue, databuffer->in_buff.last_byte_read_index);
 
 	return ourvalue;
 }
@@ -168,7 +168,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 				read_status = ReadFile(loc_comm_handle, &loc_read_data, 
 									desired_read_bytes, &actual_read_bytes,NULL );
 				if (actual_read_bytes > 0) {
-					printf(" Console bytes read %d.  Device Addr %d\n", actual_read_bytes, loc_device_addr);
+					fprintf(stderr," Console bytes read %d.  Device Addr %d\n", actual_read_bytes, loc_device_addr);
 					for (j = 0; j < actual_read_bytes; j++) {
 						device_common_buffer_put(&device_data->in_buff, loc_read_data[j]);
 					}
@@ -178,14 +178,14 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 				if (!read_status) {
 					DWORD my_last_error = 0;
 					my_last_error = GetLastError();
-					printf(" Console read error 0x%08x\n", my_last_error);
+					fprintf(stderr," Console read error 0x%08x\n", my_last_error);
 				}
 
 				// --------if a write is needed, do the write.
 				bytes_to_write = 0;
-				// -------- for now limit bytes written to 500
+				// -------- for now limit bytes written to 1000
 				// TODO: Console calculate correct write timeout for different baud rates.
-				while  (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 500 ) {
+				while  (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 1000 ) {
 					if (device_common_buffer_get(&device_data->out_buff, &loc_write_data[bytes_to_write]) ) {
 						bytes_to_write++;
 					}
@@ -193,7 +193,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 				if (bytes_to_write > 0) {
 					write_status = WriteFile( loc_comm_handle, &loc_write_data, bytes_to_write, 
 								&bytes_written, NULL );
-					printf(" Console bytes write requested %d, written %d.  Device Addr %d\n", bytes_to_write, bytes_written, loc_device_addr);
+					fprintf(stderr," Console bytes write requested %d, written %d.  Device Addr %d\n", bytes_to_write, bytes_written, loc_device_addr);
 				}
 
 				break;
@@ -366,7 +366,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 				// -- abort Terminate with bit 7 set.
 				if ((loc_cmd & ctrl_terminate) != 0) {
 					if ((loc_cmd & ctrl_icb) != 0) {
-						printf(" Device console - terminate w/ICB requested. Dev Addr %d\n",loc_device_addr);
+						fprintf(stderr," Device console - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n",loc_device_addr, loc_cmd);
 						dev_reading = false;
 						dev_writing = false;
 						loc_status |= (status_data_not_ready);		// set no data ready
@@ -377,7 +377,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 						device_common_buffer_set_empty(&device_data->out_buff);
 					}
 					else {
-						printf(" Device console - terminate requested. Dev Addr %d\n", loc_device_addr);
+						fprintf(stderr," Device console - terminate requested. Dev Addr %d, cmd 0x%04x\n", loc_device_addr,loc_cmd);
 						dev_reading = false;
 						dev_writing = false;
 						loc_status |= (status_data_not_ready);
@@ -426,7 +426,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 				// --  	not require an SI Release command.
 
 				else {
-					printf(" Device console - NOOP Command. Dev Addr %d\n", loc_device_addr);
+					fprintf(stderr," Device console - NOOP Command. Dev Addr %d, cmd 0x%04x\n", loc_device_addr, loc_cmd);
 					si_enabled = (loc_cmd & ctrl_si_enable) ? true : false;
 					di_enabled = (loc_cmd & ctrl_di_enable) ? true : false;
 					if (loc_status & (~status_busy)) {
@@ -441,7 +441,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 						case ctrl_si_rel:
 							break;
 						default:
-							printf(" Device console - invalid noop break select command 0x%04x \n", loc_cmd);
+							fprintf(stderr," Device console - invalid noop break select command 0x%04x \n", loc_cmd);
 						}
 					}
 
@@ -454,13 +454,13 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 				// --------for some reason the console is backwards !
 				// TODO: Investigate console transfer initiate.
 				if ( !( loc_cmd & transinit_write ) ) {
-					// printf(" Device console - transfer initiate - write requested.  Dev addr: %d\n",loc_device_addr);
+					// fprintf(stderr, " Device console - transfer initiate - write requested.  Dev addr: %d, cmd 0x%04x\n",loc_device_addr, loc_cmd);
 					dev_reading = false;
 					dev_writing = true;	
 					loc_status &= ~status_data_not_ready;
 				}
 				else {
-					// printf(" Device console - transfer initiate - read requested.  Dev addr: %d\n", loc_device_addr);
+					// fprintf(stderr, " Device console - transfer initiate - read requested.  Dev addr: %d, cmd 0x%04x\n", loc_device_addr, loc_cmd);
 					dev_reading = true;
 					dev_writing = false;	
 					loc_status |= status_data_not_ready;

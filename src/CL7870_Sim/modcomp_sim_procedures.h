@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include <stdio.h>
 #include <stdbool.h>
 
 #include "modcomp_sim_types.h"
@@ -60,11 +61,11 @@ bool que_uword_recv(QUEUE_UWORD* que, __int16* cmd_word);
 bool que_uword_send(QUEUE_UWORD* queue, unsigned __int16 value);
 
 // -------- display routines
-void disp_devices();
-void disp_cur_reg();
-void disp_pc(unsigned __int16 loc_pc);
-void disp_psw(PSW loc_psw);
-void disp_instruction_use();
+void disp_devices( FILE* io_unit );
+void disp_cur_reg( FILE* io_unit);
+void disp_pc( FILE* io_unit, unsigned __int16 loc_pc);
+void disp_psw( FILE* io_unit, PSW loc_psw);
+void disp_instruction_use( FILE* io_unit);
 
 // -------- util
 void util_get_opcode_disp(unsigned __int16 instruction, char* op_buffer, size_t buf_size);

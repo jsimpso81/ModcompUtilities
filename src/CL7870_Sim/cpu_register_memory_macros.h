@@ -16,6 +16,9 @@
 #define SET_SOURCE_REGISTER_VALUE( V1 ) {\
 					SET_REGISTER_VALUE( GET_SOURCE_REGISTER_NUMB, V1 ); \
 					}
+#define SET_SOURCE_REGISTER_VALUE_DOUBLE( DV1 ) {\
+					SET_REGISTER_VALUE_DOUBLE(  GET_SOURCE_REGISTER_NUMB_DOUBLE, DV1 ); \
+					}
 
 // -------- destination register 
 #define GET_DESTINATION_REGISTER_NUMB ( instruction.parts.dest_reg  )
@@ -42,32 +45,39 @@
 					SET_REGISTER_VALUE_QUAD(GET_DESTINATION_REGISTER_QUAD, QV1); \
 					}
 
-#define GET_MEMORY_VALUE_IM( A ) (gbl_mem[(A)])
-#define GET_MEMORY_VALUE_OM( A ) (gbl_mem[(A)])
+// -------- direct memory access
+#define GET_MEMORY_VALUE_IM( A ) (gbl_mem[ (unsigned __int16)(A)])
+#define GET_MEMORY_VALUE_OM( A ) (gbl_mem[(unsigned __int16)(A)])
 #define GET_MEMORY_VALUE_ABS( A ) (gbl_mem[(A)])
 #define SET_MEMORY_VALUE_IM( A, VAL ) {\
-				gbl_mem[(A)] = VAL;\
+				gbl_mem[(unsigned __int16)(A)] = VAL;\
 				}
 #define SET_MEMORY_VALUE_OM( A, VAL ) {\
-				gbl_mem[(A)] = VAL;\
+				gbl_mem[(unsigned __int16)(A)] = VAL;\
 				}
 #define SET_MEMORY_VALUE_ABS( A, VAL ) {\
 				gbl_mem[(A)] = VAL;\
 				}
 
 
-#define GET_MEMORY_VALUE_IMMEDIATE (GET_MEMORY_VALUE_IM( program_counter + 1))
+// -------- IMMEDIATE MODE (I)
+#define GET_MEMORY_VALUE_IMMEDIATE (GET_MEMORY_VALUE_IM( (unsigned __int16)(program_counter + 1)))
 #define SET_MEMORY_VALUE_IMMEDIATE( VAL ) {\
-				SET_MEMORY_VALUE_IM( program_counter + 1, VAL);\
+				SET_MEMORY_VALUE_IM( (unsigned __int16)(program_counter + 1), VAL);\
 				}
-#define GET_MEMORY_VALUE_IMMEDIATE_2ND (GET_MEMORY_VALUE_IM( program_counter + 2))
+#define GET_MEMORY_VALUE_IMMEDIATE_2ND (GET_MEMORY_VALUE_IM( (unsigned __int16)(program_counter + 2)))
 
-#define GET_MEMORY_ADDR_SHORT_DISPLACED ( GET_REGISTER_VALUE(1) + ( instruction.parts.src_reg) )
+
+// -------- SHORT DISPLACED (S)
+#define GET_MEMORY_ADDR_SHORT_DISPLACED  ( (unsigned __int16)(GET_REGISTER_VALUE(1) + ( instruction.parts.src_reg)) )
+//#define SHORT_DISPLACED_ADDR_FAULT (  ( ( GET_REGISTER_VALUE(1) & 0x8000 ) != ( GET_MEMORY_ADDR_SHORT_DISPLACED & 0x8000 ) ? true : false ) )
+#define SHORT_DISPLACED_ADDR_FAULT (  false )
 #define GET_MEMORY_VALUE_SHORT_DISPLACED 	(GET_MEMORY_VALUE_OM( GET_MEMORY_ADDR_SHORT_DISPLACED ))
 #define SET_MEMORY_VALUE_SHORT_DISPLACED( VAL ) {\
 				SET_MEMORY_VALUE_OM( GET_MEMORY_ADDR_SHORT_DISPLACED , VAL);\
 				}
 
+// -------- SHORT INDEXED (X)
 // TODO: fix when Rs = 0 
 #define GET_MEMORY_ADDR_SHORT_INDEXED ( GET_SOURCE_REGISTER_VALUE )
 #define GET_MEMORY_VALUE_SHORT_INDEXED (GET_MEMORY_VALUE_OM( GET_SOURCE_REGISTER_VALUE ))

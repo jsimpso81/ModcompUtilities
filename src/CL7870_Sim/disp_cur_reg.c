@@ -4,10 +4,10 @@
 #include "modcomp_sim_types.h"
 #include "modcomp_sim_procedures.h"
 
-void disp_cur_reg() {
+void disp_cur_reg(FILE* io_unit) {
 
-	printf(" Current register block\n");
-	printf("       0  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
+	fprintf(io_unit, " Current register block\n");
+	fprintf(io_unit, "       0  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
 		cpu_get_register_value(0),
 		cpu_get_register_value(1),
 		cpu_get_register_value(2),
@@ -17,7 +17,7 @@ void disp_cur_reg() {
 		cpu_get_register_value(6),
 		cpu_get_register_value(7)
 	);
-	printf("       8  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
+	fprintf(io_unit, "       8  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
 		cpu_get_register_value(8),
 		cpu_get_register_value(9),
 		cpu_get_register_value(10),
