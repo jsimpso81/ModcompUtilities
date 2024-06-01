@@ -88,6 +88,18 @@ static volatile unsigned __int16 cpu_interrupt_enabled = (cpu_intr_power_fail | 
 static volatile unsigned __int16 cpu_interrupt_request = 0;
 static volatile unsigned __int16 cpu_interrupt_active_mask = 0xffff;
 
+static volatile unsigned __int16 cpu_interrupt_DI_request_dev_addr[16][4] = { 0 };
+static volatile unsigned __int32 cpu_interrupt_DI_request_count[16][4] = {0};
+static volatile unsigned __int32 cpu_interrupt_DI_proc_count[16][4] = { 0 };
+static volatile unsigned __int32 cpu_interrupt_DI_total_request_count =  0;
+static volatile unsigned __int32 cpu_interrupt_DI_total_proc_count = 0;
+
+static volatile unsigned __int16 cpu_interrupt_SI_request_dev_addr[16][4] = { 0 };
+static volatile unsigned __int32 cpu_interrupt_SI_request_count[16][4] = { 0 };
+static volatile unsigned __int32 cpu_interrupt_SI_proc_count[16][4] = { 0 };
+static volatile unsigned __int32 cpu_interrupt_SI_total_request_count = 0;
+static volatile unsigned __int32 cpu_interrupt_SI_total_proc_count = 0;
+
 
 static bool cpu_virtual_mode = false;
 
@@ -104,13 +116,112 @@ static unsigned __int32 cpu_instruction_count = 0;	// how many instructions exec
 #include "cpu_macro_register_access.h"
 
 // ===========================================================================================================
+void cpu_request_DI( unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr ) {
+
+	// ------- prio, bus combinations should result in unique dev-addr...
+
+	cpu_interrupt_DI_request_dev_addr[prio][bus] = dev_addr;
+	cpu_interrupt_DI_request_count[prio][bus]++;
+	cpu_interrupt_DI_total_request_count++;
+	cpu_interrupt_request |= (cpu_intr_DI & cpu_interrupt_enabled);
+
+	return;
+}
+
+
+// ===========================================================================================================
+void cpu_request_SI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr) {
+
+	// ------- prio, bus combinations should result in unique dev-addr...
+
+	cpu_interrupt_SI_request_dev_addr[prio][bus] = dev_addr;
+	cpu_interrupt_SI_request_count[prio][bus]++;
+	cpu_interrupt_SI_total_request_count++;
+	cpu_interrupt_request |= (cpu_intr_DI & cpu_interrupt_enabled);
+
+	return;
+}
+
+// ===========================================================================================================
+// --------returns with device address or 0xffff
+unsigned __int16 cpu_get_next_DI_request() {
+	unsigned __int16 fnd_dev_addr = 0xffff;
+	int j = 0;
+
+	// --------loop over all priorities and buses
+	for ( j = 0; j < 16; j++) {
+		if (cpu_interrupt_DI_request_count[j][0] != cpu_interrupt_DI_proc_count[j][0]) {
+			fnd_dev_addr = cpu_interrupt_DI_request_dev_addr[j][0];
+			cpu_interrupt_DI_proc_count[j][0]++;
+			cpu_interrupt_DI_total_proc_count++;
+			break;
+		}
+		if (cpu_interrupt_DI_request_count[j][1] != cpu_interrupt_DI_proc_count[j][1]) {
+			fnd_dev_addr = cpu_interrupt_DI_request_dev_addr[j][1];
+			cpu_interrupt_DI_proc_count[j][1]++;
+			cpu_interrupt_DI_total_proc_count++;
+			break;
+		}
+		if (cpu_interrupt_DI_request_count[j][2] != cpu_interrupt_DI_proc_count[j][2]) {
+			fnd_dev_addr = cpu_interrupt_DI_request_dev_addr[j][2];
+			cpu_interrupt_DI_proc_count[j][2]++;
+			cpu_interrupt_DI_total_proc_count++;
+			break;
+		}
+		if (cpu_interrupt_DI_request_count[j][3] != cpu_interrupt_DI_proc_count[j][3]) {
+			fnd_dev_addr = cpu_interrupt_DI_request_dev_addr[j][3];
+			cpu_interrupt_DI_proc_count[j][3]++;
+			cpu_interrupt_DI_total_proc_count++;
+			break;
+		}
+	}
+	return fnd_dev_addr;
+}
+
+// ===========================================================================================================
+// --------returns with device address or 0xffff
+unsigned __int16 cpu_get_next_SI_request() {
+	unsigned __int16 fnd_dev_addr = 0xffff;
+	int j = 0;
+
+	// --------loop over all priorities and buses
+	for ( j = 0; j < 16; j++) {
+		if (cpu_interrupt_SI_request_count[j][0] != cpu_interrupt_SI_proc_count[j][0]) {
+			fnd_dev_addr = cpu_interrupt_SI_request_dev_addr[j][0];
+			cpu_interrupt_SI_proc_count[j][0]++;
+			cpu_interrupt_SI_total_proc_count++;
+			break;
+		}
+		if (cpu_interrupt_SI_request_count[j][1] != cpu_interrupt_SI_proc_count[j][1]) {
+			fnd_dev_addr = cpu_interrupt_SI_request_dev_addr[j][1];
+			cpu_interrupt_SI_proc_count[j][1]++;
+			cpu_interrupt_SI_total_proc_count++;
+			break;
+		}
+		if (cpu_interrupt_SI_request_count[j][2] != cpu_interrupt_SI_proc_count[j][2]) {
+			fnd_dev_addr = cpu_interrupt_SI_request_dev_addr[j][2];
+			cpu_interrupt_SI_proc_count[j][2]++;
+			cpu_interrupt_SI_total_proc_count++;
+			break;
+		}
+		if (cpu_interrupt_SI_request_count[j][3] != cpu_interrupt_SI_proc_count[j][3]) {
+			fnd_dev_addr = cpu_interrupt_SI_request_dev_addr[j][3];
+			cpu_interrupt_SI_proc_count[j][3]++;
+			cpu_interrupt_SI_total_proc_count++;
+			break;
+		}
+	}
+	return fnd_dev_addr;
+}
+
+// ===========================================================================================================
 unsigned __int32 cpu_get_instruction_count() {
 	return cpu_instruction_count;
 }
 
 
 // ===========================================================================================================
-unsigned __int16 get_clock_trigger_count() {
+unsigned __int16 cpu_get_clock_trigger_count() {
 	return cpu_trigger_clock_int;
 }
 
@@ -225,19 +336,20 @@ void cpu_classic_7860() {
 	register VAL16				tmp16_val1 = { .uval = 0 };
 	register VAL16				tmp16_val2 = { .uval = 0 };
 	register VAL16				tmp16_val3 = { .uval = 0 };
-	static VAL16				tmp16_val4 = { .uval = 0 };
-	static VAL16				tmp16_val5 = { .uval = 0 };
+	register VAL16				tmp16_val4 = { .uval = 0 };
+	register VAL16				tmp16_val5 = { .uval = 0 };
 
-	static VAL32				tmp32_val1 = { .uval = 0 };
-	static VAL32				tmp32_val2 = { .uval = 0 };
-	static VAL32				tmp32_val3 = { .uval = 0 };
-	static VAL32				tmp32_val4 = { .uval = 0 };
+	register VAL32				tmp32_val1 = { .uval = 0 };
+	register VAL32				tmp32_val2 = { .uval = 0 };
+	register VAL32				tmp32_val3 = { .uval = 0 };
+	register VAL32				tmp32_val4 = { .uval = 0 };
 
 	static unsigned __int64		tempu64_val1 = 0;
 	static unsigned __int64		tempu64_val2 = 0;
 	static unsigned __int64		tempu64_val3 = 0;
 	static unsigned __int64		tempu64_val4 = 0;
 
+	// TODO: fix so these arent used.
 	static signed	__int16		temp16_val10 = 0;
 	static int					temp_bit = 0;
 
@@ -249,6 +361,8 @@ void cpu_classic_7860() {
 	int new_int = 0;
 
 	PSW tmp_PSW = { .all = 0 };
+	unsigned __int16 tmp_dev_addr = 0xffff;
+
 
 
 #include "cpu_register_memory_macros.h"
@@ -330,8 +444,6 @@ void cpu_classic_7860() {
 	// --------execute instructions while running or single stepping.
 	while (gbl_fp_runlight | gbl_fp_single_step) {
 
-		// TODO: Make interrupts not polled.
-
 		// -------- check for new interrupts
 		// TODO: optimize this !!
 		if ( (tmp16_val1.uval = (cpu_interrupt_request & cpu_interrupt_enabled & cpu_interrupt_active_mask )) > ( cpu_interrupt_active & cpu_interrupt_active_mask ) ) {
@@ -343,18 +455,62 @@ void cpu_classic_7860() {
 			if (new_int < 16) {
 
 				// --------store the current program counter and status double word to dedicated memory location
-				SET_MEMORY_VALUE_ABS(0x20 + (new_int * 2), program_counter);
-				SET_MEMORY_VALUE_ABS(0x41 + (new_int * 2), cpu_get_current_PSW().all);
+				SET_MEMORY_VALUE_ABS(0x0020 + (new_int * 2), program_counter);
+				SET_MEMORY_VALUE_ABS(0x0041 + (new_int * 2), cpu_get_current_PSW().all);
 
 				// --------set new PSW and new PC -- to go to the interrupt processing routine.
 				// TODO: check to implement SI and DI routines.
-				program_counter = GET_MEMORY_VALUE_ABS(0x21 + (new_int * 2));
-				tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x40 + (new_int * 2));
-				cpu_set_current_PSW( tmp_PSW );
 
-				// --------set that the interrupt is active!
-				cpu_interrupt_active |= bit[new_int];
-				cpu_interrupt_active_mask = mask[new_int];
+				// -------- DI
+				if (new_int == 12) {
+					tmp_dev_addr = cpu_get_next_DI_request();
+					// -------- if nothing found, report error
+					if (tmp_dev_addr = 0xffff) {
+						// -------- turn off DI request and report error.
+						cpu_interrupt_request &= cpu_intr_DI;
+						fprintf(stderr, "\n cpu - Erroneous DI interrupt request, ignored.\n");
+					}
+					else {
+						program_counter = GET_MEMORY_VALUE_ABS(0x0080 + tmp_dev_addr);
+						tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						cpu_set_current_PSW(tmp_PSW);
+
+						// --------set that the interrupt is active!
+						cpu_interrupt_active |= bit[new_int];
+						cpu_interrupt_active_mask = mask[new_int];
+					}
+				}
+
+				// -------- SI
+				else if (new_int == 13) {
+					tmp_dev_addr = cpu_get_next_SI_request();
+					// -------- if nothing found, report error
+					if (tmp_dev_addr = 0xffff) {
+						// -------- turn off DI request and report error.
+						cpu_interrupt_request &= cpu_intr_SI;
+						fprintf(stderr, "\n cpu - Erroneous SI interrupt request, ignored.\n");
+					}
+					else {
+						program_counter = GET_MEMORY_VALUE_ABS(0x00C0 + tmp_dev_addr);
+						tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						cpu_set_current_PSW(tmp_PSW);
+
+						// --------set that the interrupt is active!
+						cpu_interrupt_active |= bit[new_int];
+						cpu_interrupt_active_mask = mask[new_int];
+					}
+				}
+
+				// -------- All other interrupts
+				else {
+					program_counter = GET_MEMORY_VALUE_ABS(0x0021 + (new_int * 2));
+					tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+					cpu_set_current_PSW(tmp_PSW);
+
+					// --------set that the interrupt is active!
+					cpu_interrupt_active |= bit[new_int];
+					cpu_interrupt_active_mask = mask[new_int];
+				}
 
 				// fprintf(stderr, "\n cpu - new interrupt level %d, new pc 0x%04x, new psw 0x%04x\n", new_int, program_counter, cpu_get_current_PSW().all);
 
@@ -768,7 +924,17 @@ void cpu_classic_7860() {
 						}
 						// --------clear active and request for that interrupt
 						cpu_interrupt_active &= bitnot[new_int];
-						cpu_interrupt_request &= bitnot[new_int];
+
+						if ((new_int == 12) & (cpu_interrupt_DI_total_request_count == cpu_interrupt_DI_total_proc_count)) {
+							cpu_interrupt_request &= bitnot[new_int];
+						}
+						else if ( (new_int == 13) & (cpu_interrupt_SI_total_request_count == cpu_interrupt_SI_total_proc_count)) {
+							cpu_interrupt_request &= bitnot[new_int];
+						}
+						else {
+							cpu_interrupt_request &= bitnot[new_int];
+						}
+
 						if (cpu_interrupt_active == 0) {
 							cpu_interrupt_active_mask = mask[15];
 						}

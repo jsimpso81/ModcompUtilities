@@ -18,8 +18,10 @@ void cpu_start_thread();
 void cpu_stop_thread();
 void cpu_trigger_clock_interrupt();
 void cpu_trigger_console_interrupt();
-unsigned __int16 get_clock_trigger_count();
+unsigned __int16 cpu_get_clock_trigger_count();
 unsigned __int32 cpu_get_instruction_count();
+void cpu_request_DI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr);
+void cpu_request_SI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr);
 
 // -------- Real time clock
 void rtclock_start_thread();

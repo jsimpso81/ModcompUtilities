@@ -594,7 +594,7 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 					// device_common_buffer_set_empty(&device_data->out_buff);
 					// TODO: Console investigate clearing output buffer on terminate 
 					if (device_data->SI_enabled) {
-						// TODO: Cause SI
+						cpu_request_SI(device_data->bus, device_data->pri, device_data->device_address);
 					}
 				}
 			}

@@ -77,7 +77,7 @@ void process_user_commands() {
 
 					//--------clock
 					else if (strcmp(cmd_line_parsed[1], "clock") == 0) {
-						printf(" Clock trigger count: %d\n", get_clock_trigger_count());
+						printf(" Clock trigger count: %d\n", cpu_get_clock_trigger_count());
 					}
 
 
