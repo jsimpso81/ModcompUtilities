@@ -1,0 +1,22 @@
+
+
+For the instructions using R1 + instruction & 0x000f
+	it seems like wrap around is allowed.
+	based on the MC II diag 1 results
+
+	I thought it would issue a system protect trap, or
+	UIT trap, but it doesn't seem to.
+
+	actually the manual talks about memory wrap around!!!
+
+I temporarilly allowed non-priv halt.  Does priv bit stay on
+	when in an interrupt regardless of PSW stored in
+	memory.  Otherwise a 0 psw stored in mem would 
+	cause a continuous halt instruction...
+
+	books says always priv if not virtual!
+
+TODO I/O instructions (except ISZ?) are privileged.
+
+
+

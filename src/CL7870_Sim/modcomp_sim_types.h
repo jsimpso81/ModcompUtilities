@@ -68,27 +68,26 @@ typedef struct {
 	volatile unsigned __int16	proc_count;
 } QUEUE_UWORD;
 
+// TODO: Make this a macro to support different sizes.
+#define DEVICE_BUFFER_MAX_LEN 60000
+typedef struct {
+	unsigned int buf_len;
+	volatile unsigned int last_byte_writen_index;		// when next write index = last read index = buffer is full.
+	volatile unsigned int last_byte_read_index;			//  when index = nothing to read. 
+	volatile unsigned __int8 buffer[DEVICE_BUFFER_MAX_LEN];
+} DEVICE_BUFFER;
+
 
 // -------- data block for generic device --- ALL DEVICES MUST START WITH THIS AND ADD VALUES TO END OF STRUCT.
 typedef struct {
 #include "generic_device_variables.h"
 } DEVICE_GENERIC_DATA;
 
-// TODO: Make this a macro to support different sizes.
-#define DEVICE_BUFFER_MAX_LEN 60000
-typedef struct {
-	unsigned int buf_len;
-	unsigned int last_byte_writen_index;		// when next write index = last read index = buffer is full.
-	unsigned int last_byte_read_index;			//  when index = nothing to read. 
-	unsigned __int8 buffer[DEVICE_BUFFER_MAX_LEN];
-} DEVICE_BUFFER;
 
 // -------- data block for console device
 typedef struct {
 #include "generic_device_variables.h"
 	volatile HANDLE com_handle;
-	DEVICE_BUFFER in_buff;
-	DEVICE_BUFFER out_buff;
 } DEVICE_CONSOLE_DATA;
 
 
@@ -96,6 +95,4 @@ typedef struct {
 // #define DEVICE_NULL_MAX_BUFFER 12000
 typedef struct {
 #include "generic_device_variables.h"
-	DEVICE_BUFFER in_buff;
-	DEVICE_BUFFER out_buff;
 } DEVICE_NULL_DATA;

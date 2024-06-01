@@ -1,6 +1,7 @@
 // -------- CONSOLE DEVICE -- VIA COMM PORT
 
 #include <windows.h>
+#include <process.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -34,6 +35,8 @@
 #define transinit_write			0x0800
 
 
+void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DATA* device_data);
+
 
 // ============================================================================================================================
 void  device_console_output_data(unsigned __int16 device_address, unsigned __int16 data_value) {
@@ -43,11 +46,20 @@ void  device_console_output_data(unsigned __int16 device_address, unsigned __int
 	unsigned __int8 junk = data_value & 0x00ff;
 
 	device_common_buffer_put(&databuffer->out_buff, junk);
-	if (device_common_buffer_isfull(&databuffer->out_buff)) {
-		databuffer->ctrl_status |= status_data_not_ready;
+
+	if (databuffer->write_in_progress) {
+		if (device_common_buffer_isfull(&databuffer->out_buff)) {
+			databuffer->ctrl_status |= status_data_not_ready;
+		}
+		//else {
+		//	databuffer->ctrl_status &= (~status_data_not_ready);
+		//}
 	}
 
-	//printf("\n\n device console output data -- 0x%02hx\n\n", data_value);
+	// --------allow other threads to run
+	SwitchToThread();
+
+	printf("%c", junk);
 
 	//	databuffer->ctrl_wake++;
 	//	WakeByAddressSingle(&(databuffer->ctrl_wake));
@@ -61,15 +73,12 @@ void  device_console_output_cmd(unsigned __int16 device_address, unsigned __int1
 
 	//printf("\n device_console output cmd -- called - %04x\n", cmd_value);
 
-	// --------this is a command - set the controller busy.
-	databuffer->ctrl_status |= (status_busy);
+	// --------process the command
+	device_console_process_command(cmd_value, databuffer);
 
-	// --------add the command to the work queue.
-	que_uword_send(&(databuffer->ctrl_command_que), cmd_value);
+	// --------allow other threads to run
+	SwitchToThread();
 
-	// ---------wake the thread to process this command.
-	databuffer->ctrl_wake++;
-	WakeByAddressSingle((PVOID) & (databuffer->ctrl_wake));
 }
 
 // ============================================================================================================================
@@ -78,17 +87,21 @@ unsigned __int16  device_console_input_data(unsigned __int16 device_address) {
 	DEVICE_CONSOLE_DATA* databuffer = (DEVICE_CONSOLE_DATA*)iop_device_buffer[device_address];
 	unsigned __int16 ourvalue = 0;
 	unsigned __int8 ourbyte = 0;
+	bool new_data = false;
 
-	device_common_buffer_get(&databuffer->in_buff, &ourbyte);
+	// --------if there is a byte, get it.
+	new_data = device_common_buffer_get(&databuffer->in_buff, &ourbyte);
 
 	ourvalue = ourbyte;
 
 	// --------If buffer is empty,, set data_not_ready flag in status word.
-	if (device_common_buffer_isempty(&databuffer->in_buff)) {
-		databuffer->ctrl_status |= (status_data_not_ready);
+	if (databuffer->read_in_progress) {
+		if ( device_common_buffer_isempty(&databuffer->in_buff)) {
+			databuffer->ctrl_status |= status_data_not_ready;
+		}
 	}
 
-	fprintf(stderr,"\n device_console input data -- called - 0x%04x, index %d \n", ourvalue, databuffer->in_buff.last_byte_read_index);
+	// fprintf(stderr," device_console input data -- called - 0x%04x, index %d, new: %s \n", ourvalue, databuffer->in_buff.last_byte_read_index, (new_data ? "New  " : "Empty"));
 
 	return ourvalue;
 }
@@ -99,9 +112,39 @@ unsigned __int16  device_console_input_status(unsigned __int16 device_address) {
 	DEVICE_CONSOLE_DATA* databuffer = (DEVICE_CONSOLE_DATA*)iop_device_buffer[device_address];
 
 	unsigned __int16 loc_status;
+	unsigned __int16 loc_status1;
+
+
+	// --------allow other threads to run
+	SwitchToThread();
 
 	// --------get current control status and return to user.
 	loc_status = databuffer->ctrl_status;
+	loc_status1 = loc_status;
+
+	// -------- if reading and data available, update status.
+	if (databuffer->read_in_progress) {
+		if (device_common_buffer_isempty(&databuffer->in_buff)) {
+			loc_status |= status_data_not_ready; // no data to read.
+		}
+		else {
+			loc_status &= (~status_data_not_ready); // something to read.
+		}
+	}
+
+	// --------if writing and buffer space available, update status.
+	if (databuffer->write_in_progress) {
+		if (device_common_buffer_isfull(&databuffer->out_buff)) {
+			loc_status |= status_data_not_ready; // cant write
+		}
+		else {
+			loc_status &= (~status_data_not_ready); // can write
+		}
+	}
+
+	if (loc_status1 != loc_status) {
+		databuffer->ctrl_status = loc_status;
+	}
 
 	// printf("\n device_console input status -- called - 0x%04x\n", loc_status);
 	return loc_status;
@@ -125,16 +168,27 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 	DWORD bytes_written = 0;
 	BOOL write_status = false;
 	DWORD j = 0;
+	BOOL status;
+
+
 
 	// -------- get local device address from calling parameter to this routine 
 	loc_device_addr = *(unsigned __int16*)lpParam;
-	printf("\n Starting device console communications thread at device address %d\n", loc_device_addr);
+
+
+	printf(" Starting device console communications thread at device address %d\n", loc_device_addr);
 	if (loc_device_addr == 0) {
-		printf("\n thread didn't get device address \n");
+		printf(" Console device thread didn't get device address \n");
 	}
 
 	// -------- get pointer to device data.
 	device_data = (DEVICE_CONSOLE_DATA*)(iop_device_buffer[loc_device_addr]);
+
+	// -------- raise the priority of this thread.
+	status = SetThreadPriority( (HANDLE)iop_device_thread_handle2[loc_device_addr], THREAD_PRIORITY_ABOVE_NORMAL);
+	if (!status) {
+		printf(" *** ERROR *** Failed to raise priority of console communications thread.  Status 0x%08x\n", GetLastError());
+	}
 
 	// -------- get local comm handle
 	loc_comm_handle = device_data->com_handle;
@@ -163,7 +217,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 			case 1:
 
 				// --------do a read.
-				desired_read_bytes = 100;
+				desired_read_bytes = 50;
 				actual_read_bytes = 0;
 				read_status = ReadFile(loc_comm_handle, &loc_read_data, 
 									desired_read_bytes, &actual_read_bytes,NULL );
@@ -172,8 +226,10 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 					for (j = 0; j < actual_read_bytes; j++) {
 						device_common_buffer_put(&device_data->in_buff, loc_read_data[j]);
 					}
-					device_data->ctrl_status &= ~status_data_not_ready;
-
+					// --------signal data ready.
+					if (device_data->read_in_progress) {
+						device_data->ctrl_status &= (~status_data_not_ready);
+					}
 				}
 				if (!read_status) {
 					DWORD my_last_error = 0;
@@ -183,9 +239,9 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
 				// --------if a write is needed, do the write.
 				bytes_to_write = 0;
-				// -------- for now limit bytes written to 1000
+				// -------- for now limit bytes written to 500
 				// TODO: Console calculate correct write timeout for different baud rates.
-				while  (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 1000 ) {
+				while  (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 500 ) {
 					if (device_common_buffer_get(&device_data->out_buff, &loc_write_data[bytes_to_write]) ) {
 						bytes_to_write++;
 					}
@@ -194,6 +250,10 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 					write_status = WriteFile( loc_comm_handle, &loc_write_data, bytes_to_write, 
 								&bytes_written, NULL );
 					fprintf(stderr," Console bytes write requested %d, written %d.  Device Addr %d\n", bytes_to_write, bytes_written, loc_device_addr);
+					// --------signal buffer not full -- ready for more.
+					if (device_data->write_in_progress) {
+						device_data->ctrl_status &= (~status_data_not_ready);
+					}
 				}
 
 				break;
@@ -212,7 +272,8 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
 	printf(" Device comm thread exit. Device address %d\n", loc_device_addr);
 
-	ExitThread(0);
+	//  --  ExitThread(0);
+	_endthreadex(0);
 
 	return 0;
 
@@ -226,16 +287,15 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 	unsigned __int16 loc_device_addr = 0;
 	DEVICE_CONSOLE_DATA* device_data = 0;
 
-	bool dev_reading = false;
-	bool dev_writing = false;
-	bool si_enabled = false;
-	bool di_enabled = false;
+	// bool dev_reading = false;
+	// bool dev_writing = false;
+	// bool si_enabled = false;
+	// bool di_enabled = false;
 
 	unsigned __int16 last_wake = 0;
-	unsigned __int16 cmd_type;
-	unsigned __int16 loc_status = 0;
-	unsigned __int16 orig_status = 0;
-	unsigned __int16 loc_cmd = 0;
+	// unsigned __int16 loc_status = 0;
+	// unsigned __int16 orig_status = 0;
+	// unsigned __int16 loc_cmd = 0;
 
 
 	DWORD last_error = 0;
@@ -243,29 +303,36 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 	int set_param_status = 1;
 
 	DWORD comm_thread_id = 0;
-	HANDLE comm_thread_handle = NULL;
+	uintptr_t comm_thread_handle = 0;
 
 	HANDLE loc_com_device = NULL;
-
+	BOOL status;
 
 
 	// -------- get local device address from calling parameter to this routine 
 	loc_device_addr = *(unsigned __int16*)lpParam;
-	printf("\n Starting device console at device address %d\n", loc_device_addr);
+	printf(" Starting device console at device address %d\n", loc_device_addr);
 	if (loc_device_addr == 0) {
-		printf(" *** ERROR *** Thread didn't get device address \n");
+		printf(" *** ERROR *** Console device thread didn't get device address \n");
 	}
 
 	// -------- get pointer to device data.
 	device_data = (DEVICE_CONSOLE_DATA*)(iop_device_buffer[loc_device_addr]);
 
+	// -------- raise the priority of this thread.
+	status = SetThreadPriority((HANDLE)iop_device_thread_handle[loc_device_addr], THREAD_PRIORITY_ABOVE_NORMAL);
+	if (!status) {
+		printf(" *** ERROR *** Failed to raise priority of console worker thread.  Status 0x%08x\n", GetLastError());
+	}
+
 	// --------disable si and di
-	si_enabled = false;
-	di_enabled = false;
+	device_data->SI_enabled = false;
+	device_data->DI_enabled = false;
 
 	// -------- set initial data
-	loc_status = (status_exists | status_data_not_ready);
-	device_data->ctrl_status = loc_status;
+	device_data->ctrl_status = (status_exists | status_data_not_ready);
+	device_common_buffer_set_empty(&device_data->in_buff);  // for now don't clear the input buffer.
+	device_common_buffer_set_empty(&device_data->out_buff);
 
 	// --------Open com port
 	open_status = device_common_serial_open("COM1", &loc_com_device, &last_error);
@@ -286,9 +353,9 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 		// -------- Configure read and write operations to time out after 100 ms.
 		COMMTIMEOUTS timeouts = { 0 };
 		timeouts.ReadIntervalTimeout = 0;
-		timeouts.ReadTotalTimeoutConstant = 40;	// ms
+		timeouts.ReadTotalTimeoutConstant = 600;	// ms -- too large on purpose to help half duplex turn around.
 		timeouts.ReadTotalTimeoutMultiplier = 0;
-		timeouts.WriteTotalTimeoutConstant = 1500;	// ms
+		timeouts.WriteTotalTimeoutConstant = 1200;	// ms
 		timeouts.WriteTotalTimeoutMultiplier = 0;
 
 		BOOL success = SetCommTimeouts(loc_com_device, &timeouts);
@@ -296,6 +363,12 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 			printf(" *** ERROR ***  Failed to set serial timeouts\n");
 			// CloseHandle(port);
 			// return INVALID_HANDLE_VALUE;
+		}
+
+		// -------- set comm port driver buffer sizes.
+		success = SetupComm(loc_com_device, 16384, 16384);
+		if (!success) {
+			printf(" *** ERROR ***  Failed to set serial port buffers\n");
 		}
 
 		// Flush away any bytes previously read or written.
@@ -313,8 +386,8 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 			&comm_thread_id);
 
 		// -------- comm thread created, fill in information.
-		if (comm_thread_handle != NULL) {
-			printf("\n Device at device address  %02x communications thread created.\n", loc_device_addr);
+		if (comm_thread_handle != 0) {
+			printf(" Console device at device address  %02x communications thread created.\n", loc_device_addr);
 			iop_device_thread_handle2[loc_device_addr] = comm_thread_handle;
 			iop_device_thread_id2[loc_device_addr] = comm_thread_id;
 		}
@@ -340,193 +413,54 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 		last_wake = device_data->ctrl_wake;
 
 		// --------get internal status to work on...
-		orig_status = (loc_status = device_data->ctrl_status);
+		// orig_status = (loc_status = device_data->ctrl_status);
 
 		// --------process commands
-		while (que_uword_recv(&(device_data->ctrl_command_que), &loc_cmd)) {
+		//  while (que_uword_recv(&(device_data->ctrl_command_que), &loc_cmd)) {
 
-			last_wake = device_data->ctrl_wake;
-
-			// --------get internal status to work on...
-			orig_status = (loc_status = device_data->ctrl_status);
-
-			cmd_type = loc_cmd & cmd_mask;
-
-			switch (cmd_type) {
-
-				// --------command
-			case cmd_control:
-
-				// --------terminate
-				// -- The Terminate command causes an immediate halt of the transfer during an I/O Data
-				// -- transfer operation.  Completes any other required actions associated with the transfer, 
-				// -- goes Not Busy, and generates a Service Interrupt(SI) if enabled.
-				// -- While the not busy, issuance of a Terminate(bit 5 set) will cause the generation of 
-				// -- an SI, if enabled.  The CTC responds identically to a normal Terminate or an
-				// -- abort Terminate with bit 7 set.
-				if ((loc_cmd & ctrl_terminate) != 0) {
-					if ((loc_cmd & ctrl_icb) != 0) {
-						fprintf(stderr," Device console - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n",loc_device_addr, loc_cmd);
-						dev_reading = false;
-						dev_writing = false;
-						loc_status |= (status_data_not_ready);		// set no data ready
-						loc_status &= (~status_busy);				// clear busy
-						si_enabled = false;
-						di_enabled = false;
-						device_common_buffer_set_empty(&device_data->in_buff);
-						device_common_buffer_set_empty(&device_data->out_buff);
-					}
-					else {
-						fprintf(stderr," Device console - terminate requested. Dev Addr %d, cmd 0x%04x\n", loc_device_addr,loc_cmd);
-						dev_reading = false;
-						dev_writing = false;
-						loc_status |= (status_data_not_ready);
-						loc_status &= (~status_busy);
-						// device_common_buffer_set_empty(&device_data->in_buff);
-						// device_common_buffer_set_empty(&device_data->out_buff);
-						// TODO: Console investigate clearing output buffer on terminate 
-						if (si_enabled) {
-							// TODO: Cause SI
-						}
-					}
-				}
+		//	last_wake = device_data->ctrl_wake;
 
 
-
-				// -------- NOOP Command
-				// --  The No Op command is a control command that causes
-				// -- an enable or disable of Data or SI levels as specified by
-				// -- 	bits 2 and 3. When the CTC is "not busy" No Op resets all
-				// -- 	controller status indicators.
-				// -- 	The NO OP command also enables or disables the
-				// -- 	Break Detection logic in the controller.
-				// -- 	When bit 7 is set and 13 reset, the command will cause
-				// -- 	the enabling or disabling of Break Detection as specified
-				// -- 	by bit 10. Enabling of Break Detection will cause the CTC
-				// -- 	to set Break Detect(status bit 10) and if connected,
-				// -- 		generate an SI when connected.Refer to table 3 - 1 for use
-				// -- 		of bits 7, 10 and 13.
-				// --
-				// --  brk_sel & !brk_det & !si_rel = disable brk det
-				// --  brk_sel & brk_det & !si_reg = enable brk de
-				// --  brk_sel & !brk_det & si_rel = si release
-				// --  Break detection is independent of the currently
-				// --  	programmed transfer direction, if the Controller is busy.
-				// --  	The CTC is enabled for break detection and a break is
-				// --  	detected at the same time that a "normal" SI occurs.If the
-				// --  	order of the two interrupts is indeterminate, the program
-				// --  	must test the CTC's status to determine the cause of the
-				// --  	SI.
-				// --  	NOTE: With Break Detection disabled, there is no
-				// --  	question as to the cause of an SI.Therefore an
-				// --  	SI Release command is not needed under these
-				// --  	conditions.
-				// --  	When Break Detection is enabled with SI disabled the
-				// --  	CTC will set Break status upon Break Detection but will
-				// --  	not require an SI Release command.
-
-				else {
-					fprintf(stderr," Device console - NOOP Command. Dev Addr %d, cmd 0x%04x\n", loc_device_addr, loc_cmd);
-					si_enabled = (loc_cmd & ctrl_si_enable) ? true : false;
-					di_enabled = (loc_cmd & ctrl_di_enable) ? true : false;
-					if (loc_status & (~status_busy)) {
-						// TODO: reset status bits
-					}
-					if (loc_cmd & ctrl_break_select) {
-						switch (loc_cmd & (ctrl_enable_brk_det | ctrl_si_rel)) {
-						case 0:
-							break;
-						case ctrl_enable_brk_det:
-							break;
-						case ctrl_si_rel:
-							break;
-						default:
-							fprintf(stderr," Device console - invalid noop break select command 0x%04x \n", loc_cmd);
-						}
-					}
-
-				}
-				break;
-
-				// --------transfer initiate
-			case cmd_transfer_initiate:
-
-				// --------for some reason the console is backwards !
-				// TODO: Investigate console transfer initiate.
-				if ( !( loc_cmd & transinit_write ) ) {
-					// fprintf(stderr, " Device console - transfer initiate - write requested.  Dev addr: %d, cmd 0x%04x\n",loc_device_addr, loc_cmd);
-					dev_reading = false;
-					dev_writing = true;	
-					loc_status &= ~status_data_not_ready;
-				}
-				else {
-					// fprintf(stderr, " Device console - transfer initiate - read requested.  Dev addr: %d, cmd 0x%04x\n", loc_device_addr, loc_cmd);
-					dev_reading = true;
-					dev_writing = false;	
-					loc_status |= status_data_not_ready;
-				}
-				break;
-
-			}
-			// -------- if reading and data available, update status.
-			if (dev_reading) {
-				if (device_common_buffer_isempty(&device_data->in_buff)) {
-					loc_status |= status_data_not_ready;
-				}
-				else {
-					loc_status &= ~status_data_not_ready;
-				}
-			}
-
-			// --------if writing and buffer space available, update status.
-			if (dev_writing) {
-				if (device_common_buffer_isfull(&device_data->out_buff)) {
-					loc_status |= status_data_not_ready;
-				}
-				else {
-					loc_status &= ~status_data_not_ready;
-				}
-			}
+		//	device_console_process_command( unsigned __int16 loc_cmd, DEVICE_CONSOLE_DATA* device_data );
 
 
-			// --------update device status
-			device_data->ctrl_status = loc_status;
-			// if (loc_status != orig_status)
-			//	printf("\n Device console status updated 0x%04x\n", our_status);
-
-		}
+		// }
 
 		// --------all commands processed, indicate not busy.
-		loc_status &= (~status_busy);
+		// loc_status &= (~status_busy);
 
 		// -------- if reading and data available, update status.
-		if (dev_reading) {
-			if (device_common_buffer_isempty(&device_data->in_buff)) {
-				loc_status |= status_data_not_ready;
-			}
-			else {
-				loc_status &= ~status_data_not_ready;
-			}
-		}
+		// if (dev_reading) {
+		//  	if (device_common_buffer_isempty(&device_data->in_buff)) {
+		//		loc_status |= status_data_not_ready;
+		//	}
+		//	else {
+		//		loc_status &= ~status_data_not_ready;
+		//	}
+		//}
 
 		// --------if writing and buffer space available, update status.
-		if (dev_writing) {
-			if (device_common_buffer_isfull(&device_data->out_buff)) {
-				loc_status |= status_data_not_ready;
-			}
-			else {
-				loc_status &= ~status_data_not_ready;
-			}
-		}
+		//if (dev_writing) {
+		//	if (device_common_buffer_isfull(&device_data->out_buff)) {
+		//		loc_status |= status_data_not_ready;
+		//	}
+		//	else {
+		//		loc_status &= ~status_data_not_ready;
+		//	}
+		//}
 
 		// --------update device status
-		device_data->ctrl_status = loc_status;
+		//device_data->ctrl_status = loc_status;
 		// if ( our_status != orig_status )
 		//	printf("\n Device console status updated 0x%04x\n", our_status);
 
 		// --------wait for timeout or a new request.
-		WaitOnAddress(&(device_data->ctrl_wake), &last_wake, sizeof(last_wake), (DWORD)50);
+		WaitOnAddress(&(device_data->ctrl_wake), &last_wake, sizeof(last_wake), (DWORD)200);
 	}
+
+	// --------request comm thread to stop
+	iop_thread_stop_request2[loc_device_addr] = 1;
+	Sleep(200);
 
 	// --------try to close com port
 	if ( loc_com_device != NULL )
@@ -538,7 +472,8 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 
 	printf(" Device worker thread exit. Device address %d\n", loc_device_addr);
 
-	ExitThread(0);
+	//  --  ExitThread(0);
+	_endthreadex(0);
 
 	return 0;
 
@@ -585,4 +520,204 @@ void device_console_init(unsigned __int16 device_address, unsigned __int16 bus, 
 			device_console_input_data,
 			device_console_input_status);
 	}
+}
+
+
+
+// ============================================================================================================================
+void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DATA* device_data) {
+
+	unsigned __int16 cmd_type = 0;
+	unsigned __int16 orig_status = 0;
+	unsigned __int16 loc_status = 0;
+
+	// --------get internal status to work on...
+	loc_status = device_data->ctrl_status;
+	orig_status = loc_status;
+
+	// --------get the type of command.
+	cmd_type = loc_cmd & cmd_mask;
+
+	// --------set controller is busy
+	device_data->ctrl_status |= status_busy;
+	loc_status |= status_busy;
+
+	// --------process the various command types.
+	switch (cmd_type) {
+
+		// --------command
+		case cmd_control:
+
+			// --------terminate
+			// -- The Terminate command causes an immediate halt of the transfer during an I/O Data
+			// -- transfer operation.  Completes any other required actions associated with the transfer, 
+			// -- goes Not Busy, and generates a Service Interrupt(SI) if enabled.
+			// -- While the not busy, issuance of a Terminate(bit 5 set) will cause the generation of 
+			// -- an SI, if enabled.  The CTC responds identically to a normal Terminate or an
+			// -- abort Terminate with bit 7 set.
+			if ((loc_cmd & ctrl_terminate) != 0) {
+
+				// --------TERMINATE w/ICB   
+				if ((loc_cmd & ctrl_icb) != 0) {
+					fprintf(stderr, " Device console - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+
+					// --------stop all I/O
+					device_data->read_in_progress = false;
+					device_data->write_in_progress = false;
+
+					// --------update status
+					loc_status |= (status_data_not_ready);		// set no data ready
+					loc_status &= (~status_busy);				// clear busy
+
+					// --------disable interrupts
+					device_data->SI_enabled = false;
+					device_data->DI_enabled = false;
+
+					// --------clear buffers
+					//  device_common_buffer_set_empty(&device_data->in_buff);  // for now don't clear the input buffer.
+					// device_common_buffer_set_empty(&device_data->out_buff);
+				}
+
+				// --------TERMINATE
+				else {
+					fprintf(stderr, " Device console - terminate requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+
+					// --------stop all I/O
+					device_data->read_in_progress = false;
+					device_data->write_in_progress = false;
+
+					// --------update status
+					loc_status |= (status_data_not_ready);
+					loc_status &= (~status_busy);
+
+					// device_common_buffer_set_empty(&device_data->in_buff);
+					// device_common_buffer_set_empty(&device_data->out_buff);
+					// TODO: Console investigate clearing output buffer on terminate 
+					if (device_data->SI_enabled) {
+						// TODO: Cause SI
+					}
+				}
+			}
+
+
+			// -------- NOOP Command
+			// --	The No Op command is a control command that causes
+			// --	an enable or disable of Data or SI levels as specified by
+			// --	bits 2 and 3. 
+			// --
+			// --	When the CTC is "not busy" No Op resets all		
+			// -- 	controller status indicators.
+			// --
+			// -- 	The NO OP command also enables or disables the
+			// -- 	Break Detection logic in the controller.
+			// -- 	When bit 7 is set and 13 reset, the command will cause
+			// -- 	the enabling or disabling of Break Detection as specified
+			// -- 	by bit 10. Enabling of Break Detection will cause the CTC
+			// -- 	to set Break Detect(status bit 10) and if connected,
+			// -- 		generate an SI when connected.Refer to table 3 - 1 for use
+			// -- 		of bits 7, 10 and 13.
+			// --
+			// --		brk_sel & !brk_det & !si_rel = disable brk det
+			// --		brk_sel & brk_det & !si_reg = enable brk de
+			// --		brk_sel & !brk_det & si_rel = si release
+			// --
+			// --	Break detection is independent of the currently
+			// --  	programmed transfer direction, if the Controller is busy.
+			// --  	The CTC is enabled for break detection and a break is
+			// --  	detected at the same time that a "normal" SI occurs.If the
+			// --  	order of the two interrupts is indeterminate, the program
+			// --  	must test the CTC's status to determine the cause of the
+			// --  	SI.
+			// --
+			// --  	NOTE: With Break Detection disabled, there is no
+			// --  	question as to the cause of an SI.Therefore an
+			// --  	SI Release command is not needed under these
+			// --  	conditions.
+			// --
+			// --  	When Break Detection is enabled with SI disabled the
+			// --  	CTC will set Break status upon Break Detection but will
+			// --  	not require an SI Release command.
+
+			else {
+				fprintf(stderr, " Device console - NOOP Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+
+				// -------- enable or disable interrupts.
+				device_data->DI_enabled = (loc_cmd & ctrl_si_enable) ? true : false;
+				device_data->DI_enabled = (loc_cmd & ctrl_di_enable) ? true : false;
+
+				// TODO: figure this out.
+				if (loc_status & (~status_busy)) {
+					// TODO: reset status bits
+				}
+
+				// TODO: implement break detect.
+				if (loc_cmd & ctrl_break_select) {
+					switch (loc_cmd & (ctrl_enable_brk_det | ctrl_si_rel)) {
+					case 0:
+						break;
+					case ctrl_enable_brk_det:
+						break;
+					case ctrl_si_rel:
+						break;
+					default:
+						fprintf(stderr, " Device console - invalid noop break select command 0x%04x \n", loc_cmd);
+					}
+				}
+
+			}
+			break;
+
+		// --------transfer initiate
+		case cmd_transfer_initiate:
+
+			// --------for some reason the console is backwards !		
+			// TODO: Investigate console transfer initiate.
+			if (!(loc_cmd & transinit_write)) {
+				// fprintf(stderr, " Device console - transfer initiate - write requested.  Dev addr: %d, cmd 0x%04x\n",loc_device_addr, loc_cmd);
+
+				// -------- indicate transfer in progress
+				device_data->read_in_progress = false;
+				device_data->write_in_progress = true;
+			}
+			else {
+				// fprintf(stderr, " Device console - transfer initiate - read requested.  Dev addr: %d, cmd 0x%04x\n", loc_device_addr, loc_cmd);
+
+				// -------- indicate transfer in progress
+				device_data->read_in_progress = true;
+				device_data->write_in_progress = false;
+			}
+			break;
+
+		}		// -------- END OF COMMAND PROCESSING
+
+				
+		// -------- if reading and data available, update status.
+		if (device_data->read_in_progress) {
+			if (device_common_buffer_isempty(&device_data->in_buff)) {
+				loc_status |= status_data_not_ready; // no data to read.
+			}
+			else {
+				loc_status &= (~status_data_not_ready); // something to read.
+			}
+		}
+
+		// --------if writing and buffer space available, update status.
+		if (device_data->write_in_progress) {
+			if (device_common_buffer_isfull(&device_data->out_buff)) {
+				loc_status |= status_data_not_ready; // cant write
+			}
+			else {
+				loc_status &= (~status_data_not_ready); // can write
+			}
+		}
+
+		// --------set controller is not busy
+		loc_status &= ~status_busy;
+
+		// --------update device status
+		device_data->ctrl_status = loc_status;
+
+		// if (loc_status != orig_status)
+		//	printf("\n Device console status updated 0x%04x\n", our_status);
+
 }

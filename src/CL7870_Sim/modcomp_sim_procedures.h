@@ -16,6 +16,13 @@ void cpu_set_switches(unsigned __int16 switch_value);
 void cpu_classic_7860();
 void cpu_start_thread();
 void cpu_stop_thread();
+void cpu_trigger_clock_interupt();
+unsigned __int16 get_clock_trigger_count();
+unsigned __int32 cpu_get_instruction_count();
+
+// -------- Real time clock
+void rtclock_start_thread();
+void rtclock_stop_thread();
 
 // -------- user command
 void process_user_commands();
@@ -29,7 +36,7 @@ void iop_init_data();
 // -------- device common
 void* device_common_device_buffer_allocate(unsigned __int16 device_address, size_t buffer_size);
 void device_common_remove(unsigned __int16 device_address);
-HANDLE device_common_start_thread(LPVOID data_buffer, DEVICE_WORKER_THREAD thread_proc, LPDWORD thread_id);
+uintptr_t device_common_start_thread(void* data_buffer, DEVICE_WORKER_THREAD thread_proc, unsigned* thread_id);
 void device_common_stop_all();
 
 int device_common_serial_close( HANDLE com_handle, DWORD* last_error);
@@ -37,12 +44,12 @@ int device_common_serial_open( char* com_port, HANDLE *com_handle, DWORD *last_e
 void device_common_serial_print_settings(DCB this_dcb);
 int device_common_serial_set_params(HANDLE hCom, DWORD* last_error);
 
-void device_common_buffer_init(DEVICE_BUFFER* buff);
-bool device_common_buffer_isempty(DEVICE_BUFFER* buff);
-bool device_common_buffer_isfull(DEVICE_BUFFER* buff);
-bool device_common_buffer_get(DEVICE_BUFFER* buff, unsigned __int8* to_get);
-void device_common_buffer_put(DEVICE_BUFFER* buff, unsigned __int8 to_put);
-device_common_buffer_set_empty(DEVICE_BUFFER* buff);
+void device_common_buffer_init(volatile DEVICE_BUFFER* buff);
+bool device_common_buffer_isempty(volatile DEVICE_BUFFER* buff);
+bool device_common_buffer_isfull(volatile DEVICE_BUFFER* buff);
+bool device_common_buffer_get(volatile DEVICE_BUFFER* buff, unsigned __int8* to_get);
+void device_common_buffer_put(volatile DEVICE_BUFFER* buff, unsigned __int8 to_put);
+void device_common_buffer_set_empty(volatile DEVICE_BUFFER* buff);
 
 void device_common_thread_init(LPVOID data_buffer,
 	DEVICE_WORKER_THREAD worker_proc,
@@ -56,9 +63,9 @@ void device_null_init(unsigned __int16 device_address, unsigned __int16 bus, uns
 void device_console_init(unsigned __int16 device_address, unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dmp);
 
 // -------- generic queue routines
-void que_uword_init(QUEUE_UWORD* que);
-bool que_uword_recv(QUEUE_UWORD* que, __int16* cmd_word);
-bool que_uword_send(QUEUE_UWORD* queue, unsigned __int16 value);
+void que_uword_init(volatile QUEUE_UWORD* que);
+bool que_uword_recv(volatile QUEUE_UWORD* que, __int16* cmd_word);
+bool que_uword_send(volatile QUEUE_UWORD* queue, unsigned __int16 value);
 
 // -------- display routines
 void disp_devices( FILE* io_unit );
@@ -72,4 +79,8 @@ void util_get_opcode_disp(unsigned __int16 instruction, char* op_buffer, size_t 
 
 // --------templates for external interface
 void rmi_request(unsigned __int16 rmi_request);
+
+// --------memory
+unsigned __int16 memory_plane_RMPS(unsigned __int16 first_reg, unsigned __int16 second_reg);
+void memory_plane_init();
 

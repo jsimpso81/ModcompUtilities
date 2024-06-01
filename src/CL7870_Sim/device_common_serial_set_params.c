@@ -7,7 +7,7 @@
 // -------- set com parameters -- for now 9600,8,N,1 - no hand shaking.
 int device_common_serial_set_params( HANDLE hCom, DWORD *last_error ) {
 
-    DCB dcb;
+    DCB dcb = { 0 };
     BOOL fSuccess;
 
     // -------- Initialize the DCB structure.

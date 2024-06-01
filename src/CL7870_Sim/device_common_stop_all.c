@@ -22,13 +22,13 @@ void device_common_stop_all() {
 	// -------- if the thread is still there, terminate it.
 	for (j = 0; j < 64; j++) {
 		if (iop_thread_stop_request[j] != 0) {
-			TerminateThread(iop_device_thread_handle[j], 0); // Dangerous source of errors!
-			CloseHandle(iop_device_thread_handle[j]);
+			TerminateThread((HANDLE)iop_device_thread_handle[j], 0); // Dangerous source of errors!
+			CloseHandle((HANDLE)iop_device_thread_handle[j]);
 			printf("\n *** ERROR *** Device thread didnt respond normally.  It was forcefully terminated.\n");
 		}
 		if (iop_thread_stop_request2[j] != 0 && iop_device_thread_handle2[j] != 0) {
-			TerminateThread(iop_device_thread_handle2[j], 0); // Dangerous source of errors!
-			CloseHandle(iop_device_thread_handle2[j]);
+			TerminateThread((HANDLE)iop_device_thread_handle2[j], 0); // Dangerous source of errors!
+			CloseHandle((HANDLE)iop_device_thread_handle2[j]);
 			printf("\n *** ERROR *** Device communications thread didnt respond normally.  It was forcefully terminated.\n");
 		}
 	}

@@ -3,7 +3,7 @@
 #include "modcomp_sim_types.h"
 
 
-bool que_uword_send(QUEUE_UWORD* queue, unsigned __int16 value) {
+bool que_uword_send(volatile QUEUE_UWORD* queue, unsigned __int16 value) {
 
 	unsigned __int16 loc_next_in_index;
 

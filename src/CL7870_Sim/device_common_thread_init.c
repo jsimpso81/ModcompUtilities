@@ -15,8 +15,8 @@ void device_common_thread_init(LPVOID data_buffer,
 	DEVICE_INPUT_STATUS input_status_proc) {
 
 
-	HANDLE  device_thread;
-	DWORD   device_thread_id;
+	uintptr_t  device_thread;
+	DWORD   device_thread_id = 0;
 
 	DEVICE_GENERIC_DATA* generic_data_ptr;
 
@@ -47,13 +47,13 @@ void device_common_thread_init(LPVOID data_buffer,
 		// If CreateThread fails, terminate execution. 
 		// This will automatically clean up threads and memory. 
 
-		if (device_thread == NULL) {
+		if (device_thread == 0) {
 			printf("\n *** ERROR *** Trouble creating worker thread for device %02x.  Device not created.\n", device_address);
 			// --------back everything out!
 			device_common_remove(device_address);
 		}
 		else {
-			printf("\n Device at device address  %02x created.\n", device_address);
+			printf(" Device at device address  %02x created.\n", device_address);
 			iop_device_thread_handle[device_address] = device_thread;
 			iop_device_thread_id[device_address] = device_thread_id;
 		}

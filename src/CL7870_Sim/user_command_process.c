@@ -75,6 +75,12 @@ void process_user_commands() {
 						disp_psw( stdout, cpu_get_current_PSW() );
 					}
 
+					//--------clock
+					else if (strcmp(cmd_line_parsed[1], "clock") == 0) {
+						printf(" Clock trigger count: %d\n", get_clock_trigger_count());
+					}
+
+
 					//--------program counter
 					else if (strcmp(cmd_line_parsed[1], "pc") == 0) {
 						disp_pc(stdout,cpu_get_program_counter());
@@ -141,9 +147,13 @@ void process_user_commands() {
 						}
 					}
 
-					//--------instruction use (deug
+					//--------instruction use (deug)
 					else if (strcmp(cmd_line_parsed[1], "inst") == 0) {
 						disp_instruction_use(stdout);
+					}
+					//--------instruction execution count
+					else if (strcmp(cmd_line_parsed[1], "count") == 0) {
+						printf(" Instruction execution count %d\n", cpu_get_instruction_count());
 					}
 
 					// --------just in case 1

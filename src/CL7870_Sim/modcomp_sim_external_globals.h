@@ -34,20 +34,20 @@ extern volatile unsigned __int32 cpu_inst_used[256];
 
 
 // -------- IO DEVICES
-extern volatile unsigned __int16 iop_last_dev_status[64];
+// extern volatile unsigned __int16 iop_last_dev_status[64];
 
 extern DEVICE_OUTPUT_DATA  iop_output_data_proc[64];
 extern DEVICE_OUTPUT_CMD   iop_output_cmd_proc[64];
 extern DEVICE_INPUT_DATA   iop_input_data_proc[64];
 extern DEVICE_INPUT_STATUS iop_input_status_proc[64];
 
-extern void* iop_device_buffer[64];
-extern int iop_thread_stop_request[64];
-extern int iop_thread_stop_request2[64];
-extern HANDLE  iop_device_thread_handle[64];
-extern HANDLE  iop_device_thread_handle2[64];
-extern DWORD   iop_device_thread_id[64];
-extern DWORD   iop_device_thread_id2[64];
+extern volatile void* iop_device_buffer[64];
+extern volatile int iop_thread_stop_request[64];
+extern volatile int iop_thread_stop_request2[64];
+extern volatile uintptr_t  iop_device_thread_handle[64];
+extern volatile uintptr_t  iop_device_thread_handle2[64];
+extern volatile DWORD   iop_device_thread_id[64];
+extern volatile DWORD   iop_device_thread_id2[64];
 
-extern bool gbl_verbose_debug;
+extern volatile bool gbl_verbose_debug;
 // =================================================================================

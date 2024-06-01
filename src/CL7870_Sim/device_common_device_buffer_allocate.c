@@ -29,6 +29,6 @@ void* device_common_device_buffer_allocate(unsigned __int16 device_address, size
 			printf("\n *** ERROR ***  Could not allocate memory for device address %02x.  Device not created.\n", device_address);
 			return NULL;
 		}
-		return iop_device_buffer[loc_dev_addr];
+		return (void*)iop_device_buffer[loc_dev_addr];
 	}
 }

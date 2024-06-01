@@ -12,6 +12,25 @@ typedef union {
 	unsigned __int64 reg64[4];
 } REG_BLOCK;
 
+// -------- global constants
+const unsigned __int16 bit[16] = { 0x8000, 0x4000, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0100,
+									 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001 };
+const unsigned __int16 bitnot[16] = { 0x7fff, 0xbfff, 0xdfff, 0xefff, 0xf7ff, 0xfbff, 0xfdff, 0xfeff,
+									  0xff7f, 0xffbf, 0xffdf, 0xffef, 0xfff7, 0xfffb, 0xfffd, 0xfffe };
+const unsigned __int16 mask[16] = { 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc00, 0xfe00, 0xff00,
+									 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff };
+
+// --------This is a 16 bit - bit numbber
+const unsigned __int32 bit32[16] = { 0x8000, 0x4000, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0100,
+									 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001 };
+const unsigned __int32 bitnot32[16] = { 0x7fff, 0xbfff, 0xdfff, 0xefff, 0xf7ff, 0xfbff, 0xfdff, 0xfeff,
+									  0xff7f, 0xffbf, 0xffdf, 0xffef, 0xfff7, 0xfffb, 0xfffd, 0xfffe };
+const unsigned __int32 mask32[16] = { 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc00, 0xfe00, 0xff00,
+									 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff };
+
+
+
+
 // ================================global cpu data===================================================
 // 
 // -------- individual parts of the PSD
@@ -29,7 +48,7 @@ static bool cpu_cond_code_c = false;						// CC C
 
 static REG_BLOCK cpu_register[16];	// indexed by register block.
 
-// -------- interrupts
+// -------- interupts
 //		0	0x8000	Power Fail Safe / Auto Start
 #define cpu_intr_power_fail (unsigned __int16)0x8000
 //		1	0x4000	Memory Parity
@@ -58,15 +77,17 @@ static REG_BLOCK cpu_register[16];	// indexed by register block.
 #define cpu_intr_DI (unsigned __int16)0x0008
 //		13	0x0004	I/O Service Party Line
 #define cpu_intr_SI (unsigned __int16)0x0004
-//		14	0x0002	Console Interrupt
+//		14	0x0002	Console Interupt
 #define cpu_intr_console (unsigned __int16)0x0002
 //		15	0x0001	Task Scheduler
 #define cpu_intr_task_sch (unsigned __int16)0x0001
 //
 
-static unsigned __int16 cpu_interrupt_active = 0;
-static unsigned __int16 cpu_interrupt_enabled = (cpu_intr_power_fail | cpu_intr_sys_protect | cpu_intr_UIT | cpu_intr_floating_overflow);
-static unsigned __int16 cpu_interrupt_request = 0;
+static volatile unsigned __int16 cpu_interupt_active = 0;
+static volatile unsigned __int16 cpu_interupt_enabled = (cpu_intr_power_fail | cpu_intr_sys_protect | cpu_intr_UIT | cpu_intr_floating_overflow);
+static volatile unsigned __int16 cpu_interupt_request = 0;
+static volatile unsigned __int16 cpu_interupt_active_mask = 0xffff;
+
 
 static bool cpu_virtual_mode = false;
 
@@ -77,13 +98,29 @@ static unsigned __int16 cpu_extended_memory_ctrl_reg = 0;
 static unsigned __int16 cpu_trigger_clock_int = 0;	// updated by external call
 static unsigned __int16 cpu_last_clock_int = 0;		// updated by cpu
 
+static unsigned __int32 cpu_instruction_count = 0;	// how many instructions executed.
+
 
 #include "cpu_macro_register_access.h"
 
 // ===========================================================================================================
+unsigned __int32 cpu_get_instruction_count() {
+	return cpu_instruction_count;
+}
+
+
+// ===========================================================================================================
+unsigned __int16 get_clock_trigger_count() {
+	return cpu_trigger_clock_int;
+}
+
+
+
+// ===========================================================================================================
 // TODO: implement this so polling isn't needed.
-void cpu_trigger_clock_interrupt() {
+void cpu_trigger_clock_interupt() {
 	cpu_trigger_clock_int++;
+	cpu_interupt_request |= (cpu_intr_clock & cpu_interupt_enabled);
 }
 
 // ===========================================================================================================
@@ -142,26 +179,22 @@ void cpu_set_current_PSW( PSW new_psw ) {
 	return;
 }
 
-
+// ===========================================================================================================
+unsigned __int16 cpu_find_bit(unsigned __int16 bit_value) {
+	unsigned __int16 new_bit = 16;
+	int j;
+	for (j = 0; j < 16; j++) {
+		if ((bit[j] & bit_value) != 0) {
+			new_bit = j;
+			break;
+		}
+	}
+	return new_bit;
+}
 
 // ===========================================================================================================
 void cpu_classic_7860() {
 
-	// -------- local constants
-	const unsigned __int16 bit[16] = { 0x8000, 0x4000, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0100,
-										 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001 };
-	const unsigned __int16 bitnot[16] = { 0x7fff, 0xbfff, 0xdfff, 0xefff, 0xf7ff, 0xfbff, 0xfdff, 0xfeff,
-										  0xff7f, 0xffbf, 0xffdf, 0xffef, 0xfff7, 0xfffb, 0xfffd, 0xfffe };
-	const unsigned __int16 mask[16] = { 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc00, 0xfe00, 0xff00,
-										 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff };
-
-	// --------This is a 16 bit - bit numbber
-	const unsigned __int32 bit32[16] = { 0x8000, 0x4000, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0100,
-										 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001 };
-	const unsigned __int32 bitnot32[16] = { 0x7fff, 0xbfff, 0xdfff, 0xefff, 0xf7ff, 0xfbff, 0xfdff, 0xfeff,
-										  0xff7f, 0xffbf, 0xffdf, 0xffef, 0xfff7, 0xfffb, 0xfffd, 0xfffe };
-	const unsigned __int32 mask32[16] = { 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc00, 0xfe00, 0xff00,
-										 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff };
 
 
 	// -------- potentially global values  -- for now local, may need to be global later
@@ -208,8 +241,6 @@ void cpu_classic_7860() {
 
 	char op_code_string[20] = "";
 
-	int thread_switch_count = 0;
-
 	int new_int = 0;
 
 	PSW tmp_PSW = { .all = 0 };
@@ -222,18 +253,18 @@ void cpu_classic_7860() {
 	// TODO: Set CC for UIT
 #define UNIMPLEMENTED_INSTRUCTION {\
 					fprintf(stderr, "\n unimplemented instruction %04x\n",instruction.all);\
-					cpu_interrupt_request |= cpu_intr_UIT;\
+					cpu_interupt_request |= cpu_intr_UIT;\
 					}
 
 // TODO: Set CC for UIT
 #define ILLEGAL_INSTRUCTION {\
 					fprintf(stderr, "\n Illegal instruction %04x\n",instruction.all);\
-					cpu_interrupt_request |= cpu_intr_UIT;\
+					cpu_interupt_request |= cpu_intr_UIT;\
 					}
 
 #define PRIV_INSTR_TRAP {\
 					fprintf(stderr, "\n privileged instruction %04x\n",instruction.all);\
-					cpu_interrupt_request |= cpu_intr_sys_protect;\
+					cpu_interupt_request |= cpu_intr_sys_protect;\
 					}
 
 #define BAD_SHORT_DISPLACED_ADDR_TRAP {\
@@ -245,7 +276,7 @@ void cpu_classic_7860() {
 									GET_MEMORY_VALUE_ABS(program_counter + 3) ); \
 					fprintf(stderr, "    register R1 0x%04x\n",GET_REGISTER_VALUE(1) );\
 					fprintf(stderr, "    short displaced addr calc  0x%04x\n",  GET_MEMORY_ADDR_SHORT_DISPLACED );\
-					cpu_interrupt_request |= cpu_intr_sys_protect;\
+					cpu_interupt_request |= cpu_intr_sys_protect;\
 					}
 
 
@@ -273,7 +304,7 @@ void cpu_classic_7860() {
 					}\
 					} 
 
-// --------allowed set interrupt masks
+// --------allowed set interupt masks
 #define SIA_ALLOWED 0x7fff
 #define SIE_ALLOWED 0xffff		// some disables are prohibited.
 #define SIR_ALLOWED 0xffff		// level C and D should not be program requested, but it isn't prevented.
@@ -290,24 +321,14 @@ void cpu_classic_7860() {
 	// --------execute instructions while running or single stepping.
 	while (gbl_fp_runlight | gbl_fp_single_step) {
 
-		// TODO: Make interrupts not polled.
+		// TODO: Make interupts not polled.
 
-		// --------check for new clock interrupt.  Only trigger if enabled.
-		if (cpu_trigger_clock_int != cpu_last_clock_int) {
-			cpu_interrupt_request |= ( cpu_intr_clock & cpu_interrupt_enabled);
-		}
+		// -------- check for new interupts
+		// TODO: optimize this !!
+		if ( (tmp16_val1.uval = (cpu_interupt_request & cpu_interupt_enabled & cpu_interupt_active_mask )) > ( cpu_interupt_active & cpu_interupt_active_mask ) ) {
 
-		// -------- check for new interrupts
-		if ((tmp16_val1.uval = (cpu_interrupt_request & cpu_interrupt_enabled)) > cpu_interrupt_active) {
-
-			// --------find out which interrupt we are requesting
-			new_int = 16;
-			for (j = 0; j < 16; j++) {
-				if ((bit[j] & tmp16_val1.uval) != 0) {
-					new_int = j;
-					break;
-				}
-			}
+			// --------find out which interupt we are requesting
+			new_int = cpu_find_bit(tmp16_val1.uval);
 
 			// --------save current process_status_double_word in dedicated memory location
 			if (new_int < 16) {
@@ -316,16 +337,17 @@ void cpu_classic_7860() {
 				SET_MEMORY_VALUE_ABS(0x20 + (new_int * 2), program_counter);
 				SET_MEMORY_VALUE_ABS(0x41 + (new_int * 2), cpu_get_current_PSW().all);
 
-				// --------set new PSW and new PC -- to go to the interrupt processing routine.
+				// --------set new PSW and new PC -- to go to the interupt processing routine.
 				// TODO: check to implement SI and DI routines.
 				program_counter = GET_MEMORY_VALUE_ABS(0x21 + (new_int * 2));
 				tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x40 + (new_int * 2));
 				cpu_set_current_PSW( tmp_PSW );
 
-				// --------set that the interrupt is active!
-				cpu_interrupt_active |= bit[new_int];
+				// --------set that the interupt is active!
+				cpu_interupt_active |= bit[new_int];
+				cpu_interupt_active_mask = mask[new_int];
 
-				fprintf(stderr, "\n cpu - new interrupt level %d, new pc 0x%04x, new psw 0x%04x\n", new_int, program_counter, cpu_get_current_PSW().all);
+				// fprintf(stderr, "\n cpu - new interupt level %d, new pc 0x%04x, new psw 0x%04x\n", new_int, program_counter, cpu_get_current_PSW().all);
 
 			}
 		}
@@ -351,24 +373,24 @@ void cpu_classic_7860() {
 
 			// --------00 -- HLT -- Halt (Privileged)          
 			case  OP_HLT:			// 0x00
-				//if (cpu_priv_mode) {
+				if (cpu_priv_mode | !cpu_virtual_mode) {
 					// cpu_run = false;
 					gbl_fp_runlight = false;
 					printf("\nCpu halted.  pc = 0x%04x\n", program_counter);
 					cmd_process_print_prompt();
-				//}
-				//else {
-				//	PRIV_INSTR_TRAP;
-				//}
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_AUG01:			// 0x01	
 				switch ( instruction.parts.dest_reg ) {
 
-					// --  0	RMI -- Request Multi·processor Interrupt
+					// --  0	RMI -- Request Multi·processor Interupt
 					case 0:
-						if (cpu_priv_mode) {
+						if (cpu_priv_mode | !cpu_virtual_mode) {
 							rmi_request(instruction.parts.src_reg);
 						}
 						else {
@@ -398,7 +420,7 @@ void cpu_classic_7860() {
 				
 					// --  5	SCRB -- Select Current Register Block in PSD
 					case 5:
-						if (cpu_priv_mode) {
+						if (cpu_priv_mode | !cpu_virtual_mode) {
 							tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
 							tmp16_val1.uval = (tmp16_val1.uval & 0x0f00) >> 8;
 							cpu_register_block = tmp16_val1.uval;
@@ -461,9 +483,16 @@ void cpu_classic_7860() {
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
-			case  OP_RMPS_RMWS:	    // 0x03 - RMPS -- Read Memory Plane Status        
-									//		  RMWS -- Read Memory Word Status
-				UNIMPLEMENTED_INSTRUCTION;
+			case  OP_RMPS_RMWS:	    // 0x03 -         
+				if (instruction.parts.src_reg & 0x0001) {		//  RMWS -- Read Memory Word Status
+					UNIMPLEMENTED_INSTRUCTION;
+				}
+				else {											// RMPS -- Read Memory Plane Status
+					tmp16_val1.uval = GET_REGISTER_VALUE(instruction.parts.src_reg & 0x000e);
+					tmp16_val2.uval = GET_REGISTER_VALUE(instruction.parts.src_reg | 0x0001);
+					tmp16_val3.uval = memory_plane_RMPS(tmp16_val1.uval, tmp16_val2.uval);
+					SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
+				}			
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
@@ -559,19 +588,19 @@ void cpu_classic_7860() {
 						SET_DESTINATION_REGISTER_VALUE( cpu_get_current_PSW().all & 0x000f);
 						break;
 
-					// -------- 4	LCIA  -- Load Register with Current Interrupt Active Latches    
+					// -------- 4	LCIA  -- Load Register with Current Interupt Active Latches    
 					case 4:
-						SET_DESTINATION_REGISTER_VALUE(cpu_interrupt_active);
+						SET_DESTINATION_REGISTER_VALUE(cpu_interupt_active);
 						break;
 
-					// -------- 5	LCIE  -- Load Register with Current Interrupt Enable Latches     
+					// -------- 5	LCIE  -- Load Register with Current Interupt Enable Latches     
 					case 5:
-						SET_DESTINATION_REGISTER_VALUE(cpu_interrupt_enabled);
+						SET_DESTINATION_REGISTER_VALUE(cpu_interupt_enabled);
 						break;
 
-					// -------- 6	LCIR  -- Load Register with Current Interrupt Request Latches     
+					// -------- 6	LCIR  -- Load Register with Current Interupt Request Latches     
 					case 6:
-						SET_DESTINATION_REGISTER_VALUE(cpu_interrupt_request);
+						SET_DESTINATION_REGISTER_VALUE(cpu_interupt_request);
 						break;
 
 					// -------- 7	MBVV  -- Move Virtual Block to Virtual Block       
@@ -657,15 +686,15 @@ void cpu_classic_7860() {
 			case  OP_REX:			// 0x23  --  Request Executive Service
 				SET_CC_Z(true);		// It is a REX
 				SET_CC_O(false);	// It is not a EXR or EXI
-				cpu_interrupt_request |= cpu_intr_UIT;
+				cpu_interupt_request |= cpu_intr_UIT;
 				break;
 
 			case  OP_CAR:			// 0x24  --  CAR  --  Clear Active and Return        
-				if (cpu_priv_mode) {
-					// --------find highest active interrupt
+				if (cpu_priv_mode | !cpu_virtual_mode) {
+					// --------find highest active interupt
 					new_int = 16;
 					for (j = 0; j < 16; j++) {
-						if ((bit[j] & cpu_interrupt_active) != 0) {
+						if ((bit[j] & cpu_interupt_active) != 0) {
 							new_int = j;
 							break;
 						}
@@ -685,10 +714,16 @@ void cpu_classic_7860() {
 							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
 							cpu_set_current_PSW(tmp_PSW);
 						}
-						// --------clear active and request for that interrupt
-						cpu_interrupt_active &= bitnot[new_int];
+						// --------clear active for that interupt
+						cpu_interupt_active &= bitnot[new_int];
+						if (cpu_interupt_active == 0) {
+							cpu_interupt_active_mask = mask[15];
+						}
+						else {
+							cpu_interupt_active_mask = mask[cpu_find_bit(cpu_interupt_active)];
+						}
 
-						fprintf(stderr, "\n cpu - CAR return from interrupt level %d, new pc 0x%04x\n", new_int, program_counter);
+						// fprintf(stderr, "\n cpu - CAR return from interupt level %d, new pc 0x%04x\n", new_int, program_counter);
 					}
 				}
 				// --------not priviledged.
@@ -698,12 +733,12 @@ void cpu_classic_7860() {
 				}
 				break;
 
-			case  OP_CIR:			// 0x25  --  CIR  --  Clear Interrupt and Return        
-				if (cpu_priv_mode) {
-					// --------find highest active interrupt
+			case  OP_CIR:			// 0x25  --  CIR  --  Clear Interupt and Return        
+				if (cpu_priv_mode | !cpu_virtual_mode) {
+					// --------find highest active interupt
 					new_int = 16;
 					for (j = 0; j < 16; j++) {
-						if ((bit[j] & cpu_interrupt_active) != 0) {
+						if ((bit[j] & cpu_interupt_active) != 0) {
 							new_int = j;
 							break;
 						}
@@ -722,10 +757,16 @@ void cpu_classic_7860() {
 							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
 							cpu_set_current_PSW(tmp_PSW);
 						}
-						// --------clear active and request for that interrupt
-						cpu_interrupt_active &= bitnot[new_int];
-						cpu_interrupt_request &= bitnot[new_int];
-						fprintf(stderr, "\n cpu - CIR return from interrupt level %d, new pc 0x%04x\n", new_int, program_counter);
+						// --------clear active and request for that interupt
+						cpu_interupt_active &= bitnot[new_int];
+						cpu_interupt_request &= bitnot[new_int];
+						if (cpu_interupt_active == 0) {
+							cpu_interupt_active_mask = mask[15];
+						}
+						else {
+							cpu_interupt_active_mask = mask[cpu_find_bit(cpu_interupt_active)];
+						}
+						// fprintf(stderr, "\n cpu - CIR return from interupt level %d, new pc 0x%04x\n", new_int, program_counter);
 					}
 				}
 				// --------not priviledged.
@@ -740,30 +781,36 @@ void cpu_classic_7860() {
 				tmp16_val1.uval = bit[GET_SOURCE_REGISTER_NUMB];
 				switch (tmp_instr_dest) {
 
-					// SIA  --  Set Interrupt Active         
+					// SIA  --  Set Interupt Active         
 					case 0:
-						if (cpu_priv_mode) {
-							cpu_interrupt_active |= (tmp16_val1.uval & SIA_ALLOWED);
+						if (cpu_priv_mode | !cpu_virtual_mode) {
+							cpu_interupt_active |= (tmp16_val1.uval & SIA_ALLOWED);
+							if (cpu_interupt_active == 0) {
+								cpu_interupt_active_mask = mask[15];
+							}
+							else {
+								cpu_interupt_active_mask = mask[cpu_find_bit(cpu_interupt_active)];
+							}
 						}
 						else {
 							PRIV_INSTR_TRAP;
 						}
 						break;
 
-					// SIE  --  Set Interrupt Enable         
+					// SIE  --  Set Interupt Enable         
 					case 4:
-						if (cpu_priv_mode) {
-							cpu_interrupt_enabled |= ( tmp16_val1.uval & SIE_ALLOWED );
+						if (cpu_priv_mode | !cpu_virtual_mode) {
+							cpu_interupt_enabled |= ( tmp16_val1.uval & SIE_ALLOWED );
 						}
 						else {
 							PRIV_INSTR_TRAP;
 						}
 						break;
 
-					// SIR  --  Set Interrupt Request         
+					// SIR  --  Set Interupt Request         
 					case 8:
-						if (cpu_priv_mode) {
-							cpu_interrupt_request |= ( tmp16_val1.uval & SIR_ALLOWED );
+						if (cpu_priv_mode | !cpu_virtual_mode) {
+							cpu_interupt_request |= ( tmp16_val1.uval & SIR_ALLOWED );
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -782,30 +829,36 @@ void cpu_classic_7860() {
 				tmp16_val1.uval = bitnot[GET_SOURCE_REGISTER_NUMB];
 				switch (tmp_instr_dest) {
 
-					// RIA  --  Reset Interrupt Active         
+					// RIA  --  Reset Interupt Active         
 					case 0:
-						if (cpu_priv_mode) {
-							cpu_interrupt_active &= ( tmp16_val1.uval | RIA_ALLOWED_NOT);
+						if (cpu_priv_mode | !cpu_virtual_mode) {
+							cpu_interupt_active &= ( tmp16_val1.uval | RIA_ALLOWED_NOT);
+							if (cpu_interupt_active == 0) {
+								cpu_interupt_active_mask = mask[15];
+							}
+							else {
+								cpu_interupt_active_mask = mask[cpu_find_bit(cpu_interupt_active)];
+							}
 						}
 						else {
 							PRIV_INSTR_TRAP;
 						}
 						break;
 
-					// RIE  --  Reset Interrupt Enable         
+					// RIE  --  Reset Interupt Enable         
 					case 4:
-						if (cpu_priv_mode) {
-							cpu_interrupt_enabled &= ( tmp16_val1.uval | RIE_ALLOWED_NOT);
+						if (cpu_priv_mode | !cpu_virtual_mode) {
+							cpu_interupt_enabled &= ( tmp16_val1.uval | RIE_ALLOWED_NOT);
 						}
 						else {
 							PRIV_INSTR_TRAP;
 						}
 						break;
 
-					// RIR  --  Reset Interrupt Request         
+					// RIR  --  Reset Interupt Request         
 					case 8:
-						if (cpu_priv_mode) {
-							cpu_interrupt_request &= ( tmp16_val1.uval | RIR_ALLOWED_NOT);
+						if (cpu_priv_mode | !cpu_virtual_mode) {
+							cpu_interupt_request &= ( tmp16_val1.uval | RIR_ALLOWED_NOT);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1201,6 +1254,7 @@ void cpu_classic_7860() {
 				else {
 					if (iop_input_status_proc[tmp_instr_src] != NULL) {
 						tmp16_val1.uval = (*iop_input_status_proc[tmp_instr_src])(tmp_instr_src);
+						// printf(" status 0x%04x\n", tmp16_val1.uval);
 					}
 					else {
 						tmp16_val1.uval = 0;
@@ -1534,9 +1588,10 @@ void cpu_classic_7860() {
 
 		case  OP_TBRB:			// 0x76  --  Test Bit in Register and Branch if One    
 			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
-			tmp16_val2.uval = tmp16_val1.uval & bit[GET_SOURCE_REGISTER_NUMB];
-			// TODO: Set other CC
-			CONDITIONAL_BRANCH( tmp16_val2.uval !=0, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
+			SET_CC_Z(tmp16_val1.uval == 0);
+			SET_CC_N((tmp16_val1.uval & 0x8000) != 0);
+			SET_CC_C((tmp16_val1.uval & bit[GET_SOURCE_REGISTER_NUMB]) != 0);
+			CONDITIONAL_BRANCH( TEST_CC_C, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 			break;
 
 		case  OP_GMRB:			// 0x77  --  Generate Mask in Register and Branch Unconditionally     
@@ -1653,12 +1708,10 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_TBMM:			// x83  --  Test Bit(s) in Memory        
-			tmp16_val1.uval = bit[instruction.parts.dest_reg];
-			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
-			tmp16_val3.uval = tmp16_val1.uval & tmp16_val2.uval;
-			SET_CC_Z(tmp16_val3.uval == 0);
-			SET_CC_N(tmp16_val3.uval & 0x8000);
-			// TODO: Set CC
+			tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
+			SET_CC_Z(tmp16_val1.uval == 0);
+			SET_CC_N((tmp16_val1.uval & 0x8000) != 0);
+			SET_CC_C((tmp16_val1.uval & bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
@@ -1685,13 +1738,11 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_TBMB:			// 		    0x86  --  Test Bit(s) in Memory and Branch if One    
-			tmp16_val1.uval = bit[instruction.parts.dest_reg];
-			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
-			tmp16_val3.uval = tmp16_val1.uval & tmp16_val2.uval;
-			SET_CC_Z(tmp16_val3.uval == 0);
-			SET_CC_N(tmp16_val3.uval & 0x8000);
-			// TODO: Set CC
-			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
+			tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
+			SET_CC_Z(tmp16_val1.uval == 0);
+			SET_CC_N((tmp16_val1.uval & 0x8000) != 0);
+			SET_CC_C((tmp16_val1.uval & bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
+			CONDITIONAL_BRANCH(TEST_CC_C, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
 			break;
 
 		case  OP_CBMB:			// 		    0x87
@@ -1870,12 +1921,10 @@ void cpu_classic_7860() {
 				BAD_SHORT_DISPLACED_ADDR_TRAP;
 			}
 			else {
-				tmp16_val1.uval = bit[instruction.parts.dest_reg];
-				tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
-				tmp16_val3.uval = tmp16_val1.uval & tmp16_val2.uval;
-				SET_CC_Z(tmp16_val3.uval != 0);
-				SET_CC_N(tmp16_val3.uval & 0x8000);
-				// TODO: Set CC
+				tmp16_val1.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
+				SET_CC_Z(tmp16_val1.uval == 0);
+				SET_CC_N((tmp16_val1.uval & 0x8000) != 0);
+				SET_CC_C((tmp16_val1.uval& bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			break;
@@ -1920,13 +1969,11 @@ void cpu_classic_7860() {
 				BAD_SHORT_DISPLACED_ADDR_TRAP;
 			}
 			else {
-				tmp16_val1.uval = bit[instruction.parts.dest_reg];
-				tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
-				tmp16_val3.uval = tmp16_val1.uval & tmp16_val2.uval;
-				SET_CC_Z(tmp16_val3.uval != 0);
-				SET_CC_N(tmp16_val3.uval & 0x8000);
-				// TODO: Set CC
-				CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
+				tmp16_val1.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
+				SET_CC_Z(tmp16_val1.uval == 0);
+				SET_CC_N((tmp16_val1.uval & 0x8000) != 0);
+				SET_CC_C((tmp16_val1.uval& bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
+				CONDITIONAL_BRANCH(TEST_CC_C, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 			}
 			break;
 
@@ -1968,12 +2015,10 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_TBXM:			// 	        0x9b  --  Test Bit(s) in Memory (Short-Indexed)       
-			tmp16_val1.uval = bit[instruction.parts.dest_reg];
-			tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
-			tmp16_val3.uval = tmp16_val1.uval & tmp16_val2.uval;
-			SET_CC_Z(tmp16_val3.uval == 0);
-			SET_CC_N(tmp16_val3.uval & 0x8000);
-			// TODO: Set CC
+			tmp16_val1.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
+			SET_CC_Z(tmp16_val1.uval == 0);
+			SET_CC_N((tmp16_val1.uval & 0x8000) != 0);
+			SET_CC_C((tmp16_val1.uval& bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
@@ -2000,13 +2045,11 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_TBXB:			// 	        0x9e  --  Test Bit in Memory (Short-Indexed) and Branch if One   
-			tmp16_val1.uval = bit[instruction.parts.dest_reg];
-			tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
-			tmp16_val3.uval = tmp16_val1.uval & tmp16_val2.uval;
-			SET_CC_Z(tmp16_val3.uval == 0);
-			SET_CC_N(tmp16_val3.uval & 0x8000);
-			// TODO: Set CC
-			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
+			tmp16_val1.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
+			SET_CC_Z(tmp16_val1.uval == 0);
+			SET_CC_N((tmp16_val1.uval & 0x8000) != 0);
+			SET_CC_C((tmp16_val1.uval & bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
+			CONDITIONAL_BRANCH(TEST_CC_C, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 			break;
 
 		case  OP_CBXB:			// 	        0x9f
@@ -2043,14 +2086,14 @@ void cpu_classic_7860() {
 					SET_REGISTER_VALUE(j, GET_MEMORY_VALUE_OM(tmp16_val1.uval++));
 				}
 			}
-			else if (tmp_instr_dest >= 1) {
+			else { // if (tmp_instr_dest >= 1) {
 				for (j = tmp_instr_dest; j < 8; j++) {
 					SET_REGISTER_VALUE(j, GET_MEMORY_VALUE_OM(tmp16_val1.uval++));
 				}
 			}
-			else {
-				ILLEGAL_INSTRUCTION;
-			}
+			// else {
+			// 	ILLEGAL_INSTRUCTION;
+			// }
 			// TODO: Set CC
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
@@ -2063,14 +2106,14 @@ void cpu_classic_7860() {
 					SET_MEMORY_VALUE_OM(tmp16_val1.uval++, GET_REGISTER_VALUE(j));
 				}
 			}
-			else if (tmp_instr_dest >= 1) {
+			else {  // if (tmp_instr_dest >= 1) {
 				for (j = tmp_instr_dest; j < 8; j++) {
 					SET_MEMORY_VALUE_OM(tmp16_val1.uval++, GET_REGISTER_VALUE(j));
 				}
 			}
-			else {
-				ILLEGAL_INSTRUCTION;
-			}
+			// else {
+			// 	ILLEGAL_INSTRUCTION;
+			// }
 			// TODO: Set CC
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
@@ -2322,14 +2365,14 @@ void cpu_classic_7860() {
 						SET_REGISTER_VALUE(j, GET_MEMORY_VALUE_OM(tmp16_val1.uval++));
 					}
 				}
-				else if (tmp_instr_dest >= 1) {
+				else { // if (tmp_instr_dest >= 1) {
 					for (j = tmp_instr_dest; j < 8; j++) {
 						SET_REGISTER_VALUE(j, GET_MEMORY_VALUE_OM(tmp16_val1.uval++));
 					}
 				}
-				else {
-					ILLEGAL_INSTRUCTION;
-				}
+				// else {
+				// 	ILLEGAL_INSTRUCTION;
+				// }
 				// TODO: Set CC
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
@@ -2348,14 +2391,14 @@ void cpu_classic_7860() {
 						SET_MEMORY_VALUE_OM(tmp16_val1.uval++, GET_REGISTER_VALUE(j));
 					}
 				}
-				else if (tmp_instr_dest >= 1) {
+				else { //if (tmp_instr_dest >= 1) {
 					for (j = tmp_instr_dest; j < 8; j++) {
 						SET_MEMORY_VALUE_OM(tmp16_val1.uval++, GET_REGISTER_VALUE(j));
 					}
 				}
-				else {
-					ILLEGAL_INSTRUCTION;
-				}
+				// else {
+				// 	ILLEGAL_INSTRUCTION;
+				// }
 				// TODO: Set CC
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
@@ -2407,14 +2450,14 @@ void cpu_classic_7860() {
 					SET_REGISTER_VALUE( j, GET_MEMORY_VALUE_OM(tmp16_val1.uval++));
 				}
 			}
-			else if (tmp_instr_dest >= 1) {
+			else { // if (tmp_instr_dest >= 1) {
 				for (j = tmp_instr_dest; j < 8; j++) {
 					SET_REGISTER_VALUE(j, GET_MEMORY_VALUE_OM(tmp16_val1.uval++));
 				}
 			}
-			else {
-				ILLEGAL_INSTRUCTION;
-			}
+			// else {
+			// 	ILLEGAL_INSTRUCTION;
+			// }
 			// TODO: Set CC
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
@@ -2427,14 +2470,14 @@ void cpu_classic_7860() {
 					SET_MEMORY_VALUE_OM(tmp16_val1.uval++, GET_REGISTER_VALUE(j));
 				}
 			}
-			else if (tmp_instr_dest >= 1) {
+			else { // if (tmp_instr_dest >= 1) {
 				for (j = tmp_instr_dest; j < 8; j++) {
 					SET_MEMORY_VALUE_OM(tmp16_val1.uval++, GET_REGISTER_VALUE(j));
 				}
 			}
-			else {
-				ILLEGAL_INSTRUCTION;
-			}
+			// else {
+			// 	ILLEGAL_INSTRUCTION;
+			// }
 			// TODO: Set CC
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
@@ -2517,8 +2560,13 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_CRM:			// 	        0xc3  --
-			UNIMPLEMENTED_INSTRUCTION;
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
+			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
+			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
+			SET_CC_Z(tmp16_val3.uval == 0);
+			SET_CC_N((tmp16_val3.uval & 0x8000) != 0);
+			// TODO: Set CC
+			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
 		case  OP_ADMB:			// 	        0xc4  --  Add Register to Memory and Branch if Nonzero      
@@ -3509,18 +3557,16 @@ void cpu_classic_7860() {
 
 		// --------update some front panel values
 		// TODO: make these getters so not to slow down CPU.
-		gbl_fp_cc_n_light = cpu_cond_code_n;
-		gbl_fp_cc_z_light = cpu_cond_code_z;
-		gbl_fp_cc_o_light = cpu_cond_code_o;
-		gbl_fp_cc_c_light = cpu_cond_code_c;
+		// gbl_fp_cc_n_light = cpu_cond_code_n;
+		// gbl_fp_cc_z_light = cpu_cond_code_z;
+		// gbl_fp_cc_o_light = cpu_cond_code_o;
+		// gbl_fp_cc_c_light = cpu_cond_code_c;
 
-
-		thread_switch_count++;
-		if (thread_switch_count > 500) {
-			SwitchToThread();
-			thread_switch_count = 0;
-		}
+		// --------increment instruction count.
+		cpu_instruction_count++;
 
 	}
+
 	// printf("\n CPU exiting.\n");
+	return;
 }

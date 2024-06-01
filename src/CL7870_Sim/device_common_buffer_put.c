@@ -2,7 +2,7 @@
 
 #include "modcomp_sim_types.h"
 
-void device_common_buffer_put(DEVICE_BUFFER* buff, unsigned __int8 to_put ) {
+void device_common_buffer_put(volatile DEVICE_BUFFER* buff, unsigned __int8 to_put ) {
 
 	unsigned int next_inx = 0;
 

@@ -4,7 +4,7 @@
 #include "modcomp_sim_types.h"
 
 // ---- returns true if empty
-bool device_common_buffer_isempty(DEVICE_BUFFER* buff) {
+bool device_common_buffer_isempty(volatile DEVICE_BUFFER* buff) {
 
 	bool ret_value = false;
 

@@ -3,7 +3,7 @@
 #include "modcomp_sim_types.h"
 
 // --------returns true if ful
-bool device_common_buffer_isfull(DEVICE_BUFFER* buff) {
+bool device_common_buffer_isfull(volatile DEVICE_BUFFER* buff) {
 
 	unsigned int next_inx = 0;
 	bool ret_value = false;

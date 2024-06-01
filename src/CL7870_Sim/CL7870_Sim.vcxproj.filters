@@ -126,6 +126,12 @@
     <ClCompile Include="rmi_request.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rtclock_start_thread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="memory_plane_status.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

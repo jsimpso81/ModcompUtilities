@@ -12,7 +12,7 @@ void iop_init_data() {
 
 	for (j = 0; j < 64; j++) {
 
-		iop_last_dev_status[j] = 0;
+		// iop_last_dev_status[j] = 0;
 
 		iop_output_data_proc[j] =  NULL ;
 		iop_output_cmd_proc[j] =  NULL ;

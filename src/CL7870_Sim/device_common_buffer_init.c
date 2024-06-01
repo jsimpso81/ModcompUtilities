@@ -2,7 +2,7 @@
 
 #include "modcomp_sim_types.h"
 
-void device_common_buffer_init(DEVICE_BUFFER* buff) {
+void device_common_buffer_init(volatile DEVICE_BUFFER* buff) {
 
 	int j = 0;
 

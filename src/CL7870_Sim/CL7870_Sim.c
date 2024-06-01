@@ -51,19 +51,27 @@ int main(int argc, char* argv[]) {
     }
 
     // --------initialize data
+    memory_plane_init();
     cpu_init_data();
     iop_init_data();
-    //fp_init_data();
+    //fp_init_data(); // front panel
+
+    // -------- IOP start threads
+    // TODO: Add IOP threads.
 
     // -------- start CPU thread.
     cpu_start_thread();
 
+    // -------- start the clock
+    rtclock_start_thread();
+
     // --------wait a little for things to start
-    Sleep(2000);
+    Sleep(500);
 
     // -------- process user commands.   it returns when the exit command is given.
     process_user_commands();
 
+    rtclock_stop_thread();
     cpu_stop_thread();
     device_common_stop_all();
 

@@ -2,7 +2,7 @@
 
 #include "modcomp_sim_procedures.h"
 
-void que_uword_init(QUEUE_UWORD* que) {
+void que_uword_init(volatile QUEUE_UWORD* que) {
 
 	int j;
 	for (j = 0; j < 256; j++) {
