@@ -48,7 +48,7 @@ static bool cpu_cond_code_c = false;						// CC C
 
 static REG_BLOCK cpu_register[16];	// indexed by register block.
 
-// -------- interupts
+// -------- interrupts
 //		0	0x8000	Power Fail Safe / Auto Start
 #define cpu_intr_power_fail (unsigned __int16)0x8000
 //		1	0x4000	Memory Parity
@@ -77,16 +77,16 @@ static REG_BLOCK cpu_register[16];	// indexed by register block.
 #define cpu_intr_DI (unsigned __int16)0x0008
 //		13	0x0004	I/O Service Party Line
 #define cpu_intr_SI (unsigned __int16)0x0004
-//		14	0x0002	Console Interupt
+//		14	0x0002	Console interrupt
 #define cpu_intr_console (unsigned __int16)0x0002
 //		15	0x0001	Task Scheduler
 #define cpu_intr_task_sch (unsigned __int16)0x0001
 //
 
-static volatile unsigned __int16 cpu_interupt_active = 0;
-static volatile unsigned __int16 cpu_interupt_enabled = (cpu_intr_power_fail | cpu_intr_sys_protect | cpu_intr_UIT | cpu_intr_floating_overflow);
-static volatile unsigned __int16 cpu_interupt_request = 0;
-static volatile unsigned __int16 cpu_interupt_active_mask = 0xffff;
+static volatile unsigned __int16 cpu_interrupt_active = 0;
+static volatile unsigned __int16 cpu_interrupt_enabled = (cpu_intr_power_fail | cpu_intr_sys_protect | cpu_intr_UIT | cpu_intr_floating_overflow);
+static volatile unsigned __int16 cpu_interrupt_request = 0;
+static volatile unsigned __int16 cpu_interrupt_active_mask = 0xffff;
 
 
 static bool cpu_virtual_mode = false;
@@ -115,12 +115,17 @@ unsigned __int16 get_clock_trigger_count() {
 }
 
 
+// ===========================================================================================================
+void cpu_trigger_console_interrupt() {
+	cpu_interrupt_request |= (cpu_intr_console & cpu_interrupt_enabled);
+}
+
+
 
 // ===========================================================================================================
-// TODO: implement this so polling isn't needed.
-void cpu_trigger_clock_interupt() {
+void cpu_trigger_clock_interrupt() {
 	cpu_trigger_clock_int++;
-	cpu_interupt_request |= (cpu_intr_clock & cpu_interupt_enabled);
+	cpu_interrupt_request |= (cpu_intr_clock & cpu_interrupt_enabled);
 }
 
 // ===========================================================================================================
@@ -253,18 +258,22 @@ void cpu_classic_7860() {
 	// TODO: Set CC for UIT
 #define UNIMPLEMENTED_INSTRUCTION {\
 					fprintf(stderr, "\n unimplemented instruction %04x\n",instruction.all);\
-					cpu_interupt_request |= cpu_intr_UIT;\
+					SET_CC_Z(false);\
+					SET_CC_O(false);\
+					cpu_interrupt_request |= cpu_intr_UIT;\
 					}
 
 // TODO: Set CC for UIT
 #define ILLEGAL_INSTRUCTION {\
 					fprintf(stderr, "\n Illegal instruction %04x\n",instruction.all);\
-					cpu_interupt_request |= cpu_intr_UIT;\
+					SET_CC_Z(false);\
+					SET_CC_O(false);\
+					cpu_interrupt_request |= cpu_intr_UIT;\
 					}
 
 #define PRIV_INSTR_TRAP {\
 					fprintf(stderr, "\n privileged instruction %04x\n",instruction.all);\
-					cpu_interupt_request |= cpu_intr_sys_protect;\
+					cpu_interrupt_request |= cpu_intr_sys_protect;\
 					}
 
 #define BAD_SHORT_DISPLACED_ADDR_TRAP {\
@@ -276,7 +285,7 @@ void cpu_classic_7860() {
 									GET_MEMORY_VALUE_ABS(program_counter + 3) ); \
 					fprintf(stderr, "    register R1 0x%04x\n",GET_REGISTER_VALUE(1) );\
 					fprintf(stderr, "    short displaced addr calc  0x%04x\n",  GET_MEMORY_ADDR_SHORT_DISPLACED );\
-					cpu_interupt_request |= cpu_intr_sys_protect;\
+					cpu_interrupt_request |= cpu_intr_sys_protect;\
 					}
 
 
@@ -304,7 +313,7 @@ void cpu_classic_7860() {
 					}\
 					} 
 
-// --------allowed set interupt masks
+// --------allowed set interrupt masks
 #define SIA_ALLOWED 0x7fff
 #define SIE_ALLOWED 0xffff		// some disables are prohibited.
 #define SIR_ALLOWED 0xffff		// level C and D should not be program requested, but it isn't prevented.
@@ -321,13 +330,13 @@ void cpu_classic_7860() {
 	// --------execute instructions while running or single stepping.
 	while (gbl_fp_runlight | gbl_fp_single_step) {
 
-		// TODO: Make interupts not polled.
+		// TODO: Make interrupts not polled.
 
-		// -------- check for new interupts
+		// -------- check for new interrupts
 		// TODO: optimize this !!
-		if ( (tmp16_val1.uval = (cpu_interupt_request & cpu_interupt_enabled & cpu_interupt_active_mask )) > ( cpu_interupt_active & cpu_interupt_active_mask ) ) {
+		if ( (tmp16_val1.uval = (cpu_interrupt_request & cpu_interrupt_enabled & cpu_interrupt_active_mask )) > ( cpu_interrupt_active & cpu_interrupt_active_mask ) ) {
 
-			// --------find out which interupt we are requesting
+			// --------find out which interrupt we are requesting
 			new_int = cpu_find_bit(tmp16_val1.uval);
 
 			// --------save current process_status_double_word in dedicated memory location
@@ -337,17 +346,17 @@ void cpu_classic_7860() {
 				SET_MEMORY_VALUE_ABS(0x20 + (new_int * 2), program_counter);
 				SET_MEMORY_VALUE_ABS(0x41 + (new_int * 2), cpu_get_current_PSW().all);
 
-				// --------set new PSW and new PC -- to go to the interupt processing routine.
+				// --------set new PSW and new PC -- to go to the interrupt processing routine.
 				// TODO: check to implement SI and DI routines.
 				program_counter = GET_MEMORY_VALUE_ABS(0x21 + (new_int * 2));
 				tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x40 + (new_int * 2));
 				cpu_set_current_PSW( tmp_PSW );
 
-				// --------set that the interupt is active!
-				cpu_interupt_active |= bit[new_int];
-				cpu_interupt_active_mask = mask[new_int];
+				// --------set that the interrupt is active!
+				cpu_interrupt_active |= bit[new_int];
+				cpu_interrupt_active_mask = mask[new_int];
 
-				// fprintf(stderr, "\n cpu - new interupt level %d, new pc 0x%04x, new psw 0x%04x\n", new_int, program_counter, cpu_get_current_PSW().all);
+				// fprintf(stderr, "\n cpu - new interrupt level %d, new pc 0x%04x, new psw 0x%04x\n", new_int, program_counter, cpu_get_current_PSW().all);
 
 			}
 		}
@@ -388,7 +397,7 @@ void cpu_classic_7860() {
 			case  OP_AUG01:			// 0x01	
 				switch ( instruction.parts.dest_reg ) {
 
-					// --  0	RMI -- Request Multi·processor Interupt
+					// --  0	RMI -- Request Multi·processor interrupt
 					case 0:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
 							rmi_request(instruction.parts.src_reg);
@@ -588,19 +597,19 @@ void cpu_classic_7860() {
 						SET_DESTINATION_REGISTER_VALUE( cpu_get_current_PSW().all & 0x000f);
 						break;
 
-					// -------- 4	LCIA  -- Load Register with Current Interupt Active Latches    
+					// -------- 4	LCIA  -- Load Register with Current interrupt Active Latches    
 					case 4:
-						SET_DESTINATION_REGISTER_VALUE(cpu_interupt_active);
+						SET_DESTINATION_REGISTER_VALUE(cpu_interrupt_active);
 						break;
 
-					// -------- 5	LCIE  -- Load Register with Current Interupt Enable Latches     
+					// -------- 5	LCIE  -- Load Register with Current interrupt Enable Latches     
 					case 5:
-						SET_DESTINATION_REGISTER_VALUE(cpu_interupt_enabled);
+						SET_DESTINATION_REGISTER_VALUE(cpu_interrupt_enabled);
 						break;
 
-					// -------- 6	LCIR  -- Load Register with Current Interupt Request Latches     
+					// -------- 6	LCIR  -- Load Register with Current interrupt Request Latches     
 					case 6:
-						SET_DESTINATION_REGISTER_VALUE(cpu_interupt_request);
+						SET_DESTINATION_REGISTER_VALUE(cpu_interrupt_request);
 						break;
 
 					// -------- 7	MBVV  -- Move Virtual Block to Virtual Block       
@@ -686,15 +695,15 @@ void cpu_classic_7860() {
 			case  OP_REX:			// 0x23  --  Request Executive Service
 				SET_CC_Z(true);		// It is a REX
 				SET_CC_O(false);	// It is not a EXR or EXI
-				cpu_interupt_request |= cpu_intr_UIT;
+				cpu_interrupt_request |= cpu_intr_UIT;
 				break;
 
 			case  OP_CAR:			// 0x24  --  CAR  --  Clear Active and Return        
 				if (cpu_priv_mode | !cpu_virtual_mode) {
-					// --------find highest active interupt
+					// --------find highest active interrupt
 					new_int = 16;
 					for (j = 0; j < 16; j++) {
-						if ((bit[j] & cpu_interupt_active) != 0) {
+						if ((bit[j] & cpu_interrupt_active) != 0) {
 							new_int = j;
 							break;
 						}
@@ -714,16 +723,16 @@ void cpu_classic_7860() {
 							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
 							cpu_set_current_PSW(tmp_PSW);
 						}
-						// --------clear active for that interupt
-						cpu_interupt_active &= bitnot[new_int];
-						if (cpu_interupt_active == 0) {
-							cpu_interupt_active_mask = mask[15];
+						// --------clear active for that interrupt
+						cpu_interrupt_active &= bitnot[new_int];
+						if (cpu_interrupt_active == 0) {
+							cpu_interrupt_active_mask = mask[15];
 						}
 						else {
-							cpu_interupt_active_mask = mask[cpu_find_bit(cpu_interupt_active)];
+							cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 						}
 
-						// fprintf(stderr, "\n cpu - CAR return from interupt level %d, new pc 0x%04x\n", new_int, program_counter);
+						// fprintf(stderr, "\n cpu - CAR return from interrupt level %d, new pc 0x%04x\n", new_int, program_counter);
 					}
 				}
 				// --------not priviledged.
@@ -733,12 +742,12 @@ void cpu_classic_7860() {
 				}
 				break;
 
-			case  OP_CIR:			// 0x25  --  CIR  --  Clear Interupt and Return        
+			case  OP_CIR:			// 0x25  --  CIR  --  Clear interrupt and Return        
 				if (cpu_priv_mode | !cpu_virtual_mode) {
-					// --------find highest active interupt
+					// --------find highest active interrupt
 					new_int = 16;
 					for (j = 0; j < 16; j++) {
-						if ((bit[j] & cpu_interupt_active) != 0) {
+						if ((bit[j] & cpu_interrupt_active) != 0) {
 							new_int = j;
 							break;
 						}
@@ -757,16 +766,16 @@ void cpu_classic_7860() {
 							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
 							cpu_set_current_PSW(tmp_PSW);
 						}
-						// --------clear active and request for that interupt
-						cpu_interupt_active &= bitnot[new_int];
-						cpu_interupt_request &= bitnot[new_int];
-						if (cpu_interupt_active == 0) {
-							cpu_interupt_active_mask = mask[15];
+						// --------clear active and request for that interrupt
+						cpu_interrupt_active &= bitnot[new_int];
+						cpu_interrupt_request &= bitnot[new_int];
+						if (cpu_interrupt_active == 0) {
+							cpu_interrupt_active_mask = mask[15];
 						}
 						else {
-							cpu_interupt_active_mask = mask[cpu_find_bit(cpu_interupt_active)];
+							cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 						}
-						// fprintf(stderr, "\n cpu - CIR return from interupt level %d, new pc 0x%04x\n", new_int, program_counter);
+						// fprintf(stderr, "\n cpu - CIR return from interrupt level %d, new pc 0x%04x\n", new_int, program_counter);
 					}
 				}
 				// --------not priviledged.
@@ -781,15 +790,15 @@ void cpu_classic_7860() {
 				tmp16_val1.uval = bit[GET_SOURCE_REGISTER_NUMB];
 				switch (tmp_instr_dest) {
 
-					// SIA  --  Set Interupt Active         
+					// SIA  --  Set interrupt Active         
 					case 0:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
-							cpu_interupt_active |= (tmp16_val1.uval & SIA_ALLOWED);
-							if (cpu_interupt_active == 0) {
-								cpu_interupt_active_mask = mask[15];
+							cpu_interrupt_active |= (tmp16_val1.uval & SIA_ALLOWED);
+							if (cpu_interrupt_active == 0) {
+								cpu_interrupt_active_mask = mask[15];
 							}
 							else {
-								cpu_interupt_active_mask = mask[cpu_find_bit(cpu_interupt_active)];
+								cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 							}
 						}
 						else {
@@ -797,20 +806,20 @@ void cpu_classic_7860() {
 						}
 						break;
 
-					// SIE  --  Set Interupt Enable         
+					// SIE  --  Set interrupt Enable         
 					case 4:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
-							cpu_interupt_enabled |= ( tmp16_val1.uval & SIE_ALLOWED );
+							cpu_interrupt_enabled |= ( tmp16_val1.uval & SIE_ALLOWED );
 						}
 						else {
 							PRIV_INSTR_TRAP;
 						}
 						break;
 
-					// SIR  --  Set Interupt Request         
+					// SIR  --  Set interrupt Request         
 					case 8:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
-							cpu_interupt_request |= ( tmp16_val1.uval & SIR_ALLOWED );
+							cpu_interrupt_request |= ( tmp16_val1.uval & SIR_ALLOWED );
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -829,15 +838,15 @@ void cpu_classic_7860() {
 				tmp16_val1.uval = bitnot[GET_SOURCE_REGISTER_NUMB];
 				switch (tmp_instr_dest) {
 
-					// RIA  --  Reset Interupt Active         
+					// RIA  --  Reset interrupt Active         
 					case 0:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
-							cpu_interupt_active &= ( tmp16_val1.uval | RIA_ALLOWED_NOT);
-							if (cpu_interupt_active == 0) {
-								cpu_interupt_active_mask = mask[15];
+							cpu_interrupt_active &= ( tmp16_val1.uval | RIA_ALLOWED_NOT);
+							if (cpu_interrupt_active == 0) {
+								cpu_interrupt_active_mask = mask[15];
 							}
 							else {
-								cpu_interupt_active_mask = mask[cpu_find_bit(cpu_interupt_active)];
+								cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 							}
 						}
 						else {
@@ -845,20 +854,20 @@ void cpu_classic_7860() {
 						}
 						break;
 
-					// RIE  --  Reset Interupt Enable         
+					// RIE  --  Reset interrupt Enable         
 					case 4:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
-							cpu_interupt_enabled &= ( tmp16_val1.uval | RIE_ALLOWED_NOT);
+							cpu_interrupt_enabled &= ( tmp16_val1.uval | RIE_ALLOWED_NOT);
 						}
 						else {
 							PRIV_INSTR_TRAP;
 						}
 						break;
 
-					// RIR  --  Reset Interupt Request         
+					// RIR  --  Reset interrupt Request         
 					case 8:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
-							cpu_interupt_request &= ( tmp16_val1.uval | RIR_ALLOWED_NOT);
+							cpu_interrupt_request &= ( tmp16_val1.uval | RIR_ALLOWED_NOT);
 						}
 						else {
 							PRIV_INSTR_TRAP;

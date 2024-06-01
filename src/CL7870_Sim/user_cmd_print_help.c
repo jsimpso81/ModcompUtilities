@@ -12,6 +12,7 @@ void user_cmd_print_help() {
 //	printf("      device console <comx> - define console device and assign to com port\n");
 //	printf("      device console tcp <port> - define console device and assign to tcp port\n");
 
+	printf("      ci - console interrupt\n");
 	printf("      fill <device addr> - fill\n");
 	printf("      halt - halt cpu\n");
 	printf("      help - print this list of commands\n");

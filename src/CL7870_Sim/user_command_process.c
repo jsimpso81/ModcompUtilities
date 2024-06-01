@@ -302,6 +302,11 @@ void process_user_commands() {
 
 			}
 
+			// --------ci
+			else if (strcmp(cmd_line_parsed[0], "ci") == 0) {
+				cpu_trigger_console_interrupt();
+			}
+
 			// --------halt
 			else if (strcmp(cmd_line_parsed[0], "halt") == 0) {
 				gbl_fp_runlight = false;

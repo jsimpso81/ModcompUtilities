@@ -151,7 +151,7 @@ DWORD WINAPI rtclock_thread_proc(LPVOID lpParam) {
 	while (rtclock_thread_stop_request == 0) {
 
 		WaitForSingleObject(rtclock_timer_handle, 20);
-		cpu_trigger_clock_interupt();
+		cpu_trigger_clock_interrupt();
 	}
 
 	// -------- waitable timer clock the clock handle
