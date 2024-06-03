@@ -22,6 +22,9 @@ unsigned __int16 cpu_get_clock_trigger_count();
 unsigned __int32 cpu_get_instruction_count();
 void cpu_request_DI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr);
 void cpu_request_SI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr);
+void cpu_get_interrupt(unsigned __int16* act, unsigned __int16* req, unsigned __int16* ena,
+	unsigned __int32* di_req, unsigned __int32* di_prc, unsigned __int32* si_req, unsigned __int32* si_prc);
+void cpu_master_clear();
 
 // -------- Real time clock
 void rtclock_start_thread();
@@ -45,7 +48,7 @@ void device_common_stop_all();
 int device_common_serial_close( HANDLE com_handle, DWORD* last_error);
 int device_common_serial_open( char* com_port, HANDLE *com_handle, DWORD *last_error );
 void device_common_serial_print_settings(DCB this_dcb);
-int device_common_serial_set_params(HANDLE hCom, DWORD* last_error);
+int device_common_serial_set_params(HANDLE hCom, DWORD* last_error, bool USE_HDWR_OUTPUT_HANDSHAKE);
 
 void device_common_buffer_init(volatile DEVICE_BUFFER* buff);
 bool device_common_buffer_isempty(volatile DEVICE_BUFFER* buff);
@@ -73,6 +76,7 @@ bool que_uword_send(volatile QUEUE_UWORD* queue, unsigned __int16 value);
 // -------- display routines
 void disp_devices( FILE* io_unit );
 void disp_cur_reg( FILE* io_unit);
+void disp_interrupts(FILE* io_unit);
 void disp_pc( FILE* io_unit, unsigned __int16 loc_pc);
 void disp_psw( FILE* io_unit, PSW loc_psw);
 void disp_instruction_use( FILE* io_unit);

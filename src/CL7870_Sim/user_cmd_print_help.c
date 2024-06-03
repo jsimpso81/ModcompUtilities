@@ -14,19 +14,23 @@ void user_cmd_print_help() {
 
 	printf("      ci - console interrupt\n");
 	printf("      fill <device addr> - fill\n");
+	printf("      exit - stop emulation and exit program\n");
 	printf("      halt - halt cpu\n");
 	printf("      help - print this list of commands\n");
 	printf("      mc - master clear\n");
 	printf("      run - run cpu\n");
-
+	printf("\n");
 	printf("      set mem <addr> <value> - set memory value\n");
 	printf("      set pc <value> - set program counter value\n");
 	printf("      set reg <reg> <value> - set register value\n");
 	printf("      set switches <value> - set console switches\n");
 	printf("      set verbose <on/off> - set verbose debug mode\n");
-
+	printf("\n");
+	printf("      show clock - show running count of clock interrupts\n");
+	printf("      show count - show running count of instructions executed\n");
 	printf("      show devices - show all configured devices\n");
-	printf("      show inst - show instruction use counts\n");
+	printf("      show inst - show instruction (opcode) use counts\n");
+	printf("      show int - show interrupts\n");
 	printf("      show mem <start> <end> - show memory\n");
 	printf("      show pc - show program counter\n");
 	printf("      show psw - show processor status word\n");
@@ -34,7 +38,7 @@ void user_cmd_print_help() {
 	printf("      show run - show current cpu run state\n");
 	printf("      show switches - show console switches\n");
 	printf("      show verbose - show verbose debug mode\n");
-
+	printf("\n");
 	printf("      step <instruction count> - execute a single instruction\n");
 
 	printf("\n");

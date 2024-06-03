@@ -12,8 +12,8 @@
 				}
 
 #define	SET_CC_O(COND_O) {\
-				cpu_cond_code_o = (COND_O); \
 				cpu_overflow_hist = cpu_overflow_hist || cpu_cond_code_o;\
+				cpu_cond_code_o = (COND_O); \
 				}
 
 #define	SET_CC_C(COND_C) {\
@@ -95,6 +95,26 @@
 					SET_CC_C(false); \
 				}\
 				}
+
+
+#define SET_CC_O_ADD( VAL1, VAL2, RES ) {\
+		SET_CC_O( ((VAL1.uval & 0x8000) == (VAL2.uval & 0x8000)) && ((VAL1.uval & 0x8000) != (RES.uval & 0x8000)));\
+		}
+
+#define SET_CC_O_ADD_DOUBLE( VAL1, VAL2, RES ) {\
+		SET_CC_O( ((VAL1.uval & 0x80000000) == (VAL2.uval & 0x80000000)) && ((VAL1.uval & 0x80000000) != (RES.uval & 0x80000000)));\
+		}
+
+
+#define SET_CC_O_SUB( VAL1, SUBTRAHEND, RES ) {\
+		SET_CC_O( ( (VAL1.uval & 0x8000) != (SUBTRAHEND.uval & 0x8000)) && ((SUBTRAHEND.uval & 0x8000) == (RES.uval & 0x8000)));\
+		}
+
+#define SET_CC_O_SUB_DOUBLE( VAL1, SUBTRAHEND, RES ) {\
+		SET_CC_O( ( (VAL1.uval & 0x80000000) != (SUBTRAHEND.uval & 0x80000000)) && ((SUBTRAHEND.uval & 0x80000000) == (RES.uval & 0x80000000)));\
+		}
+
+
 
 #define TEST_CC_N ( cpu_cond_code_n )
 #define TEST_CC_NOT_N ( !cpu_cond_code_n )

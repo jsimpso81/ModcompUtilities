@@ -132,6 +132,9 @@
     <ClCompile Include="memory_plane_status.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="disp_interrupts.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

@@ -40,9 +40,8 @@
 // TODO: finish set_destination_register_value_triple
 #define SET_DESTINATION_REGISTER_VALUE_TRIPLE( V1, V2, V3 ) {}
 
-// TODO: finish set_destination_register_value_quad
 #define SET_DESTINATION_REGISTER_VALUE_QUAD( QV1 ) {\
-					SET_REGISTER_VALUE_QUAD(GET_DESTINATION_REGISTER_QUAD, QV1); \
+					SET_REGISTER_VALUE_QUAD( GET_DESTINATION_REGISTER_NUMB_QUAD, QV1); \
 					}
 
 // -------- direct memory access
@@ -88,9 +87,44 @@
 // --------note that the first two are for only for use by GET_MEMORY_DIRECT !!!
 #define GET_MEMORY_DIRECT_ADDR_PARITAL 	((instruction.all & 0x0007) == 0 ? GET_MEMORY_VALUE_IMMEDIATE : ( (__int32)GET_MEMORY_VALUE_IMMEDIATE + (__int32)GET_REGISTER_VALUE(instruction.all & 0x0007)) & 0x0000ffff )
 #define GET_MEMORY_DIRECT_ADDR ((instruction.all & 0x0008) == 0 ? GET_MEMORY_DIRECT_ADDR_PARITAL : GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR_PARITAL ))
+
 #define GET_MEMORY_VALUE_DIRECT (GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR ))
+
 #define SET_MEMORY_VALUE_DIRECT( VAL ) {\
 					SET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR, VAL );\
 					}
+
+#define GET_MEMORY_VALUE_DIRECT_DOUBLE ( (GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR ) << 16) | GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR+1 ) )
+
+#define SET_MEMORY_VALUE_DIRECT_DOUBLE( VAL ) {\
+					SET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR, (unsigned __int16)((VAL>>16) & 0x0000ffff ));\
+					SET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR+1, (unsigned __int16)(VAL & 0x0000ffff ));\
+					}
+
+// -------WORD ORDER TRANSLATION MACROS
+#define GET_NUMERIC_DOUBLE_FROM_RAW( IN_RAW, OUT_NUM ) {\
+		OUT_NUM.uval = IN_RAW.uval;\
+		}
+
+#define GET_RAW_DOUBLE_FROM_NUMERIC( IN_NUM, OUT_RAW ) {\
+		OUT_RAW.uval = IN_NUM.uval;\
+		}
+
+
+// -------WORD ORDER TRANSLATION MACROS
+// TODO: once register load store are fixed this may not be needed..!
+#define GET_NUMERIC_QUAD_FROM_RAW( IN_RAW, OUT_NUM ) {\
+		OUT_NUM.zval[0] = IN_RAW.zval[3];\
+		OUT_NUM.zval[1] = IN_RAW.zval[2];\
+		OUT_NUM.zval[2] = IN_RAW.zval[1];\
+		OUT_NUM.zval[3] = IN_RAW.zval[0];\
+		}
+#define GET_RAW_QUAD_FROM_NUMERIC( IN_NUM, OUT_RAW ) {\
+		OUT_RAW.zval[0] = IN_NUM.zval[3];\
+		OUT_RAW.zval[1] = IN_NUM.zval[2];\
+		OUT_RAW.zval[2] = IN_NUM.zval[1];\
+		OUT_RAW.zval[3] = IN_NUM.zval[0];\
+		}
+
 
 // ===============================================================================================================

@@ -86,6 +86,11 @@ void process_user_commands() {
 						disp_pc(stdout,cpu_get_program_counter());
 					}
 
+					//--------interrupts
+					else if (strcmp(cmd_line_parsed[1], "int") == 0) {
+						disp_interrupts(stdout);
+					}
+
 					//--------devices
 					else if (strcmp(cmd_line_parsed[1], "devices") == 0) {
 						disp_devices(stdout);
@@ -188,6 +193,7 @@ void process_user_commands() {
 							if (sscanf_s(cmd_line_parsed[2], "%hi", &parm_parse) == 1) {
 								new_switch_value = parm_parse;
 								cpu_set_switches(new_switch_value);
+								printf(" Front panel switches 0x%04x\n", gbl_fp_switches);
 							}
 							else {
 								printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_line_parsed[2]);
@@ -389,7 +395,7 @@ void process_user_commands() {
 
 			// --------master clear
 			else if (strcmp(cmd_line_parsed[0], "mc") == 0) {
-				cpu_set_program_counter(1);
+				cpu_master_clear();
 			}
 
 			// --------help

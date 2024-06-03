@@ -115,7 +115,7 @@
 #define OP_ZBMB					    0x85
 #define OP_TBMB					    0x86
 #define OP_CBMB					    0x87
-#define OP_LDXT_STXT_DMT_STMT		0x88
+#define OP_LDXT_STXT_LDMT_STMT		0x88
 #define OP_NOP						0x89
 #define OP_IRRD_TTRD				0x8a
 #define OP_CRRT_CRRQ_TTRQ			0x8b

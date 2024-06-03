@@ -132,6 +132,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CL7870_Sim.c" />
+    <ClCompile Include="disp_interrupts.c" />
     <ClCompile Include="memory_plane_status.c" />
     <ClCompile Include="rtclock_start_thread.c" />
     <ClCompile Include="cpu_classic_7860.c" />

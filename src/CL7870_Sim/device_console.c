@@ -344,7 +344,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 		device_data->com_handle = loc_com_device;
 
 		// -------- set com port parameters
-		set_param_status = device_common_serial_set_params(loc_com_device, &last_error);
+		set_param_status = device_common_serial_set_params(loc_com_device, &last_error, true);
 
 		if (set_param_status != 0) {
 			printf(" *** ERROR ***  Trouble setting com port parameters.\n");

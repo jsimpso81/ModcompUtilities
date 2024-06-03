@@ -5,7 +5,7 @@
 #include "modcomp_sim_procedures.h"
 
 // -------- set com parameters -- for now 9600,8,N,1 - no hand shaking.
-int device_common_serial_set_params( HANDLE hCom, DWORD *last_error ) {
+int device_common_serial_set_params( HANDLE hCom, DWORD *last_error, bool USE_HDWR_OUTPUT_HANDSHAKE ) {
 
     DCB dcb = { 0 };
     BOOL fSuccess;
@@ -51,7 +51,7 @@ int device_common_serial_set_params( HANDLE hCom, DWORD *last_error ) {
     dcb.fOutX = false;
 
     // --------hardware output handshaking
-    dcb.fOutxCtsFlow = false;
+    dcb.fOutxCtsFlow = USE_HDWR_OUTPUT_HANDSHAKE;
     dcb.fOutxDsrFlow = false;
 
     // --------update the settings.

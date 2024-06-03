@@ -42,6 +42,12 @@ typedef union {
 	unsigned __int16 zval[2];
 } VAL32;
 
+typedef union {
+	unsigned __int64 uval;
+	signed __int64 sval;
+	unsigned __int16 zval[4];
+} VAL64;
+
 
 
 typedef struct {
