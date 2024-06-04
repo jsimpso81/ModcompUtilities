@@ -24,12 +24,12 @@ void device_common_stop_all() {
 		if (iop_thread_stop_request[j] != 0) {
 			TerminateThread((HANDLE)iop_device_thread_handle[j], 0); // Dangerous source of errors!
 			CloseHandle((HANDLE)iop_device_thread_handle[j]);
-			printf("\n *** ERROR *** Device thread didnt respond normally.  It was forcefully terminated.\n");
+			printf("\n *** ERROR *** Device thread didnt respond normally.  It was forcefully terminated.  Device Addr: %d\n",j);
 		}
 		if (iop_thread_stop_request2[j] != 0 && iop_device_thread_handle2[j] != 0) {
 			TerminateThread((HANDLE)iop_device_thread_handle2[j], 0); // Dangerous source of errors!
 			CloseHandle((HANDLE)iop_device_thread_handle2[j]);
-			printf("\n *** ERROR *** Device communications thread didnt respond normally.  It was forcefully terminated.\n");
+			printf("\n *** ERROR *** Device communications thread didnt respond normally.  It was forcefully terminated.  Device Addr: %d\n", j);
 		}
 	}
 

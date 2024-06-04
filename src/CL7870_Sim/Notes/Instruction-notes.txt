@@ -299,3 +299,7 @@ Cpu halted.  pc = 0x2006
 CL7860>
 
 
+MC IV CPU diag part 3
+	loads
+	GO
+	runs

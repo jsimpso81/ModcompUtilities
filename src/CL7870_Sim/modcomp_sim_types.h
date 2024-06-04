@@ -94,6 +94,7 @@ typedef struct {
 typedef struct {
 #include "generic_device_variables.h"
 	volatile HANDLE com_handle;
+	volatile bool break_detect_enabled;
 } DEVICE_CONSOLE_DATA;
 
 
