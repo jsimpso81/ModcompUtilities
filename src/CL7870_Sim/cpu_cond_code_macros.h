@@ -151,6 +151,15 @@
 // -------- Higher than
 #define TEST_CC_HI	( !(!cpu_cond_code_c || cpu_cond_code_z) )
 
-#define ISVAL16_NEG( VAL16 )  ((VAL16.uval & 0x8000) != 0 )
-#define ISVAL16_ZERO( VAL16 )  ( VAL16.uval == 0 )
+// ------- test 16 bit values for neg and zero conditions
+#define ISVAL16_NEG( VAL_16 )  ((VAL_16.uval & 0x8000) != 0 )
+#define ISVAL16_ZERO( VAL_16 )  ( VAL_16.uval == 0 )
+
+// ------- test 32 bit values for neg and zero conditions
+#define ISVAL32_NEG( VAL_32 )  ((VAL_32.uval & 0x80000000) != 0 )
+#define ISVAL32_ZERO( VAL_32 )  ( VAL_32.uval == 0 )
+
+// ------- test 64 bit values for neg and zero conditions
+#define ISVAL64_NEG( VAL_64 )  ((VAL_64.uval & 0x8000000000000000) != 0 )
+#define ISVAL64_ZERO( VAL_64 )  ( VAL_64.uval == 0 )
 

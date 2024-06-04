@@ -921,7 +921,18 @@ void cpu_classic_7860() {
 			// 0x1X -- reserved for decimal arithmetic -- case default will cause unimplemented instruction trap
 
 			case  OP_MPR:			// 0x20  --  Multiply Register By Register 
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
+				tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
+				tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
+				tmp32_val1.sval = tmp16_val1.sval;
+				tmp32_val2.sval = tmp16_val1.sval;
+				tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
+				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
+				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				// TODO: Set CC
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_DVR:			// 0x21  --  Divide Register By Register
@@ -2153,8 +2164,8 @@ void cpu_classic_7860() {
 					tmp64_val3.sval = tmp64_val2.sval * -1;
 					GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val1);
 					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
-					SET_CC_Z(tmp64_val3.uval == 0);
-					SET_CC_N((tmp64_val3.uval & 0x8000000000000000) != 0);
+					SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+					SET_CC_N(ISVAL64_NEG(tmp64_val3));
 					// TODO: Set CC C
 					SET_CC_O(tmp64_val3.uval == 0x8000000000000000);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -2187,16 +2198,52 @@ void cpu_classic_7860() {
 			break;
 
 
-		case  OP_TRRQ_LDXD:		//        0x8d
-			// -- wip --  tmp32_val1.uval = GET_MEMORY_VALUE_DIRECT_DOUBLE;
-			// -- wip --  SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
-			// -- wip --  // TODO: Set CC
-			// -- wip --  SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-			UNIMPLEMENTED_INSTRUCTION;
+		case  OP_TRRQ_LDXD:		//			0x8d
+			switch (instruction.parts.dest_reg & 0x0001) {
+
+				case 0:			// --  TRRQ  --  Transfer Quadruple-Register to Quadruple Register       
+					tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
+					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
+					GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val3);
+					SET_CC_Z(ISVAL64_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL64_NEG(tmp32_val3));
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+					break;
+
+				case 1:			//  --  LDXD  --  Load Double-Register from Memoty Doubleword (Short-Indexed)      
+					tmp32_val1.uval = GET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE;
+					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val3);
+					SET_CC_N(ISVAL32_NEG(tmp16_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp16_val3));
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+					break;
+			}
 			break;
 
 		case  OP_CRXD_STXD:		//        0x8e
-			UNIMPLEMENTED_INSTRUCTION;
+			switch (instruction.parts.dest_reg & 0x0001) {
+
+			case 0:				//  --  CRXD  --  Compare Double Register to Short-Indexed Memory Doubleword     
+				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp32_val5.uval = GET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE;
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val5, tmp32_val2);
+				tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				// TODO: Set CC C
+				SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+				break;
+
+
+			case 1:				//  --  STXD  --  Store Double-Register into Memory Doubleword (Short-Indexed)      
+				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				SET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE( tmp32_val4.uval );
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+				break;
+			}
 			break;
 
 		case  OP_AUG8F:			//         0x8f
@@ -3225,29 +3272,25 @@ void cpu_classic_7860() {
 
 
 		case  OP_TRRD_LDMD:		//        0xcd
-			// LDMD  -- Load Double-Register from Memory Doubleword        
-			if (instruction.all && 0x0010) {
-				//  tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;
-				//  tmp16_val2.uval = GET_DESTINATION_REGISTER_NUMB & 0x000e;
-				//  tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);
-				//  tmp16_val4.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval+1);
-				//  SET_REGISTER_VALUE(tmp16_val2.uval, tmp16_val3.uval);
-				//  SET_REGISTER_VALUE(tmp16_val2.uval+1, tmp16_val4.uval);
-				tmp32_val1.uval = GET_MEMORY_VALUE_DIRECT_DOUBLE;
-				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
-				// TODO: Set CC
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-			}
-			// TRRD -- Transfer Double-Register to Double- Register       
-			// TODO: Take care of illegal register value in instruction
-			else {
-				tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE; 
-				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
-				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val2);
-				SET_CC_Z(tmp32_val2.uval == 0);
-				// TODO: check endian
-				SET_CC_N(tmp32_val2.uval & 0x80000000);		// 
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+			switch ( instruction.parts.dest_reg & 0x0001 ) {
+
+				case 0:				//  --  TRRD -- Transfer Double-Register to Double- Register
+					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val3);
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+					break;
+
+				case 1:				//  --  LDMD  -- Load Double-Register from Memory Doubleword 
+					tmp32_val1.uval = GET_MEMORY_VALUE_DIRECT_DOUBLE;
+					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val3);
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+					break;
 			}
 			break;
 
@@ -3284,7 +3327,34 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_CRRD_CRMD:		//        0xcf
-			UNIMPLEMENTED_INSTRUCTION;
+			switch (instruction.parts.dest_reg & 0x0001) {
+
+				case 0:				//  --  CRRD  --  Compare Double-Register with Double Register       
+					tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+					tmp32_val5.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val5, tmp32_val2);
+					tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
+					// TODO: Set CC C
+					SET_CC_Z(ISVAL16_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL16_NEG(tmp32_val3));
+					SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+					break;
+
+				case 1:				//  --  CRMD  --  Compare Double-Register with Memory Doubleword       
+					tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+					tmp32_val5.uval = GET_MEMORY_VALUE_DIRECT_DOUBLE;
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val5, tmp32_val2);
+					tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					// TODO: Set CC
+					SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+					break;
+			}
 			break;
 
 
@@ -3648,12 +3718,23 @@ void cpu_classic_7860() {
 
 				// --  9	CRZ  --  Compare Register to Zero	
 			case 9:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp16_result_value.uval = GET_SOURCE_REGISTER_VALUE;
+				SET_CC_Z(ISVAL16_ZERO(tmp16_result_value));
+				SET_CC_N(ISVAL16_NEG(tmp16_result_value));
+				SET_CC_O(false);
+				SET_CC_C(false);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 				// --  A	CRZD  --  Compare Double Register to Zero	
 			case 10:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp32_val4.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val3);
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL16_NEG(tmp32_val3));
+				SET_CC_O(false);
+				SET_CC_C(false);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 				// --  B	XPMD  --  Exit Pipeline Mode of Execution	
@@ -3711,6 +3792,7 @@ void cpu_classic_7860() {
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+				break;
 
 			default:
 				ILLEGAL_INSTRUCTION;
@@ -4053,7 +4135,6 @@ void cpu_classic_7860() {
 
 		case  OP_STX:			// 	        0xfe  --  Store Register in Memory (Short-Indexed)       
 			SET_MEMORY_VALUE_SHORT_INDEXED( GET_DESTINATION_REGISTER_VALUE );
-			// TODO: Set CC
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
