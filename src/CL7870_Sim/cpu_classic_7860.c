@@ -21,12 +21,15 @@ const unsigned __int16 mask[16] = { 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc
 									 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff };
 
 // --------This is a 16 bit - bit numbber
-const unsigned __int32 bit32[16] = { 0x8000, 0x4000, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0100,
-									 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001 };
-const unsigned __int32 bitnot32[16] = { 0x7fff, 0xbfff, 0xdfff, 0xefff, 0xf7ff, 0xfbff, 0xfdff, 0xfeff,
-									  0xff7f, 0xffbf, 0xffdf, 0xffef, 0xfff7, 0xfffb, 0xfffd, 0xfffe };
-const unsigned __int32 mask32[16] = { 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc00, 0xfe00, 0xff00,
-									 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff };
+const unsigned __int32 bit32[32] = { 0x80000000, 0x40000000, 0x20000000, 0x10000000, 0x08000000, 0x04000000, 0x02000000, 0x01000000,
+									 0x00800000, 0x00400000, 0x00200000, 0x00100000, 0x00080000, 0x00040000, 0x00020000, 0x00010000, 
+									 0x00008000, 0x00004000, 0x00002000, 0x00001000, 0x00000800, 0x00000400, 0x00000200, 0x00000100,
+									 0x00000080, 0x00000040, 0x00000020, 0x00000010, 0x00000008, 0x00000004, 0x00000002, 0x00000001 };
+
+//const unsigned __int32 bitnot32[32] = { 0x7fff, 0xbfff, 0xdfff, 0xefff, 0xf7ff, 0xfbff, 0xfdff, 0xfeff,
+//									  0xff7f, 0xffbf, 0xffdf, 0xffef, 0xfff7, 0xfffb, 0xfffd, 0xfffe };
+//const unsigned __int32 mask32[32] = { 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc00, 0xfe00, 0xff00,
+//	 								 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff };
 
 
 
@@ -113,8 +116,43 @@ static volatile unsigned __int16 cpu_last_clock_int = 0;		// updated by cpu
 
 static volatile unsigned __int32 cpu_instruction_count = 0;	// how many instructions executed.
 
+static unsigned __int16 saved_reg_0 = 0;
+
+
+CRITICAL_SECTION CritSectInterruptRequest;
 
 #include "cpu_macro_register_access.h"
+
+
+
+// ===========================================================================================================
+void cpu_init_data() {
+
+	bool status = false;
+
+	// --------initialize the critical section for interrupt requests.
+	// Initialize the critical section one time only.
+	status = InitializeCriticalSectionAndSpinCount(&CritSectInterruptRequest, 0x00000400);
+	if (!status) {
+		printf(" *** ERROR *** Cpu could not create locking mechanism for interrupt request.\n");
+	}
+
+
+}
+
+
+// ===========================================================================================================
+void cpu_stop_data() {
+
+	bool status = false;
+
+	// --------initialize the critical section for interrupt requests.
+	// Initialize the critical section one time only.
+	DeleteCriticalSection(&CritSectInterruptRequest);
+
+
+}
+
 
 // ===========================================================================================================
 void cpu_master_clear() {
@@ -159,6 +197,9 @@ void cpu_master_clear() {
 	// --------extended memory control reg
 	cpu_extended_memory_ctrl_reg = 0;
 
+	// --------send ICB to all devices.
+	// TODO: Does MC send ICB to all devices?
+
 }
 
 // ===========================================================================================================
@@ -178,13 +219,21 @@ void cpu_get_interrupt(unsigned __int16* act, unsigned __int16* req, unsigned __
 // ===========================================================================================================
 void cpu_request_DI( unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr ) {
 
+
+
 	// ------- prio, bus combinations should result in unique dev-addr...
 
 	if ( ( cpu_intr_DI & cpu_interrupt_enabled ) != 0) {
+
+		// -------- Request ownership of the critical section.
+		EnterCriticalSection(&CritSectInterruptRequest);
 		cpu_interrupt_DI_request_dev_addr[prio][bus] = dev_addr;
 		cpu_interrupt_DI_request_count[prio][bus]++;
 		cpu_interrupt_DI_total_request_count++;
 		cpu_interrupt_request |= (cpu_intr_DI & cpu_interrupt_enabled);
+		// -------- Release ownership of the critical section.
+		LeaveCriticalSection(&CritSectInterruptRequest);
+
 		// fprintf(stderr, " DI requested da %d, bus %d, pri %d\n", dev_addr, bus, prio);
 	}
 	else {
@@ -200,10 +249,15 @@ void cpu_request_SI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int1
 	// ------- prio, bus combinations should result in unique dev-addr...
 
 	if ( ( cpu_intr_SI & cpu_interrupt_enabled ) != 0 ) {
+		// -------- Request ownership of the critical section.
+		EnterCriticalSection(&CritSectInterruptRequest);
 		cpu_interrupt_SI_request_dev_addr[prio][bus] = dev_addr;
 		cpu_interrupt_SI_request_count[prio][bus]++;
 		cpu_interrupt_SI_total_request_count++;
 		cpu_interrupt_request |= (cpu_intr_SI & cpu_interrupt_enabled);
+		// -------- Release ownership of the critical section.
+		LeaveCriticalSection(&CritSectInterruptRequest);
+
 		// fprintf(stderr, " SI requested da %d, bus %d, pri %d\n", dev_addr, bus, prio);
 	}
 	else {
@@ -217,6 +271,10 @@ void cpu_request_SI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int1
 unsigned __int16 cpu_get_next_DI_request() {
 	unsigned __int16 fnd_dev_addr = 0xffff;
 	int j = 0;
+
+	// -------- this may be overkill
+	// -------- Request ownership of the critical section.
+	EnterCriticalSection(&CritSectInterruptRequest);
 
 	// --------loop over all priorities and buses
 	// j = priority
@@ -246,6 +304,8 @@ unsigned __int16 cpu_get_next_DI_request() {
 			break;
 		}
 	}
+	// -------- Release ownership of the critical section.
+	LeaveCriticalSection(&CritSectInterruptRequest);
 	return fnd_dev_addr;
 }
 
@@ -254,6 +314,11 @@ unsigned __int16 cpu_get_next_DI_request() {
 unsigned __int16 cpu_get_next_SI_request() {
 	unsigned __int16 fnd_dev_addr = 0xffff;
 	int j = 0;
+
+
+	// -------- this may be overkill
+	// -------- Request ownership of the critical section.
+	EnterCriticalSection(&CritSectInterruptRequest);
 
 	// --------loop over all priorities and buses
 	for ( j = 0; j < 16; j++) {
@@ -282,6 +347,9 @@ unsigned __int16 cpu_get_next_SI_request() {
 			break;
 		}
 	}
+	// -------- Release ownership of the critical section.
+	LeaveCriticalSection(&CritSectInterruptRequest);
+
 	return fnd_dev_addr;
 }
 
@@ -299,7 +367,11 @@ unsigned __int16 cpu_get_clock_trigger_count() {
 
 // ===========================================================================================================
 void cpu_trigger_console_interrupt() {
+	// -------- Request ownership of the critical section.
+	EnterCriticalSection(&CritSectInterruptRequest);
 	cpu_interrupt_request |= (cpu_intr_console & cpu_interrupt_enabled);
+	// -------- Release ownership of the critical section.
+	LeaveCriticalSection(&CritSectInterruptRequest);
 }
 
 
@@ -307,7 +379,11 @@ void cpu_trigger_console_interrupt() {
 // ===========================================================================================================
 void cpu_trigger_clock_interrupt() {
 	cpu_trigger_clock_int++;
+	// -------- Request ownership of the critical section.
+	EnterCriticalSection(&CritSectInterruptRequest);
 	cpu_interrupt_request |= (cpu_intr_clock & cpu_interrupt_enabled);
+	// -------- Release ownership of the critical section.
+	LeaveCriticalSection(&CritSectInterruptRequest);
 }
 
 // ===========================================================================================================
@@ -457,7 +533,9 @@ void cpu_classic_7860() {
 					fprintf(stderr, "\n unimplemented instruction %04x\n",instruction.all);\
 					SET_CC_Z(false);\
 					SET_CC_O(false);\
+					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_UIT;\
+					LeaveCriticalSection(&CritSectInterruptRequest);\
 					}
 
 // TODO: Set CC for UIT
@@ -465,12 +543,16 @@ void cpu_classic_7860() {
 					fprintf(stderr, "\n Illegal instruction %04x\n",instruction.all);\
 					SET_CC_Z(false);\
 					SET_CC_O(false);\
+					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_UIT;\
+					LeaveCriticalSection(&CritSectInterruptRequest);\
 					}
 
 #define PRIV_INSTR_TRAP {\
 					fprintf(stderr, "\n privileged instruction %04x\n",instruction.all);\
+					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_sys_protect;\
+					LeaveCriticalSection(&CritSectInterruptRequest);\
 					}
 
 #define BAD_SHORT_DISPLACED_ADDR_TRAP {\
@@ -482,7 +564,9 @@ void cpu_classic_7860() {
 									GET_MEMORY_VALUE_ABS(program_counter + 3) ); \
 					fprintf(stderr, "    register R1 0x%04x\n",GET_REGISTER_VALUE(1) );\
 					fprintf(stderr, "    short displaced addr calc  0x%04x\n",  GET_MEMORY_ADDR_SHORT_DISPLACED );\
+					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_sys_protect;\
+					LeaveCriticalSection(&CritSectInterruptRequest);\
 					}
 
 
@@ -502,7 +586,7 @@ void cpu_classic_7860() {
 #define TEST_VALID_QUAD_REGISTER(ZREG) (ZREG != 0 && ((ZREG & 0x0003) == 0))
 
 #define CONDITIONAL_BRANCH( TEST_VALUE,  BRANCH_PC, NO_BRANCH_PC ) {\
-					if ((TEST_VALUE)) {\
+					if ( (TEST_VALUE) ) {\
 						SET_NEXT_PROGRAM_COUNTER( BRANCH_PC );\
 					}\
 					else {\
@@ -527,6 +611,9 @@ void cpu_classic_7860() {
 	// --------execute instructions while running or single stepping.
 	while (gbl_fp_runlight | gbl_fp_single_step) {
 
+		// --------- this is a kludge for REG 0
+		saved_reg_0 = GET_REGISTER_VALUE(0);
+
 		// -------- check for new interrupts
 		// TODO: optimize this !!
 		if ( (tmp16_val1.uval = (cpu_interrupt_request & cpu_interrupt_enabled & cpu_interrupt_active_mask )) > ( cpu_interrupt_active & cpu_interrupt_active_mask ) ) {
@@ -550,7 +637,11 @@ void cpu_classic_7860() {
 					// -------- if nothing found, report error
 					if (tmp_dev_addr == 0xffff) {
 						// -------- turn off DI request and report error.
+						// -------- Request ownership of the critical section.
+						EnterCriticalSection(&CritSectInterruptRequest);
 						cpu_interrupt_request &= ~cpu_intr_DI;
+						// -------- Release ownership of the critical section.
+						LeaveCriticalSection(&CritSectInterruptRequest);
 						fprintf(stderr, "\n cpu - Erroneous DI interrupt request, ignored.\n");
 					}
 					else {
@@ -570,7 +661,11 @@ void cpu_classic_7860() {
 					// -------- if nothing found, report error
 					if (tmp_dev_addr == 0xffff) {
 						// -------- turn off SI request and report error.
+						// -------- Request ownership of the critical section.
+						EnterCriticalSection(&CritSectInterruptRequest);
 						cpu_interrupt_request &= ~cpu_intr_SI;
+						// -------- Release ownership of the critical section.
+						LeaveCriticalSection(&CritSectInterruptRequest);
 						fprintf(stderr, "\n cpu - Erroneous SI interrupt request, ignored.\n");
 					}
 					else {
@@ -936,17 +1031,54 @@ void cpu_classic_7860() {
 				break;
 
 			case  OP_DVR:			// 0x21  --  Divide Register By Register
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE;
+				tmp32_val2.sval = tmp16_val2.sval;
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+				if (tmp32_val2.sval != 0) {
+					tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+					tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+				}
+				else {
+					tmp32_val3.uval = 0;
+					tmp32_val6.uval = 0;
+				}
+				tmp16_val3.uval = (unsigned __int16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+				tmp16_val6.uval = (unsigned __int16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+				tmp_instr_dest = ( GET_DESTINATION_REGISTER_NUMB & 0x00e );		// must be even.
+				SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+				SET_REGISTER_VALUE(tmp_instr_dest+1, tmp16_val3.uval);		// quotient
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+				SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
+			// TODO: This is the same as ADRD ????
 			case  OP_DAR:			// 0x22  --  This might be obsolete....
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp32_val5.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val5, tmp32_val2);
+				tmp32_val3.uval = tmp32_val1.uval + tmp32_val2.uval;
+				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
+				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
+				SET_CC_N(tmp32_val3.uval & 0x80000000);
+				SET_CC_Z(tmp32_val3.uval == 0);
+				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_CC_C_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_REX:			// 0x23  --  Request Executive Service
 				SET_CC_Z(true);		// It is a REX
 				SET_CC_O(false);	// It is not a EXR or EXI
+				// -------- Request ownership of the critical section.
+				EnterCriticalSection(&CritSectInterruptRequest);
 				cpu_interrupt_request |= cpu_intr_UIT;
+				// -------- Release ownership of the critical section.
+				LeaveCriticalSection(&CritSectInterruptRequest);
 				break;
 
 			case  OP_CAR:			// 0x24  --  CAR  --  Clear Active and Return        
@@ -1021,6 +1153,8 @@ void cpu_classic_7860() {
 						cpu_interrupt_active &= bitnot[new_int];
 
 						// --------clear request
+						// -------- Request ownership of the critical section.
+						EnterCriticalSection(&CritSectInterruptRequest);
 						if ((new_int == 12) & (cpu_interrupt_DI_total_request_count == cpu_interrupt_DI_total_proc_count)) {
 							cpu_interrupt_request &= bitnot[new_int];
 						}
@@ -1030,6 +1164,8 @@ void cpu_classic_7860() {
 						else {
 							cpu_interrupt_request &= bitnot[new_int];
 						}
+						// -------- Release ownership of the critical section.
+						LeaveCriticalSection(&CritSectInterruptRequest);
 
 						if (cpu_interrupt_active == 0) {
 							cpu_interrupt_active_mask = mask[15];
@@ -1081,7 +1217,11 @@ void cpu_classic_7860() {
 					// SIR  --  Set interrupt Request         
 					case 8:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
+							// -------- Request ownership of the critical section.
+							EnterCriticalSection(&CritSectInterruptRequest);
 							cpu_interrupt_request |= ( tmp16_val1.uval & SIR_ALLOWED );
+							// -------- Release ownership of the critical section.
+							LeaveCriticalSection(&CritSectInterruptRequest);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1129,7 +1269,11 @@ void cpu_classic_7860() {
 					// RIR  --  Reset interrupt Request         
 					case 8:
 						if (cpu_priv_mode | !cpu_virtual_mode) {
+							// -------- Request ownership of the critical section.
+							EnterCriticalSection(&CritSectInterruptRequest);
 							cpu_interrupt_request &= ( tmp16_val1.uval | RIR_ALLOWED_NOT);
+							// -------- Release ownership of the critical section.
+							LeaveCriticalSection(&CritSectInterruptRequest);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1156,10 +1300,10 @@ void cpu_classic_7860() {
 						tmp32_val3.uval = tmp32_val2.uval >> tmp_instr_src;
 						GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
 						SET_DESTINATION_REGISTER_VALUE_DOUBLE( tmp32_val4.uval );
-						SET_CC_Z(tmp32_val3.uval == 0);
-						SET_CC_N((tmp32_val3.uval & 0x80000000) != 0);
+						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_O(false);
-						SET_CC_C( (tmp_instr_src == 0 ? false : ((tmp32_val2.uval & bit32[15 - tmp_instr_src]) != 0) ) );
+						SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[32 - tmp_instr_src] & tmp32_val2.uval) != 0)));
 						// TODO: Set CC
 						//fprintf(stderr, " RLD before raw reg: 0x%08x numb reg: 0x%08x  after numb reg: 0x%08x raw reg: 0x%08x\n", 
 						//				tmp32_val1.uval, tmp32_val2.uval, tmp32_val3.uval, tmp32_val4.uval);
@@ -1176,8 +1320,8 @@ void cpu_classic_7860() {
 						tmp64_val3.uval = tmp64_val2.uval >> tmp_instr_src;
 						GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val1);
 						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
-						SET_CC_Z(tmp64_val3.uval == 0);
-						SET_CC_N((tmp64_val3.uval & 0x8000000000000000) != 0);
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
 						// TODO: Set CC
 						// fprintf(stderr, " RLQ before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 						// disp_cur_reg(stderr);
@@ -1199,7 +1343,7 @@ void cpu_classic_7860() {
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
 				SET_CC_N(ISVAL16_NEG(tmp16_val2));
 				SET_CC_O(false);
-				// TODO: Set CC
+				SET_CC_C((tmp_instr_src == 0 ? false : ((bit[16 - tmp_instr_src] & tmp16_val1.uval) != 0)));
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				// fprintf(stderr, " before 0x%08x after 0x%08x\n", tmp16_val1.uval, tmp16_val2.uval);
 				// disp_cur_reg(stderr);
@@ -1218,10 +1362,10 @@ void cpu_classic_7860() {
 					tmp32_val3.sval = tmp32_val2.sval >> tmp_instr_src;
 					GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val1);
 					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
-					SET_CC_Z(tmp32_val3.uval == 0);
-					SET_CC_N((tmp32_val3.uval & 0x80000000) != 0);
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					SET_CC_O(false);
-					SET_CC_C((tmp_instr_src == 0 ? false : ((tmp32_val2.uval & bit32[15 - tmp_instr_src]) != 0)));
+					SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[32 - tmp_instr_src] & tmp32_val2.uval) != 0)));
 					// TODO: Set CC
 					//fprintf(stderr, " RAD before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 					//disp_cur_reg(stderr);
@@ -1238,8 +1382,8 @@ void cpu_classic_7860() {
 					tmp64_val3.sval = tmp64_val2.sval >> tmp_instr_src;
 					GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val1);
 					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
-					SET_CC_Z(tmp64_val3.uval == 0);
-					SET_CC_N((tmp64_val3.uval & 0x8000000000000000) != 0);
+					SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+					SET_CC_N(ISVAL64_NEG(tmp64_val3));
 					SET_CC_O(false);
 					SET_CC_C((tmp_instr_src == 0 ? false : ((tmp64_val2.uval & (unsigned __int64)bit32[15 - tmp_instr_src]) != 0)));
 					// TODO: Set CC
@@ -1262,8 +1406,8 @@ void cpu_classic_7860() {
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val2.uval);
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
 				SET_CC_N(ISVAL16_NEG(tmp16_val2));
-				// TODO: Set CC
 				SET_CC_O(false);
+				// TODO: Set CC C
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				// fprintf(stderr, " before 0x%08x after 0x%08x\n", tmp16_val1.uval, tmp16_val2.uval);
 				// disp_cur_reg(stderr);
@@ -1276,12 +1420,13 @@ void cpu_classic_7860() {
 						tmp_instr_src = instruction.parts.src_reg;
 						tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
 						GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val2);
-						tmp32_val2.uval <<= tmp_instr_src;
-						GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val2, tmp32_val1);
+						tmp32_val3.uval = tmp32_val2.uval  << tmp_instr_src;
+						GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val1);
 						SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
-						SET_CC_Z(tmp32_val2.uval == 0);
-						SET_CC_N((tmp32_val2.uval & 0x80000000) != 0);
-						// TODO: Set CC
+						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+						SET_CC_N(ISVAL32_NEG(tmp32_val3));
+						SET_CC_O(false);
+						SET_CC_C( (tmp_instr_src == 0 ? false : ((bit32[tmp_instr_src-1] & tmp32_val2.uval) != 0) ) );
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
 
@@ -1294,9 +1439,9 @@ void cpu_classic_7860() {
 						tmp64_val3.uval = tmp64_val2.uval << tmp_instr_src;
 						GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val1);
 						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
-						SET_CC_Z(tmp64_val3.uval == 0);
-						SET_CC_N((tmp64_val3.uval & 0x8000000000000000) != 0);
-						// TODO: Set CC
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
+						// TODO: Set CC O C
 						// fprintf(stderr, " LLQ before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 						// disp_cur_reg(stderr);
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -1317,7 +1462,7 @@ void cpu_classic_7860() {
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
 				SET_CC_N(ISVAL16_NEG(tmp16_val2));
 				SET_CC_O(false);
-				// TODO: Set CC
+				SET_CC_C((tmp_instr_src == 0 ? false : ((bit[tmp_instr_src - 1] & tmp16_val2.uval) != 0)));
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				// fprintf(stderr, " before 0x%08x after 0x%08x\n", tmp16_val1.uval, tmp16_val2.uval);
 				// disp_cur_reg(stderr);
@@ -1341,9 +1486,10 @@ void cpu_classic_7860() {
 					}
 					GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val1);
 					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
-					SET_CC_Z(tmp32_val3.uval == 0);
-					SET_CC_N((tmp32_val3.uval & 0x80000000) != 0);
-					// TODO: Set CC
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					// TODO: Set CC O
+					SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[tmp_instr_src - 1] & tmp32_val2.uval) != 0)));
 					//fprintf(stderr, " LAD before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 					//disp_cur_reg(stderr);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -1364,8 +1510,8 @@ void cpu_classic_7860() {
 					}
 					GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val1);
 					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
-					SET_CC_Z(tmp64_val3.uval == 0);
-					SET_CC_N((tmp64_val3.uval & 0x8000000000000000) != 0);
+					SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+					SET_CC_N(ISVAL64_NEG(tmp64_val3));
 					// TODO: Set CC
 					// fprintf(stderr, " LAQ before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 					// disp_cur_reg(stderr);
@@ -1392,8 +1538,8 @@ void cpu_classic_7860() {
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val2.uval);
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
 				SET_CC_N(ISVAL16_NEG(tmp16_val2));
-				// TODO: Set CC
-				SET_CC_O(false);
+				// TODO: Set CC O
+				SET_CC_C((tmp_instr_src == 0 ? false : ((bit[tmp_instr_src - 1] & tmp16_val1.uval) != 0)));
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				// fprintf(stderr, " before 0x%08x after 0x%08x\n", tmp16_val1.uval, tmp16_val2.uval);
 				// disp_cur_reg(stderr);
@@ -1675,10 +1821,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = bit[GET_SOURCE_REGISTER_NUMB];
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
@@ -1689,8 +1835,8 @@ void cpu_classic_7860() {
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
-				// TODO: Set CC C
-				SET_CC_O_SUB( tmp16_val1, tmp16_val2, tmp16_val3 );
+				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3 );
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
@@ -1754,10 +1900,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE;
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
@@ -1768,8 +1914,8 @@ void cpu_classic_7860() {
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
-				SET_CC_O_SUB( tmp16_val1, tmp16_val2, tmp16_val3 );
-				// TODO: Set CC C
+				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3 );
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
@@ -1833,10 +1979,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = bit[GET_SOURCE_REGISTER_NUMB];
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 				break;
 
@@ -1848,7 +1994,7 @@ void cpu_classic_7860() {
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
-				// TODO: SEt CC C
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 				break;
 
@@ -1912,10 +2058,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE;
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 				break;
 
@@ -1924,10 +2070,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE;
 				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				CONDITIONAL_BRANCH( TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 				break;
 
@@ -1980,328 +2126,354 @@ void cpu_classic_7860() {
 				break;
 
 
-		case  OP_ABMM:			// 	        0x80  --  Add Bit in Memory            
-			tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
-			tmp16_val2.uval = bit[instruction.parts.dest_reg];
-			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
-			SET_MEMORY_VALUE_DIRECT(tmp16_val3.uval);
-			// TODO: Set CC C
-			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
-			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-			break;
+			case  OP_ABMM:			// 	        0x80  --  Add Bit in Memory            
+				tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
+				tmp16_val2.uval = bit[instruction.parts.dest_reg];
+				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
+				SET_MEMORY_VALUE_DIRECT(tmp16_val3.uval);
+				SET_CC_N(ISVAL16_NEG(tmp16_val3));
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+				break;
 
-		case  OP_ZBMM:			// 	        0x81  --  Zero Bit in Memory        
-			tmp16_val1.uval = bitnot[instruction.parts.dest_reg];
-			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT & tmp16_val1.uval;
-			SET_MEMORY_VALUE_DIRECT(tmp16_val2.uval);
-			SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
-			SET_CC_N(ISVAL16_NEG(tmp16_val2));
-			// TODO: Set CC
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-			break;
+			case  OP_ZBMM:			// 	        0x81  --  Zero Bit in Memory        
+				tmp16_val1.uval = bitnot[instruction.parts.dest_reg];
+				tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT & tmp16_val1.uval;
+				SET_MEMORY_VALUE_DIRECT(tmp16_val2.uval);
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
+				SET_CC_N(ISVAL16_NEG(tmp16_val2));
+				// TODO: Set CC
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+				break;
 
-		case  OP_OBMM:			//  0x82  --  OR Bit in Memory·        
-			tmp16_val1.uval = bit[instruction.parts.dest_reg];
-			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT | tmp16_val1.uval;
-			SET_MEMORY_VALUE_DIRECT(tmp16_val2.uval);
-			SET_CC_Z(false);
-			SET_CC_N(ISVAL16_NEG(tmp16_val2));
-			// TODO: Set CC
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-			break;
+			case  OP_OBMM:			//  0x82  --  OR Bit in Memory·        
+				tmp16_val1.uval = bit[instruction.parts.dest_reg];
+				tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT | tmp16_val1.uval;
+				SET_MEMORY_VALUE_DIRECT(tmp16_val2.uval);
+				SET_CC_Z(false);
+				SET_CC_N(ISVAL16_NEG(tmp16_val2));
+				// TODO: Set CC
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+				break;
 
-		case  OP_TBMM:			// x83  --  Test Bit(s) in Memory        
-			tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
-			SET_CC_Z(ISVAL16_ZERO(tmp16_val1));
-			SET_CC_N(ISVAL16_NEG(tmp16_val1));
-			SET_CC_C((tmp16_val1.uval & bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-			break;
+			case  OP_TBMM:			// x83  --  Test Bit(s) in Memory        
+				tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val1));
+				SET_CC_N(ISVAL16_NEG(tmp16_val1));
+				SET_CC_C((tmp16_val1.uval & bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+				break;
 
-		case  OP_ABMB:			// 		    0x84  --  Add Bit in Memory and Branch if Nonzero    
-			tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
-			tmp16_val2.uval = bit[instruction.parts.dest_reg];
-			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
-			SET_MEMORY_VALUE_DIRECT(tmp16_val3.uval);
-			// TODO: Set CC C
-			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
-			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
-			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
-			break;
+			case  OP_ABMB:			// 		    0x84  --  Add Bit in Memory and Branch if Nonzero    
+				tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
+				tmp16_val2.uval = bit[instruction.parts.dest_reg];
+				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
+				SET_MEMORY_VALUE_DIRECT(tmp16_val3.uval);
+				SET_CC_N(ISVAL16_NEG(tmp16_val3));
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
+				break;
 
-		case  OP_ZBMB:			// 		    0x85  --  Zero Bit in Memory and Branch if Nonzero    
-			tmp16_val1.uval = bitnot[instruction.parts.dest_reg];
-			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT & tmp16_val1.uval;
-			SET_MEMORY_VALUE_DIRECT(tmp16_val2.uval);
-			SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
-			SET_CC_N(ISVAL16_NEG(tmp16_val2));
-			// TODO: Set CC
-			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
-			break;
+			case  OP_ZBMB:			// 		    0x85  --  Zero Bit in Memory and Branch if Nonzero    
+				tmp16_val1.uval = bitnot[instruction.parts.dest_reg];
+				tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT & tmp16_val1.uval;
+				SET_MEMORY_VALUE_DIRECT(tmp16_val2.uval);
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
+				SET_CC_N(ISVAL16_NEG(tmp16_val2));
+				// TODO: Set CC
+				CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
+				break;
 
-		case  OP_TBMB:			// 		    0x86  --  Test Bit(s) in Memory and Branch if One    
-			tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
-			SET_CC_Z(ISVAL16_ZERO(tmp16_val1));
-			SET_CC_N(ISVAL16_NEG(tmp16_val1));
-			SET_CC_C((tmp16_val1.uval & bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
-			CONDITIONAL_BRANCH(TEST_CC_C, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
-			break;
+			case  OP_TBMB:			// 		    0x86  --  Test Bit(s) in Memory and Branch if One    
+				tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val1));
+				SET_CC_N(ISVAL16_NEG(tmp16_val1));
+				SET_CC_C((tmp16_val1.uval & bit[GET_DESTINATION_REGISTER_NUMB]) != 0);
+				CONDITIONAL_BRANCH(TEST_CC_C, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
+				break;
 
-		case  OP_CBMB:			// 		    0x87
-			tmp16_val1.uval = bit[instruction.parts.dest_reg];
-			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
-			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
-			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
-			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			// TODO: Set CC
-			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
-			if (tmp16_val1.uval == tmp16_val2.uval) {
-				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
-			}
-			// TODO: See if we need to used signed comparisons.
-			else if (tmp16_val1.uval < tmp16_val2.uval) {
-				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 3));
-			}
-			else {
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 4);
-			}
-			break;
+			case  OP_CBMB:			// 		    0x87  --  CBMB  --  Compare Bit and Memory and Branch if Equal or Less  
+				tmp16_val1.uval = bit[instruction.parts.dest_reg];
+				tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
+				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+				SET_CC_N(ISVAL16_NEG(tmp16_val3));
+				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				if (tmp16_val1.uval == tmp16_val2.uval) {
+					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
+				}
+				// TODO: See if we need to used signed comparisons.
+				else if (tmp16_val1.sval < tmp16_val2.sval) {
+					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 3));
+				}
+				else {
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 4);
+				}
+				break;
 
-		case  OP_LDXT_STXT_LDMT_STMT:	//	0x88
-			switch (instruction.parts.dest_reg & 0x0003) {
+			case  OP_LDXT_STXT_LDMT_STMT:	//	0x88
+				switch (instruction.parts.dest_reg & 0x0003) {
 
-				case 0:				//  STXT  --  Store Triple-Register into Memory Tripleword (Short-Indexed)      
-					tmp16_val1.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
-					tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
-					tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest);
-					tmp16_val3.uval = GET_REGISTER_VALUE(tmp_instr_dest+1);
-					tmp16_val4.uval = GET_REGISTER_VALUE(tmp_instr_dest+2);
-					SET_MEMORY_VALUE_OM(tmp16_val1.uval, tmp16_val2.uval);
-					SET_MEMORY_VALUE_OM(tmp16_val1.uval+1, tmp16_val3.uval);
-					SET_MEMORY_VALUE_OM(tmp16_val1.uval+2, tmp16_val4.uval);
-					// TODO: Set CC
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
-					break;
+					case 0:				//  STXT  --  Store Triple-Register into Memory Tripleword (Short-Indexed)      
+						tmp16_val1.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
+						tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
+						tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest);
+						tmp16_val3.uval = GET_REGISTER_VALUE(tmp_instr_dest+1);
+						tmp16_val4.uval = GET_REGISTER_VALUE(tmp_instr_dest+2);
+						SET_MEMORY_VALUE_OM(tmp16_val1.uval, tmp16_val2.uval);
+						SET_MEMORY_VALUE_OM(tmp16_val1.uval+1, tmp16_val3.uval);
+						SET_MEMORY_VALUE_OM(tmp16_val1.uval+2, tmp16_val4.uval);
+						// TODO: Set CC
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+						break;
 
-				case 1:				//  LDXT  --  Load Triple-Register from Memory Triple- word (Short-Indexed)     
-					tmp16_val1.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
-					tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
-					tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);
-					tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 1);
-					tmp16_val4.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 2);
-					SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val2.uval);
-					SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);
-					SET_REGISTER_VALUE(tmp_instr_dest + 2, tmp16_val3.uval);
-					// TODO: Set CC
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
-					break;
+					case 1:				//  LDXT  --  Load Triple-Register from Memory Triple- word (Short-Indexed)     
+						tmp16_val1.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
+						tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
+						tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);
+						tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 1);
+						tmp16_val4.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 2);
+						SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val2.uval);
+						SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);
+						SET_REGISTER_VALUE(tmp_instr_dest + 2, tmp16_val3.uval);
+						// TODO: Set CC
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+						break;
 
-				case 2:				//  STMT  --  Store Triple-Register into Memory Triple-Word       
-					tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;
-					tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
-					tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest);
-					tmp16_val3.uval = GET_REGISTER_VALUE(tmp_instr_dest + 1);
-					tmp16_val4.uval = GET_REGISTER_VALUE(tmp_instr_dest + 2);
-					SET_MEMORY_VALUE_OM(tmp16_val1.uval, tmp16_val2.uval);
-					SET_MEMORY_VALUE_OM(tmp16_val1.uval + 1, tmp16_val3.uval);
-					SET_MEMORY_VALUE_OM(tmp16_val1.uval + 2, tmp16_val4.uval);
-					// TODO: Set CC
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-					break;
+					case 2:				//  STMT  --  Store Triple-Register into Memory Triple-Word       
+						tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;
+						tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
+						tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest);
+						tmp16_val3.uval = GET_REGISTER_VALUE(tmp_instr_dest + 1);
+						tmp16_val4.uval = GET_REGISTER_VALUE(tmp_instr_dest + 2);
+						SET_MEMORY_VALUE_OM(tmp16_val1.uval, tmp16_val2.uval);
+						SET_MEMORY_VALUE_OM(tmp16_val1.uval + 1, tmp16_val3.uval);
+						SET_MEMORY_VALUE_OM(tmp16_val1.uval + 2, tmp16_val4.uval);
+						// TODO: Set CC
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+						break;
 
-				case 3:				//  LDMT  --  Load Triple-Register from Memory Tripleword       
-					tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;
-					tmp_instr_dest =  GET_DESTINATION_REGISTER_NUMB & 0x000c;
-					tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);
-					tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 1);
-					tmp16_val4.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 2);
-					SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val2.uval);
-					SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);
-					SET_REGISTER_VALUE(tmp_instr_dest + 2, tmp16_val3.uval);
-					// TODO: Set CC
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-					break;
-			}
-			break;
+					case 3:				//  LDMT  --  Load Triple-Register from Memory Tripleword       
+						tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;
+						tmp_instr_dest =  GET_DESTINATION_REGISTER_NUMB & 0x000c;
+						tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);
+						tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 1);
+						tmp16_val4.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 2);
+						SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val2.uval);
+						SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);
+						SET_REGISTER_VALUE(tmp_instr_dest + 2, tmp16_val3.uval);
+						// TODO: Set CC
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+						break;
+				}
+				break;
 
-		case  OP_NOP:			// :			// 0x89
-			// TODO: Update register 0 with switches.
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
-			break;
+			case  OP_NOP:			// :			// 0x89
+				SET_REGISTER_VALUE(0, gbl_fp_switches);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+				break;
 
-		case  OP_IRRD_TTRD:			// 	0x8a
-			// -------- IRRD  --  Interchange Double Register and Double Register      
-			if ((instruction.all & 0x0010) != 0) {
-				tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-				tmp32_val2.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-				SET_SOURCE_REGISTER_VALUE_DOUBLE(tmp32_val2.uval);	// DEST -> SRC
-				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);		// SRC -> DEST
-				// TODO: IRRD set cond codes
-			}
-			// -------- TTRD  --  Transfer Two's Complement of Double- Register to Double-Register    
-			else {
-				tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val3);
-				tmp32_val3.sval *= -1;
-				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val1);
-				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
-				SET_CC_Z(tmp32_val3.uval == 0);
-				SET_CC_N((tmp32_val3.uval & 0x80000000) != 0); 
-				SET_CC_O((tmp32_val3.uval == 0x80000000));
-				// TODO: Set CC C
-			}
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
-			break;
-
-		case  OP_CRRT_CRRQ_TTRQ:			// 0x8b
-			switch (instruction.parts.dest_reg & 0x0003) {
-				case 0:			//  --  TTRQ  --  Transfer Two's Complement of Quadruple- Register to Quadruple-Register    
-					tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
-					GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val2);
-					tmp64_val3.sval = tmp64_val2.sval * -1;
-					GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val1);
-					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
-					SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
-					SET_CC_N(ISVAL64_NEG(tmp64_val3));
-					// TODO: Set CC C
-					SET_CC_O(tmp64_val3.uval == 0x8000000000000000);
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
-					break;
-
-				case 2:			// --  CRRT  --  Compare Triple Register to Triple Register      
-					UNIMPLEMENTED_INSTRUCTION;
-					break;
-
-				case 3:			// --  CRRQ  --  Compare Quad Register to Quad Register      
-					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
-					tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
-					GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val4);
-					GET_NUMERIC_QUAD_FROM_RAW(tmp64_val2, tmp64_val5);
-					tmp64_val3.uval = tmp64_val4.uval - tmp64_val5.uval;
-					SET_CC_Z(tmp64_val3.uval == 0);
-					SET_CC_N((tmp64_val3.uval & 0x8000000000000000) != 0);
-					// TODO: Set CC C
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
-					break;
-
-				default:
-					ILLEGAL_INSTRUCTION;
-					break;
-			}
-			break;
-
-		case  OP_ESD_ESS:			//         0x8c
-			UNIMPLEMENTED_INSTRUCTION;
-			break;
-
-
-		case  OP_TRRQ_LDXD:		//			0x8d
-			switch (instruction.parts.dest_reg & 0x0001) {
-
-				case 0:			// --  TRRQ  --  Transfer Quadruple-Register to Quadruple Register       
-					tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
-					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
-					GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val3);
-					SET_CC_Z(ISVAL64_ZERO(tmp32_val3));
-					SET_CC_N(ISVAL64_NEG(tmp32_val3));
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
-					break;
-
-				case 1:			//  --  LDXD  --  Load Double-Register from Memoty Doubleword (Short-Indexed)      
-					tmp32_val1.uval = GET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE;
-					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
+			case  OP_IRRD_TTRD:			// 	0x8a
+				// -------- IRRD  --  Interchange Double Register and Double Register      
+				if ((instruction.all & 0x0010) != 0) {
+					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+					tmp32_val2.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+					SET_SOURCE_REGISTER_VALUE_DOUBLE(tmp32_val2.uval);	// DEST -> SRC
+					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);		// SRC -> DEST
+					// TODO: IRRD set cond codes
+				}
+				// -------- TTRD  --  Transfer Two's Complement of Double- Register to Double-Register    
+				else {
+					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
 					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val3);
-					SET_CC_N(ISVAL32_NEG(tmp16_val3));
-					SET_CC_Z(ISVAL32_ZERO(tmp16_val3));
+					tmp32_val3.sval *= -1;
+					GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val1);
+					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
+					SET_CC_Z(tmp32_val3.uval == 0);
+					SET_CC_N((tmp32_val3.uval & 0x80000000) != 0); 
+					SET_CC_O((tmp32_val3.uval == 0x80000000));
+					// TODO: Set CC C
+				}
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+				break;
+
+			case  OP_CRRT_CRRQ_TTRQ:			// 0x8b
+				switch (instruction.parts.dest_reg & 0x0003) {
+					case 0:			//  --  TTRQ  --  Transfer Two's Complement of Quadruple- Register to Quadruple-Register    
+						tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
+						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val2);
+						tmp64_val3.sval = tmp64_val2.sval * -1;
+						GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val1);
+						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
+						// TODO: Set CC C
+						SET_CC_O(tmp64_val3.uval == 0x8000000000000000);
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+						break;
+
+					case 2:			// --  CRRT  --  Compare Triple Register to Triple Register      
+						UNIMPLEMENTED_INSTRUCTION;
+						break;
+
+					case 3:			// --  CRRQ  --  Compare Quad Register to Quad Register      
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
+						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val4);
+						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val2, tmp64_val5);
+						tmp64_val3.uval = tmp64_val4.uval - tmp64_val5.uval;
+						SET_CC_Z(tmp64_val3.uval == 0);
+						SET_CC_N((tmp64_val3.uval & 0x8000000000000000) != 0);
+						// TODO: Set CC C
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+						break;
+
+					default:
+						ILLEGAL_INSTRUCTION;
+						break;
+				}
+				break;
+
+			case  OP_ESD_ESS:			//         0x8c
+				switch (instruction.parts.dest_reg & 0x01) {
+	
+					case 0:				//  --  ESD  --  Extend Sign Double         
+						tmp32_val3.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+						tmp64_val3.sval = tmp32_val3.sval;
+						GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val4);
+						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val4.uval);
+						SET_CC_Z(ISVAL64_ZERO(tmp32_val3));
+						SET_CC_N(ISVAL64_NEG(tmp32_val3));
+						SET_CC_O(false);
+						SET_CC_C(false);
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+						break;
+
+					case 1:				//  --  ESS  --  Extend Sign Single         
+						tmp16_val3.uval = GET_SOURCE_REGISTER_VALUE;
+						tmp32_val3.sval = tmp16_val3.sval;
+						GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
+						SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
+						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+						SET_CC_N(ISVAL32_NEG(tmp32_val3));
+						SET_CC_O(false);
+						SET_CC_C(false);
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+						break;
+
+				}
+				break;
+
+
+			case  OP_TRRQ_LDXD:		//			0x8d
+				switch (instruction.parts.dest_reg & 0x0001) {
+	
+					case 0:			// --  TRRQ  --  Transfer Quadruple-Register to Quadruple Register       
+						tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
+						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
+						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val3);
+						SET_CC_Z(ISVAL64_ZERO(tmp32_val3));
+						SET_CC_N(ISVAL64_NEG(tmp32_val3));
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+						break;
+
+					case 1:			//  --  LDXD  --  Load Double-Register from Memoty Doubleword (Short-Indexed)      
+						tmp32_val1.uval = GET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE;
+						SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
+						GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val3);
+						SET_CC_N(ISVAL32_NEG(tmp16_val3));
+						SET_CC_Z(ISVAL32_ZERO(tmp16_val3));
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+						break;
+				}
+				break;
+
+			case  OP_CRXD_STXD:		//        0x8e
+				switch (instruction.parts.dest_reg & 0x0001) {
+
+				case 0:				//  --  CRXD  --  Compare Double Register to Short-Indexed Memory Doubleword     
+					tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+					tmp32_val5.uval = GET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE;
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val5, tmp32_val2);
+					tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+					SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 					break;
-			}
-			break;
 
-		case  OP_CRXD_STXD:		//        0x8e
-			switch (instruction.parts.dest_reg & 0x0001) {
 
-			case 0:				//  --  CRXD  --  Compare Double Register to Short-Indexed Memory Doubleword     
-				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-				tmp32_val5.uval = GET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE;
-				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
-				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val5, tmp32_val2);
-				tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
-				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
-				SET_CC_N(ISVAL32_NEG(tmp32_val3));
-				// TODO: Set CC C
-				SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+				case 1:				//  --  STXD  --  Store Double-Register into Memory Doubleword (Short-Indexed)      
+					tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+					SET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE( tmp32_val4.uval );
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+					break;
+				}
 				break;
 
-
-			case 1:				//  --  STXD  --  Store Double-Register into Memory Doubleword (Short-Indexed)      
-				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-				SET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE( tmp32_val4.uval );
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+			case  OP_AUG8F:			//         0x8f
+				switch (instruction.parts.dest_reg) {
+					case 0:		// --  BXNS	Branch (Short-Indexed) on Condition Code N Set     
+						do_branch = TEST_CC_N;
+						break;
+					case 1:		// --  BXZS	Branch (Short-Indexed) on Condition Code Z Set     
+						do_branch = TEST_CC_Z;
+						break;
+					case 2:		// --  BXOS	Branch (Short-Indexed) On Condition Code O Set     
+						do_branch = TEST_CC_O;
+						break;
+					case 3:		// --  BXCS	Branch (Short-Indexed) on Condition Code C Set     
+						do_branch = TEST_CC_C;
+						break;
+					case 4:		// --  BXLS	Branch (Short-Indexed) on Less Than Condition      
+						do_branch = TEST_CC_LT;
+						break;
+					case 5:		// --  BXLE	Branch (Short-Indexed) on Less Than or Equal Condition    
+						do_branch = TEST_CC_LE;  // CCZ .OR. (CCN .XOR. CCO)
+						break;
+					case 6:		// --  BXHI	Branch (Short-Indexed) on Magnitude Higher Condition      
+						do_branch = TEST_CC_HI;	// !CCC .or. CCZ
+						break;
+					case 8:		// --  BXNR	Branch (Short-Indexed) on Condition Code N Reset     
+						do_branch = TEST_CC_NOT_N;
+						break;
+					case 9:		// --  BXZR	Branch (Short-Indexed) on Condition Code Z Reset     
+						do_branch = TEST_CC_NOT_Z;
+						break;
+					case 10:		// --  BXOR	Branch (Short-Indexed) On Condition Code O Reset     
+						do_branch = TEST_CC_NOT_O;
+						break;
+					case 11:		// --  BXCR	Branch (Short-Indexed) on Condition Code C Reset     
+						do_branch = TEST_CC_NOT_C;
+						break;
+					case 12:		// --  BXGE	Branch (Short-Indexed) on Greater Than or Equal Condition    
+						do_branch = TEST_CC_GE;  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
+						break;
+					case 13:		// --  BXGT	Branch (Short-Indexed) on Greater Than Condition      
+						do_branch = TEST_CC_GT;  //  CCZ .or. (CCN .XOR. CCO)
+						break;
+					case 14:		// --  BXNH	Branch (Short-Indexed) on Magnitude Not Higher Condition     
+						do_branch = TEST_CC_NH;  // !CCC .or CCZ
+						break;
+					default:
+						ILLEGAL_INSTRUCTION;
+						do_branch = false;
+						break;
+				}
+				if (do_branch) {
+					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_SHORT_INDEXED);
+				}
+				else {
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+				}
 				break;
-			}
-			break;
-
-		case  OP_AUG8F:			//         0x8f
-			switch (instruction.parts.dest_reg) {
-				case 0:		// --  BXNS	Branch (Short-Indexed) on Condition Code N Set     
-					do_branch = cpu_cond_code_n;
-					break;
-				case 1:		// --  BXZS	Branch (Short-Indexed) on Condition Code Z Set     
-					do_branch = cpu_cond_code_z;
-					break;
-				case 2:		// --  BXOS	Branch (Short-Indexed) On Condition Code O Set     
-					do_branch = cpu_cond_code_o;
-					break;
-				case 3:		// --  BXCS	Branch (Short-Indexed) on Condition Code C Set     
-					do_branch = cpu_cond_code_c;
-					break;
-				case 4:		// --  BXLS	Branch (Short-Indexed) on Less Than Condition      
-					do_branch = TEST_CC_LT;
-					break;
-				case 5:		// --  BXLE	Branch (Short-Indexed) on Less Than or Equal Condition    
-					do_branch = TEST_CC_LE;  // CCZ .OR. (CCN .XOR. CCO)
-					break;
-				case 6:		// --  BXHI	Branch (Short-Indexed) on Magnitude Higher Condition      
-					do_branch = TEST_CC_HI;	// !CCC .or. CCZ
-					break;
-				case 8:		// --  BXNR	Branch (Short-Indexed) on Condition Code N Reset     
-					do_branch = !cpu_cond_code_n;
-					break;
-				case 9:		// --  BXZR	Branch (Short-Indexed) on Condition Code Z Reset     
-					do_branch = TEST_CC_NOT_Z;
-					break;
-				case 10:		// --  BXOR	Branch (Short-Indexed) On Condition Code O Reset     
-					do_branch = !cpu_cond_code_o;
-					break;
-				case 11:		// --  BXCR	Branch (Short-Indexed) on Condition Code C Reset     
-					do_branch = !cpu_cond_code_c;
-					break;
-				case 12:		// --  BXGE	Branch (Short-Indexed) on Greater Than or Equal Condition    
-					do_branch = TEST_CC_GE;  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
-					break;
-				case 13:		// --  BXGT	Branch (Short-Indexed) on Greater Than Condition      
-					do_branch = TEST_CC_GT;  //  CCZ .or. (CCN .XOR. CCO)
-					break;
-				case 14:		// --  BXNH	Branch (Short-Indexed) on Magnitude Not Higher Condition     
-					do_branch = TEST_CC_NH;  // !CCC .or CCZ
-					break;
-				default:
-					ILLEGAL_INSTRUCTION;
-					do_branch = false;
-					break;
-			}
-			if (do_branch) {
-				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_SHORT_INDEXED);
-			}
-			else {
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
-			}
-			break;
 
 
 		case  OP_ABSM:			// 	        0x90  --  Add Bit in Memory (Short-Displaced)       
@@ -2314,10 +2486,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = bit[instruction.parts.dest_reg];
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_MEMORY_VALUE_SHORT_DISPLACED(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			break;
@@ -2378,10 +2550,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = bit[instruction.parts.dest_reg];
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_MEMORY_VALUE_SHORT_DISPLACED(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 			}
 			break;
@@ -2422,13 +2594,13 @@ void cpu_classic_7860() {
 			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			// TODO: Set CC
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			if (tmp16_val1.uval == tmp16_val2.uval) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 1));
 			}
 			// TODO: See if we need to used signed comparisons.
-			else if (tmp16_val1.uval < tmp16_val2.uval) {
+			else if (tmp16_val1.sval < tmp16_val2.sval) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 			}
 			else {
@@ -2441,10 +2613,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = bit[instruction.parts.dest_reg];
 			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 			SET_MEMORY_VALUE_SHORT_INDEXED(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
@@ -2481,10 +2653,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = bit[instruction.parts.dest_reg];
 			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 			SET_MEMORY_VALUE_SHORT_INDEXED(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 			break;
 
@@ -2512,13 +2684,13 @@ void cpu_classic_7860() {
 			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			// TODO: Set CC
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			if (tmp16_val1.uval == tmp16_val2.uval) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 1));
 			}
 			// TODO: See if we need to used signed comparisons.
-			else if (tmp16_val1.uval < tmp16_val2.uval) {
+			else if (tmp16_val1.sval < tmp16_val2.sval) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 			}
 			else {
@@ -2527,12 +2699,44 @@ void cpu_classic_7860() {
 			break;
 
 
-		case  OP_MPM:			// 	        0xa0
-			UNIMPLEMENTED_INSTRUCTION;
+		case  OP_MPM:			// 	        0xa0  --  MPM  --  Multiply Register by Memory        
+			tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
+			tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
+			tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
+			tmp32_val1.sval = tmp16_val1.sval;
+			tmp32_val2.sval = tmp16_val1.sval;
+			tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
+			GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
+			SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
+			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+			SET_CC_N(ISVAL32_NEG(tmp32_val3));
+			// TODO: Set CC
+			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
-		case  OP_DVM:			// 	        0xa1
-			UNIMPLEMENTED_INSTRUCTION;
+		case  OP_DVM:			// 	        0xa1  --  DVM  --  Divide Register by Memory        
+			tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
+			tmp32_val2.sval = tmp16_val2.sval;
+			GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+			if ( tmp32_val2.sval != 0 ) {
+				tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+				tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+			}
+			else {
+				tmp32_val3.uval = 0;
+				tmp32_val6.uval = 0;
+			}
+			tmp16_val3.uval = (unsigned __int16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+			tmp16_val6.uval = (unsigned __int16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+			tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+			SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+			SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+			SET_CC_N(ISVAL32_NEG(tmp32_val3));
+			SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+			SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
 		case  OP_MPRD_MPMD:		//        0xa2
@@ -2590,7 +2794,7 @@ void cpu_classic_7860() {
 			}
 			// HHI  --  Hop on Magnitude Higher Condition        
 			else {
-				CONDITIONAL_BRANCH(TEST_CC_HI && TEST_CC_NOT_Z, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_HI, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			break;
 
@@ -2598,16 +2802,16 @@ void cpu_classic_7860() {
 			tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
 			switch (tmp_instr_dest) {
 				case 0:		// --  BLNS	Branch and Link on Condition Code N Set
-					do_branch = cpu_cond_code_n;
+					do_branch = TEST_CC_N;
 					break;
 				case 1:		// --  BLZS	Branch and Link on Condition Code Z Set    
-					do_branch = cpu_cond_code_z;
+					do_branch = TEST_CC_Z;
 					break;
 				case 2:		// --  BLOS	Branch and Link on Condition Code O Set    
-					do_branch = cpu_cond_code_o;
+					do_branch = TEST_CC_O;
 					break;
 				case 3:		// --  BLCS	Branch and Link on Condition Code C Set    
-					do_branch = cpu_cond_code_c;
+					do_branch = TEST_CC_C;
 					break;
 				case 4:		// --  BLLS	Branch and Link on Less Than Condition     
 					do_branch = TEST_CC_LT;
@@ -2619,16 +2823,16 @@ void cpu_classic_7860() {
 					do_branch = TEST_CC_HI;	// !CCC .or. CCZ
 					break;
 				case 8:		// --  BLNR	Branch and Link on Condition Code N Reset    
-					do_branch = !cpu_cond_code_n;
+					do_branch = TEST_CC_NOT_N;
 					break;
 				case 9:		// --  BLZR	Branch and Link on Condition Code Z Reset    
 					do_branch = TEST_CC_NOT_Z;
 					break;
 				case 10:		// --  BLOR	Branch and Link on Condition Code O Reset    
-					do_branch = !cpu_cond_code_o;
+					do_branch = TEST_CC_NOT_O;
 					break;
 				case 11:		// --  BLCR	Branch and Link on Condition Code C Reset    
-					do_branch = !cpu_cond_code_c;
+					do_branch = TEST_CC_NOT_C;
 					break;
 				case 12:		// --  BLGE	Branch and Link on Greater Than or Equal Condition   
 					do_branch = TEST_CC_GE;  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
@@ -2656,11 +2860,11 @@ void cpu_classic_7860() {
 		case  OP_HNS_HNR:			//         0xa8
 			// HNR  --  Hop on Condition Code N Reset      
 			if (instruction.all & 0x0080) {
-				CONDITIONAL_BRANCH(!cpu_cond_code_n, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_NOT_N, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			// HNS  --  Hop on Condition Code N Set      
 			else {
-				CONDITIONAL_BRANCH(cpu_cond_code_n, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_N, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			break;
 
@@ -2671,29 +2875,29 @@ void cpu_classic_7860() {
 			}
 			// HZS  --  Hop on Condition Code Z Set      
 			else {
-				CONDITIONAL_BRANCH( cpu_cond_code_z, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH( TEST_CC_Z, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			break;
 
 		case  OP_HOS_HOR:			//         0xaa
 			// HOR  --  Hop on Condition Code O Reset      
 			if (instruction.all & 0x0080) {
-				CONDITIONAL_BRANCH(!cpu_cond_code_o, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_NOT_O, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			// HOS  --  Hop on Condition Code O Set      
 			else {
-				CONDITIONAL_BRANCH(cpu_cond_code_o, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_O, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			break;
 
 		case  OP_HCS_HCR:			//         0xab
 			// HCR  --  Hop on Condition Code C Reset      
 			if (instruction.all & 0x0080) {
-				CONDITIONAL_BRANCH(!cpu_cond_code_c, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_NOT_C, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			// HCS  --  Hop on Condition Code C Set      
 			else {
-				CONDITIONAL_BRANCH(cpu_cond_code_c, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
+				CONDITIONAL_BRANCH(TEST_CC_C, GET_NEXT_PROGRAM_COUNTER_HOP, program_counter + 1);
 			}
 			break;
 
@@ -2793,12 +2997,44 @@ void cpu_classic_7860() {
 			break;
 
 
-		case  OP_MPS:			// 	        0xb0
-			UNIMPLEMENTED_INSTRUCTION;
+		case  OP_MPS:			// 	        0xb0  --  MPS  --  Multiply Register by Memory (Short-Displaced)       
+			tmp16_val1.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
+			tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
+			tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
+			tmp32_val1.sval = tmp16_val1.sval;
+			tmp32_val2.sval = tmp16_val1.sval;
+			tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
+			GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
+			SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
+			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+			SET_CC_N(ISVAL32_NEG(tmp32_val3));
+			// TODO: Set CC
+			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_DVS:			// 	        0xb1
-			UNIMPLEMENTED_INSTRUCTION;
+		case  OP_DVS:			// 	        0xb1  --  DVS  --  Divide Register by Memory (Short-Displaced)       
+			tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+			tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
+			tmp32_val2.sval = tmp16_val2.sval;
+			GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+			if ( tmp32_val2.sval != 0 ) {
+				tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+				tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+			}
+			else {
+				tmp32_val3.uval = 0;
+				tmp32_val6.uval = 0;
+			}
+			tmp16_val3.uval = (unsigned __int16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+			tmp16_val6.uval = (unsigned __int16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+			tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+			SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+			SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+			SET_CC_N(ISVAL32_NEG(tmp32_val3));
+			SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+			SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_SCCC:			// 	        0xb2  - SCCC  --  Sefect Current Condition Codes in PSD      
@@ -2884,12 +3120,44 @@ void cpu_classic_7860() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_MPX:			// 	        0xb8
-			UNIMPLEMENTED_INSTRUCTION;
+		case  OP_MPX:			// 	        0xb8 --  MPX  --  Multiply Register by Memory (Short-Indexed)       
+			tmp16_val1.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
+			tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
+			tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
+			tmp32_val1.sval = tmp16_val1.sval;
+			tmp32_val2.sval = tmp16_val1.sval;
+			tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
+			GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
+			SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
+			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+			SET_CC_N(ISVAL32_NEG(tmp32_val3));
+			// TODO: Set CC
+			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
-		case  OP_DVX:			// 	        0xb9
-			UNIMPLEMENTED_INSTRUCTION;
+		case  OP_DVX:			// 	        0xb9  --  DVX  --  Divide Register by Memory (Short-Indexed)       
+			tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+			tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
+			tmp32_val2.sval = tmp16_val2.sval;
+			GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+			if ( tmp32_val2.sval != 0 ) {
+				tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+				tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+			}
+			else {
+				tmp32_val3.uval = 0;
+				tmp32_val6.uval = 0;
+			}
+			tmp16_val3.uval = (unsigned __int16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+			tmp16_val6.uval = (unsigned __int16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+			tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+			SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+			SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+			SET_CC_N(ISVAL32_NEG(tmp32_val3));
+			SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+			SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_PLM:			// 	        0xba
@@ -3044,10 +3312,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = GET_DESTINATION_REGISTER_VALUE;
 			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 			SET_MEMORY_VALUE_DIRECT(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
@@ -3085,10 +3353,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = GET_DESTINATION_REGISTER_VALUE;
 			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 			SET_MEMORY_VALUE_DIRECT(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
 			break;
 
@@ -3109,19 +3377,19 @@ void cpu_classic_7860() {
 			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE_2ND, program_counter + 3);
 			break;
 
-		case  OP_CRMB:			// 	        0xc7
+		case  OP_CRMB:			// 	        0xc7  --  CRMB  --  Compare Register with Memory and Branch Equal or Less   
 			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
 			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
 			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			// TODO: Set CC
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			if (tmp16_val1.uval == tmp16_val2.uval) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 			}
 			// TODO: See if we need to used signed comparisons.
-			else if (tmp16_val1.uval < tmp16_val2.uval) {
+			else if (tmp16_val1.sval < tmp16_val2.sval) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 3));
 			}
 			else {
@@ -3139,10 +3407,10 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval + tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC( tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				// TODO: Set CC C
 				SET_CC_N(tmp32_val3.uval & 0x80000000);
 				SET_CC_Z(tmp32_val3.uval == 0);
 				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_CC_C_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			//  --  ADMD  --  Add Memory Doubleword to Double- Register      
@@ -3154,11 +3422,11 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval + tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				// TODO: Set CC C
 				SET_CC_N(tmp32_val3.uval & 0x80000000);
 				SET_CC_Z(tmp32_val3.uval == 0);
 				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+				SET_CC_C_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			}
 			break;
 
@@ -3172,10 +3440,10 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				// TODO: Set CC C
 				SET_CC_N(tmp32_val3.uval & 0x80000000);
 				SET_CC_Z(tmp32_val3.uval == 0);
-				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			//  --  SUMD  --  Subtract Memory Doubleword from Double-Register       
@@ -3187,72 +3455,74 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				// TODO: Set CC C
 				SET_CC_N(tmp32_val3.uval & 0x80000000);
 				SET_CC_Z(tmp32_val3.uval == 0);
-				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+				SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			}
 			break;
 
 
 		case  OP_AUGCA:			//         0xca
 			tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
+
+			// -------- NOTE TRUE = 0, FALSE = FFFF
 			switch (tmp_instr_dest) {
 				case 0:		// --  SRNS	Set Register if Condition Code N Set
-					tmp16_val1.uval = (TEST_CC_N ? 0xffff : 0);
+					tmp16_val1.uval = (TEST_CC_N ? 0 : 0xffff);
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 1:		// --  SRZS	Set Register if Condition Code Z Set
-					tmp16_val1.uval = (TEST_CC_Z ? 0xffff : 0);
+					tmp16_val1.uval = (TEST_CC_Z ? 0 : 0xffff);
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 2:		// --  SROS	Set Register if Condition Code O Set
-					tmp16_val1.uval = (TEST_CC_O ? 0xffff : 0);
+					tmp16_val1.uval = (TEST_CC_O ? 0 : 0xffff);
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 3:		// --  SRCS	Set Register if Code C Set
-					tmp16_val1.uval = (TEST_CC_C ? 0xffff : 0);
+					tmp16_val1.uval = (TEST_CC_C ? 0 : 0xffff);
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 4:		// --  SRLS	Set Register on Less than Condition
-					tmp16_val1.uval = (cpu_cond_code_n != cpu_cond_code_o ? 0xffff : 0);		// CCN XOR CCO
+					tmp16_val1.uval = (TEST_CC_LT ? 0 : 0xffff);		// CCN XOR CCO
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 5:		// --  SRLE	Set Register on Less than or Equal Condition
-					tmp16_val1.uval = (cpu_cond_code_z || (cpu_cond_code_n != cpu_cond_code_o) ? 0xffff : 0);	// CCZ .OR. (CCN .XOR. CCO)
+					tmp16_val1.uval = (TEST_CC_LE ? 0 : 0xffff);	// CCZ .OR. (CCN .XOR. CCO)
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 6:		// --  SRHI	Set Register on Magnitude Higher Condition
-					tmp16_val1.uval = (!cpu_cond_code_c || cpu_cond_code_z ? 0xffff : 0);	// !CCC .or. CCZ
+					tmp16_val1.uval = (TEST_CC_HI ? 0 : 0xffff);	// !CCC .or. CCZ
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 8:		// --  SRNR	Set Register if Condition Code N Reset
-					tmp16_val1.uval = (TEST_CC_NOT_N ? 0xffff : 0);
+					tmp16_val1.uval = (TEST_CC_NOT_N ? 0 : 0xffff);
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 9:		// --  SRZR	Set Register if Condition Code Z Reset
-					tmp16_val1.uval = (TEST_CC_NOT_Z ? 0xffff : 0);
+					tmp16_val1.uval = (TEST_CC_NOT_Z ? 0 : 0xffff);
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 10:		// --  SROR	Set Register if Condition Code O Reset
-					tmp16_val1.uval = (TEST_CC_NOT_O ? 0xffff : 0);
+					tmp16_val1.uval = (TEST_CC_NOT_O ? 0 : 0xffff);
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 11:		// --  SRCR	Set Register if Condition Code C Reset 
-					tmp16_val1.uval = (TEST_CC_NOT_C ? 0xffff : 0);
+					tmp16_val1.uval = (TEST_CC_NOT_C ? 0 : 0xffff);
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 12:		// --  SRGE	Set Register on Greater than or Equal Condition
-					tmp16_val1.uval = (cpu_cond_code_z || (!cpu_cond_code_z && (cpu_cond_code_n != cpu_cond_code_c)) ? 0xffff : 0);  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
+					tmp16_val1.uval = (TEST_CC_GE ? 0 : 0xffff);  //  CCZ .or. (!CCZ .AND. (!CCN .XOR. CCO))
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 13:		// --  SRGT	Set Register on Greater than Condition
-					tmp16_val1.uval = (!(cpu_cond_code_z || (cpu_cond_code_n != cpu_cond_code_o)) ? 0xffff : 0);  //  CCZ .or. (CCN .XOR. CCO)
+					tmp16_val1.uval = (TEST_CC_GT ? 0 : 0xffff);  //  
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				case 14:		// --  SRNH	Set Register on Magnitude not Higher Condition
-					tmp16_val1.uval = ((TEST_CC_NOT_C || TEST_CC_Z) ? 0xffff : 0);  // !CCC .or CCZ
+					tmp16_val1.uval = (TEST_CC_NH ? 0 : 0xffff);  // !CCC .or CCZ
 					SET_SOURCE_REGISTER_VALUE(tmp16_val1.uval);
 					break;
 				default:
@@ -3335,10 +3605,10 @@ void cpu_classic_7860() {
 					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
 					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val5, tmp32_val2);
 					tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
-					// TODO: Set CC C
 					SET_CC_Z(ISVAL16_ZERO(tmp32_val3));
 					SET_CC_N(ISVAL16_NEG(tmp32_val3));
 					SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+					SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 					break;
 
@@ -3350,8 +3620,8 @@ void cpu_classic_7860() {
 					tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
-					// TODO: Set CC
 					SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+					SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 					break;
 			}
@@ -3368,10 +3638,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = GET_DESTINATION_REGISTER_VALUE;
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_MEMORY_VALUE_SHORT_DISPLACED(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			break;
@@ -3412,8 +3682,8 @@ void cpu_classic_7860() {
 			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			// TODO: Set CC
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
@@ -3427,10 +3697,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = GET_DESTINATION_REGISTER_VALUE;
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_MEMORY_VALUE_SHORT_DISPLACED(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 			}
 			break;
@@ -3464,7 +3734,7 @@ void cpu_classic_7860() {
 			}
 			break;
 
-		case  OP_CRSB:			// 	        0xd7
+		case  OP_CRSB:			// 	        0xd7  --  CRSB  --  Compare Register with Memory (Short- Displaced) and Branch if Equal or Less
 			// -------- These are all short displaced.   check for address fault first.
 			if (SHORT_DISPLACED_ADDR_FAULT) {
 				BAD_SHORT_DISPLACED_ADDR_TRAP;
@@ -3475,12 +3745,12 @@ void cpu_classic_7860() {
 				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
-				// TODO: Set CC
 				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				if (tmp16_val1.uval == tmp16_val2.uval) {
 					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 1));
 				}
-				else if (tmp16_val1.uval < tmp16_val2.uval) {
+				else if (tmp16_val1.sval < tmp16_val2.sval) {
 					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 				}
 				else {
@@ -3494,10 +3764,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = GET_DESTINATION_REGISTER_VALUE;
 			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 			SET_MEMORY_VALUE_SHORT_INDEXED(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
@@ -3525,8 +3795,8 @@ void cpu_classic_7860() {
 			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			// TODO: Set CC
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
@@ -3535,10 +3805,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = GET_DESTINATION_REGISTER_VALUE;
 			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 			SET_MEMORY_VALUE_SHORT_INDEXED(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 			break;
 
@@ -3559,18 +3829,18 @@ void cpu_classic_7860() {
 			CONDITIONAL_BRANCH(TEST_CC_NOT_Z, GET_MEMORY_VALUE_IMMEDIATE, program_counter + 2);
 			break;
 
-		case  OP_CRXB:			// 	        0xdf
+		case  OP_CRXB:			// 	        0xdf  --  CRXB  --  Compare Register with Memory (Short- Indexed) and Branch if Equal or Less
 			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
 			tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
 			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
-			// TODO: Set CC
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			if (tmp16_val1.uval == tmp16_val2.uval) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 1));
 			}
-			else if (tmp16_val1.uval < tmp16_val2.uval) {
+			else if (tmp16_val1.sval < tmp16_val2.sval) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 			}
 			else {
@@ -3584,10 +3854,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
 			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 			SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
@@ -3596,10 +3866,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
 			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 			SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
@@ -3668,10 +3938,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
@@ -3702,12 +3972,44 @@ void cpu_classic_7860() {
 
 				// --  6	MPI  --  Multiply Immediate	
 			case 6:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp16_val1.uval = GET_MEMORY_VALUE_IMMEDIATE;
+				tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
+				tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
+				tmp32_val1.sval = tmp16_val1.sval;
+				tmp32_val2.sval = tmp16_val1.sval;
+				tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
+				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
+				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				// TODO: Set CC
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 				// --  7	DVI  --  Divide Immediate	
 			case 7:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+				tmp32_val2.sval = tmp16_val2.sval;
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+				if ( tmp32_val2.sval != 0 ) {
+					tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+					tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+				}
+				else {
+					tmp32_val3.uval = 0;
+					tmp32_val6.uval = 0;
+				}
+				tmp16_val3.uval = (unsigned __int16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+				tmp16_val6.uval = (unsigned __int16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+				tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+				SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+				SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+				SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 				// --  8	EPMD  --  Enter Pipeline Mode of Execution	
@@ -3772,25 +4074,26 @@ void cpu_classic_7860() {
 		case  OP_SUI_CRI:			//         0xe9
 			switch (instruction.parts.src_reg) {
 
-			case 0:		// SUI
+			case 0:		// SUI  --  SUI  --  Subtract Memory (Immediate) from Register       
 				tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
 				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
 				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC
-				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
-				SET_CC_N(ISVAL16_NEG(tmp16_val3));
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
-				break;
-
-			case 1:		// CRI
-				tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
-				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
-				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
-				// TODO: Set CC
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+				break;
+
+			case 1:		// CRI  --  CRI  --  Compare Register with Memory (Immediate)       
+				tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
+				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+				SET_CC_N(ISVAL16_NEG(tmp16_val3));
+				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
@@ -3963,10 +4266,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
 				tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC C
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			break;
@@ -3981,10 +4284,10 @@ void cpu_classic_7860() {
 				tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
 				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				// TODO: Set CC
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			break;
@@ -4078,10 +4381,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = GET_DESTINATION_REGISTER_VALUE;
 			tmp16_val3.uval = tmp16_val1.uval + tmp16_val2.uval;
 			SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-			// TODO: Set CC C
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			// TODO: Set cc
 			break;
@@ -4091,10 +4394,10 @@ void cpu_classic_7860() {
 			tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
 			tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
 			SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-			// TODO: Set CC
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
@@ -4157,6 +4460,10 @@ void cpu_classic_7860() {
 			break;
 
 		}
+
+		// --------kludge for register 0
+		// SET_REGISTER_VALUE(0, saved_reg_0);
+		SET_REGISTER_VALUE(0, gbl_fp_switches);
 
 		// -------- reset single step if active
 		if (gbl_fp_single_step) {

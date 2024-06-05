@@ -259,8 +259,8 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
 				//}
 
-				// --------if read in progress, do a read.
-				if (device_data->read_in_progress) {
+				// --------if read in progress, do a read.  --- only do a read if buffer is empty.  This way interrupts can keep up!
+				if ( device_data->read_in_progress  && device_common_buffer_isempty( &device_data->in_buff ) ) {
 
 					// --------do a read.
 					desired_read_bytes = 1;			// 50;

@@ -16,6 +16,7 @@ void cpu_set_switches(unsigned __int16 switch_value);
 void cpu_classic_7860();
 void cpu_start_thread();
 void cpu_stop_thread();
+void cpu_stop_data();
 void cpu_trigger_clock_interrupt();
 void cpu_trigger_console_interrupt();
 unsigned __int16 cpu_get_clock_trigger_count();

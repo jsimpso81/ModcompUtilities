@@ -120,6 +120,26 @@
 		SET_CC_O( ( (VAL1.uval & 0x80000000) != (SUBTRAHEND.uval & 0x80000000)) && ((SUBTRAHEND.uval & 0x80000000) == (RES.uval & 0x80000000)));\
 		}
 
+// TODO: Not sure this is correct.
+#define SET_CC_C_ADD( VAL1, VAL2, RES ) {\
+		SET_CC_C( !ISVAL16_NEG(VAL1) && !ISVAL16_NEG(VAL2) && ISVAL16_NEG(RES) );\
+		}
+
+
+// TODO: Not sure this is correct.
+#define SET_CC_C_ADD_DOUBLE( VAL1, VAL2, RES ) {\
+		SET_CC_C( !ISVAL32_NEG(VAL1) && !ISVAL32_NEG(VAL2) && ISVAL32_NEG(RES) );\
+		}
+
+// TODO: Not sure this is correct.
+#define SET_CC_C_SUB( VAL1, VAL2, RES ) {\
+		SET_CC_C( !ISVAL16_NEG(VAL1) && ISVAL16_NEG(VAL2) && ISVAL16_NEG(RES) );\
+		}
+
+// TODO: Not sure this is correct.
+#define SET_CC_C_SUB_DOUBLE( VAL1, VAL2, RES ) {\
+		SET_CC_C( !ISVAL32_NEG(VAL1) && ISVAL32_NEG(VAL2) && ISVAL32_NEG(RES) );\
+		}
 
 
 #define TEST_CC_N ( cpu_cond_code_n )
@@ -135,7 +155,6 @@
 #define TEST_CC_NOT_C ( !cpu_cond_code_c )
 
 
-//	TODO: Verify these CC test macros !!!
 // -------- less than or equal to
 #define TEST_CC_LE (   cpu_cond_code_z || (cpu_cond_code_n != cpu_cond_code_o) )
 // -------- greater than
@@ -148,18 +167,31 @@
 
 // -------- Not higher
 #define TEST_CC_NH	( !cpu_cond_code_c || cpu_cond_code_z )
+
 // -------- Higher than
-#define TEST_CC_HI	( !(!cpu_cond_code_c || cpu_cond_code_z) )
+#define TEST_CC_HI	( cpu_cond_code_c && (!cpu_cond_code_z) )
 
 // ------- test 16 bit values for neg and zero conditions
+
+// --------16 bit value is negative
 #define ISVAL16_NEG( VAL_16 )  ((VAL_16.uval & 0x8000) != 0 )
+
+// --------16 bit value is zero
 #define ISVAL16_ZERO( VAL_16 )  ( VAL_16.uval == 0 )
 
 // ------- test 32 bit values for neg and zero conditions
+
+// --------32 bit value is negative
 #define ISVAL32_NEG( VAL_32 )  ((VAL_32.uval & 0x80000000) != 0 )
+
+// --------32 bit value is zero
 #define ISVAL32_ZERO( VAL_32 )  ( VAL_32.uval == 0 )
 
 // ------- test 64 bit values for neg and zero conditions
+
+// --------64 bit value is negative
 #define ISVAL64_NEG( VAL_64 )  ((VAL_64.uval & 0x8000000000000000) != 0 )
+
+// --------64 bit value is zero
 #define ISVAL64_ZERO( VAL_64 )  ( VAL_64.uval == 0 )
 

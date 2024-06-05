@@ -75,6 +75,8 @@ void cpu_stop_thread() {
 		printf(" Cpu thread stopped.\n");
 	}
 
+	// --------deallocate any create data structures.
+	cpu_stop_data();
 }
 
 

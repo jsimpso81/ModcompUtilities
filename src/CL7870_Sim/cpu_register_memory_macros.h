@@ -122,16 +122,16 @@
 // -------WORD ORDER TRANSLATION MACROS
 // TODO: once register load store are fixed this may not be needed..!
 #define GET_NUMERIC_QUAD_FROM_RAW( IN_RAW, OUT_NUM ) {\
-		OUT_NUM.zval[0] = IN_RAW.zval[3];\
-		OUT_NUM.zval[1] = IN_RAW.zval[2];\
-		OUT_NUM.zval[2] = IN_RAW.zval[1];\
-		OUT_NUM.zval[3] = IN_RAW.zval[0];\
+		OUT_NUM.zval[0] = IN_RAW.zval[0];\
+		OUT_NUM.zval[1] = IN_RAW.zval[1];\
+		OUT_NUM.zval[2] = IN_RAW.zval[2];\
+		OUT_NUM.zval[3] = IN_RAW.zval[3];\
 		}
 #define GET_RAW_QUAD_FROM_NUMERIC( IN_NUM, OUT_RAW ) {\
-		OUT_RAW.zval[0] = IN_NUM.zval[3];\
-		OUT_RAW.zval[1] = IN_NUM.zval[2];\
-		OUT_RAW.zval[2] = IN_NUM.zval[1];\
-		OUT_RAW.zval[3] = IN_NUM.zval[0];\
+		OUT_RAW.zval[0] = IN_NUM.zval[0];\
+		OUT_RAW.zval[1] = IN_NUM.zval[1];\
+		OUT_RAW.zval[2] = IN_NUM.zval[2];\
+		OUT_RAW.zval[3] = IN_NUM.zval[3];\
 		}
 
 
