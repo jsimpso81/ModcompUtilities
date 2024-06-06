@@ -20,6 +20,33 @@ typedef union {
 	PSW_BITS sep;
 } PSW;
 
+// ==================================================
+// -------- MEMORY MAPS ARE A WORK IN PROCESS.
+// -------- memory map access rights
+typedef enum {
+	no_access = 0,
+	read_only = 1,
+	read_execute = 2,
+	read_exec_write = 3
+} MEM_ACC_RIGHTS;
+
+// --------Mem map entry
+typedef union {
+	struct {
+		unsigned __int16 mem_page : 13;
+		bool shared : 1;
+		MEM_ACC_RIGHTS : 2;
+	} parts;
+	unsigned __int16 all;
+}  MEM_MAP_BITS;
+
+// -------- a complete memory map
+// typedef struct {
+//	MEM_MAP_BITS[256];
+// } MEM_MAP;
+// ==================================================
+
+// -------- instruction parts
 typedef union {
 	struct {
 		unsigned __int8	src_reg : 4;
@@ -47,7 +74,6 @@ typedef union {
 	signed __int64 sval;
 	unsigned __int16 zval[4];
 } VAL64;
-
 
 
 typedef struct {
@@ -95,6 +121,7 @@ typedef struct {
 #include "generic_device_variables.h"
 	volatile HANDLE com_handle;
 	volatile bool break_detect_enabled;
+	CRITICAL_SECTION CritSectStatusUpdate;
 } DEVICE_CONSOLE_DATA;
 
 

@@ -1,3 +1,6 @@
+#pragma once
+
+#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -20,11 +23,28 @@ const unsigned __int16 bitnot[16] = { 0x7fff, 0xbfff, 0xdfff, 0xefff, 0xf7ff, 0x
 const unsigned __int16 mask[16] = { 0x8000, 0xc000, 0xe000, 0xf000, 0xf800, 0xfc00, 0xfe00, 0xff00,
 									 0xff80, 0xffc0, 0xffe0, 0xfff0, 0xfff8, 0xfffc, 0xfffe, 0xffff };
 
-// --------This is a 16 bit - bit numbber
 const unsigned __int32 bit32[32] = { 0x80000000, 0x40000000, 0x20000000, 0x10000000, 0x08000000, 0x04000000, 0x02000000, 0x01000000,
 									 0x00800000, 0x00400000, 0x00200000, 0x00100000, 0x00080000, 0x00040000, 0x00020000, 0x00010000, 
 									 0x00008000, 0x00004000, 0x00002000, 0x00001000, 0x00000800, 0x00000400, 0x00000200, 0x00000100,
 									 0x00000080, 0x00000040, 0x00000020, 0x00000010, 0x00000008, 0x00000004, 0x00000002, 0x00000001 };
+
+const unsigned __int64 bit64[64] = { 0x8000000000000000, 0x4000000000000000, 0x2000000000000000, 0x1000000000000000, 
+									 0x0800000000000000, 0x0400000000000000, 0x0200000000000000, 0x0100000000000000,
+									 0x0080000000000000, 0x0040000000000000, 0x0020000000000000, 0x0010000000000000,
+									 0x0008000000000000, 0x0004000000000000, 0x0002000000000000, 0x0001000000000000,
+									 0x0000800000000000, 0x0000400000000000, 0x0000200000000000, 0x0000100000000000,
+									 0x0000080000000000, 0x0000040000000000, 0x0000020000000000, 0x0000010000000000,
+									 0x0000008000000000, 0x0000004000000000, 0x0000002000000000, 0x0000001000000000,
+									 0x0000000800000000, 0x0000000400000000, 0x0000000200000000, 0x0000000100000000,
+                                     0x0000000080000000, 0x0000000040000000, 0x0000000020000000, 0x0000000010000000, 
+									 0x0000000008000000, 0x0000000004000000, 0x0000000002000000, 0x0000000001000000,
+									 0x0000000000800000, 0x0000000000400000, 0x0000000000200000, 0x0000000000100000, 
+									 0x0000000000080000, 0x0000000000040000, 0x0000000000020000, 0x0000000000010000,
+									 0x0000000000008000, 0x0000000000004000, 0x0000000000002000, 0x0000000000001000, 
+									 0x0000000000000800, 0x0000000000000400, 0x0000000000000200, 0x0000000000000100,
+									 0x0000000000000080, 0x0000000000000040, 0x0000000000000020, 0x0000000000000010, 
+									 0x0000000000000008, 0x0000000000000004, 0x0000000000000002, 0x0000000000000001 };
+
 
 //const unsigned __int32 bitnot32[32] = { 0x7fff, 0xbfff, 0xdfff, 0xefff, 0xf7ff, 0xfbff, 0xfdff, 0xfeff,
 //									  0xff7f, 0xffbf, 0xffdf, 0xffef, 0xfff7, 0xfffb, 0xfffd, 0xfffe };
@@ -121,6 +141,11 @@ static unsigned __int16 saved_reg_0 = 0;
 
 CRITICAL_SECTION CritSectInterruptRequest;
 
+static bool skip_interrupt_determination = false;
+
+
+
+
 #include "cpu_macro_register_access.h"
 
 
@@ -143,8 +168,6 @@ void cpu_init_data() {
 
 // ===========================================================================================================
 void cpu_stop_data() {
-
-	bool status = false;
 
 	// --------initialize the critical section for interrupt requests.
 	// Initialize the critical section one time only.
@@ -268,13 +291,10 @@ void cpu_request_SI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int1
 
 // ===========================================================================================================
 // --------returns with device address or 0xffff
+// -------- THIS MUST BE CALLED WHILE IN A CRITICAL SECTION FOR THE INTERRUPT REQUEST.
 unsigned __int16 cpu_get_next_DI_request() {
 	unsigned __int16 fnd_dev_addr = 0xffff;
 	int j = 0;
-
-	// -------- this may be overkill
-	// -------- Request ownership of the critical section.
-	EnterCriticalSection(&CritSectInterruptRequest);
 
 	// --------loop over all priorities and buses
 	// j = priority
@@ -304,21 +324,15 @@ unsigned __int16 cpu_get_next_DI_request() {
 			break;
 		}
 	}
-	// -------- Release ownership of the critical section.
-	LeaveCriticalSection(&CritSectInterruptRequest);
 	return fnd_dev_addr;
 }
 
 // ===========================================================================================================
 // --------returns with device address or 0xffff
+// -------- THIS MUST BE CALLED WHILE IN A CRITICAL SECTION FOR THE INTERRUPT REQUEST.
 unsigned __int16 cpu_get_next_SI_request() {
 	unsigned __int16 fnd_dev_addr = 0xffff;
 	int j = 0;
-
-
-	// -------- this may be overkill
-	// -------- Request ownership of the critical section.
-	EnterCriticalSection(&CritSectInterruptRequest);
 
 	// --------loop over all priorities and buses
 	for ( j = 0; j < 16; j++) {
@@ -347,8 +361,6 @@ unsigned __int16 cpu_get_next_SI_request() {
 			break;
 		}
 	}
-	// -------- Release ownership of the critical section.
-	LeaveCriticalSection(&CritSectInterruptRequest);
 
 	return fnd_dev_addr;
 }
@@ -522,6 +534,7 @@ void cpu_classic_7860() {
 	PSW tmp_PSW = { .all = 0 };
 	unsigned __int16 tmp_dev_addr = 0xffff;
 
+	bool print_delayed_message = false;
 
 
 #include "cpu_register_memory_macros.h"
@@ -530,9 +543,15 @@ void cpu_classic_7860() {
 
 	// TODO: Set CC for UIT
 #define UNIMPLEMENTED_INSTRUCTION {\
-					fprintf(stderr, "\n unimplemented instruction %04x\n",instruction.all);\
+					fprintf(stderr, "\n unimplemented instruction 0x%04x @  0x%04x\n",instruction.all, program_counter);\
+					fprintf(stdout, "\n unimplemented instruction 0x%04x @  0x%04x\n",instruction.all, program_counter);\
 					SET_CC_Z(false);\
 					SET_CC_O(false);\
+					if ( cpu_interrupt_active >= cpu_intr_UIT ) {\
+						gbl_fp_runlight = false;\
+						printf("\nCpu halted.  UIT while interrupt 0-4 active.\n");\
+						cmd_process_print_prompt();\
+					}\
 					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_UIT;\
 					LeaveCriticalSection(&CritSectInterruptRequest);\
@@ -540,7 +559,7 @@ void cpu_classic_7860() {
 
 // TODO: Set CC for UIT
 #define ILLEGAL_INSTRUCTION {\
-					fprintf(stderr, "\n Illegal instruction %04x\n",instruction.all);\
+					fprintf(stderr, "\n Illegal instruction 0x%04x @ 0x%04x\n",instruction.all, program_counter);\
 					SET_CC_Z(false);\
 					SET_CC_O(false);\
 					EnterCriticalSection(&CritSectInterruptRequest);\
@@ -549,14 +568,14 @@ void cpu_classic_7860() {
 					}
 
 #define PRIV_INSTR_TRAP {\
-					fprintf(stderr, "\n privileged instruction %04x\n",instruction.all);\
+					fprintf(stderr, "\n privileged instruction 0x%04x @ 0x%04x\n",instruction.all, program_counter);\
 					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_sys_protect;\
 					LeaveCriticalSection(&CritSectInterruptRequest);\
 					}
 
 #define BAD_SHORT_DISPLACED_ADDR_TRAP {\
-					fprintf(stderr, "\n bad address trap 0x%04x\n",instruction.all);\
+					fprintf(stderr, "\n bad address trap 0x%04x @  0x%04x\n",instruction.all, program_counter);\
 					fprintf(stderr,"    memory including instruction  0x%04x  0x%04x  0x%04x  0x%04x\n",\
 									GET_MEMORY_VALUE_ABS(program_counter), \
 									GET_MEMORY_VALUE_ABS(program_counter + 1), \
@@ -572,7 +591,8 @@ void cpu_classic_7860() {
 
 #define GET_HOP_OFFSET ( ( instruction.all & 0x0040 ) ? (instruction.all & 0x007f) | 0xff80 : instruction.all & 0x007f )
 
-#define GET_NEXT_PROGRAM_COUNTER_HOP  ( program_counter + GET_HOP_OFFSET )
+
+#define GET_NEXT_PROGRAM_COUNTER_HOP  ( (unsigned __int16)(program_counter + GET_HOP_OFFSET) )
 
 #define SET_NEXT_PROGRAM_COUNTER(A)	{\
 					program_counter = (A);\
@@ -593,6 +613,9 @@ void cpu_classic_7860() {
 						SET_NEXT_PROGRAM_COUNTER( NO_BRANCH_PC );\
 					}\
 					} 
+
+// -------- test if cpu mode is privileged
+#define IS_PRIV_MODE  (cpu_priv_mode | !cpu_virtual_mode) 
 
 // --------allowed set interrupt masks
 #define SIA_ALLOWED 0x7fff
@@ -616,7 +639,7 @@ void cpu_classic_7860() {
 
 		// -------- check for new interrupts
 		// TODO: optimize this !!
-		if ( (tmp16_val1.uval = (cpu_interrupt_request & cpu_interrupt_enabled & cpu_interrupt_active_mask )) > ( cpu_interrupt_active & cpu_interrupt_active_mask ) ) {
+		if ( !skip_interrupt_determination && ((tmp16_val1.uval = (cpu_interrupt_request & cpu_interrupt_enabled & cpu_interrupt_active_mask )) > ( cpu_interrupt_active & cpu_interrupt_active_mask )) ) {
 
 			// --------find out which interrupt we are requesting
 			new_int = cpu_find_bit(tmp16_val1.uval);
@@ -633,16 +656,23 @@ void cpu_classic_7860() {
 
 				// -------- DI
 				if (new_int == 12) {
+					print_delayed_message = false;
+					// -------- turn off DI request and report error.
+					// -------- Request ownership of the critical section.
+					EnterCriticalSection(&CritSectInterruptRequest);
 					tmp_dev_addr = cpu_get_next_DI_request();
 					// -------- if nothing found, report error
 					if (tmp_dev_addr == 0xffff) {
-						// -------- turn off DI request and report error.
-						// -------- Request ownership of the critical section.
-						EnterCriticalSection(&CritSectInterruptRequest);
-						cpu_interrupt_request &= ~cpu_intr_DI;
-						// -------- Release ownership of the critical section.
-						LeaveCriticalSection(&CritSectInterruptRequest);
-						fprintf(stderr, "\n cpu - Erroneous DI interrupt request, ignored.\n");
+						//  cpu_interrupt_request &= ~cpu_intr_DI;
+						print_delayed_message = true;
+						// -------- set the normal address for DI if no devices requested...
+						program_counter = GET_MEMORY_VALUE_ABS(0x0021 + (new_int * 2));
+						tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						cpu_set_current_PSW(tmp_PSW);
+
+						// --------set that the interrupt is active!
+						cpu_interrupt_active |= bit[new_int];
+						cpu_interrupt_active_mask = mask[new_int];
 					}
 					else {
 						program_counter = GET_MEMORY_VALUE_ABS(0x0080 + tmp_dev_addr);
@@ -653,20 +683,32 @@ void cpu_classic_7860() {
 						cpu_interrupt_active |= bit[new_int];
 						cpu_interrupt_active_mask = mask[new_int];
 					}
+					// -------- Release ownership of the critical section.
+					LeaveCriticalSection(&CritSectInterruptRequest);
+					if (print_delayed_message) {
+						fprintf(stderr, "\n cpu - Erroneous DI interrupt request, ignored.\n");
+					}
 				}
 
 				// -------- SI
 				else if (new_int == 13) {
+					print_delayed_message = false;
+					// -------- Request ownership of the critical section.
+					EnterCriticalSection(&CritSectInterruptRequest);
 					tmp_dev_addr = cpu_get_next_SI_request();
 					// -------- if nothing found, report error
 					if (tmp_dev_addr == 0xffff) {
 						// -------- turn off SI request and report error.
-						// -------- Request ownership of the critical section.
-						EnterCriticalSection(&CritSectInterruptRequest);
-						cpu_interrupt_request &= ~cpu_intr_SI;
-						// -------- Release ownership of the critical section.
-						LeaveCriticalSection(&CritSectInterruptRequest);
-						fprintf(stderr, "\n cpu - Erroneous SI interrupt request, ignored.\n");
+						//  cpu_interrupt_request &= ~cpu_intr_SI;
+						print_delayed_message = true;
+						// -------- set the normal address for DI if no devices requested...
+						program_counter = GET_MEMORY_VALUE_ABS(0x0021 + (new_int * 2));
+						tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						cpu_set_current_PSW(tmp_PSW);
+
+						// --------set that the interrupt is active!
+						cpu_interrupt_active |= bit[new_int];
+						cpu_interrupt_active_mask = mask[new_int];
 					}
 					else {
 						program_counter = GET_MEMORY_VALUE_ABS(0x00C0 + tmp_dev_addr);
@@ -676,6 +718,11 @@ void cpu_classic_7860() {
 						// --------set that the interrupt is active!
 						cpu_interrupt_active |= bit[new_int];
 						cpu_interrupt_active_mask = mask[new_int];
+					}
+					// -------- Release ownership of the critical section.
+					LeaveCriticalSection(&CritSectInterruptRequest);
+					if (print_delayed_message) {
+						fprintf(stderr, "\n cpu - Erroneous SI interrupt request, ignored.\n");
 					}
 				}
 
@@ -695,8 +742,11 @@ void cpu_classic_7860() {
 			}
 		}
 
+		// -------- reset skip interrupt determination (this is used so we get one instruction executed before the next interrupt)
+		skip_interrupt_determination = false;
+
 		// -------- fetch the next instruction
-		instruction.all = gbl_mem[program_counter];
+		instruction.all = GET_MEMORY_VALUE_IM(program_counter);
 
 		// -------- debug -- fill array of used instrutions
 		cpu_inst_used[instruction.parts.op_code]++;
@@ -716,16 +766,15 @@ void cpu_classic_7860() {
 
 			// --------00 -- HLT -- Halt (Privileged)          
 			case  OP_HLT:			// 0x00
-				if (cpu_priv_mode | !cpu_virtual_mode) {
-					// cpu_run = false;
+				if ( IS_PRIV_MODE ) {
 					gbl_fp_runlight = false;
 					printf("\nCpu halted.  pc = 0x%04x\n", program_counter);
 					cmd_process_print_prompt();
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				}
 				else {
 					PRIV_INSTR_TRAP;
 				}
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_AUG01:			// 0x01	
@@ -733,13 +782,13 @@ void cpu_classic_7860() {
 
 					// --  0	RMI -- Request Multi·processor interrupt
 					case 0:
-						if (cpu_priv_mode | !cpu_virtual_mode) {
+						if (IS_PRIV_MODE) {
 							rmi_request(instruction.parts.src_reg);
+							SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						}
 						else {
 							PRIV_INSTR_TRAP;
 						}
-						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
 
 					// --  1	EVMO -- Enter Virtual Mode of CPU Execution
@@ -764,15 +813,15 @@ void cpu_classic_7860() {
 				
 					// --  5	SCRB -- Select Current Register Block in PSD
 					case 5:
-						if (cpu_priv_mode | !cpu_virtual_mode) {
+						if (IS_PRIV_MODE) {
 							tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
 							tmp16_val1.uval = (tmp16_val1.uval & 0x0f00) >> 8;
 							cpu_register_block = tmp16_val1.uval;
+							SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						}
 						else {
 							PRIV_INSTR_TRAP;
 						}
-						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
 
 					// --  6	EXMA -- Enter Extended Memory Addressing Mode
@@ -849,50 +898,64 @@ void cpu_classic_7860() {
 				break;
 
 			case  OP_MMRB:			// 0x06  --  Move Memory File to RegisterBlock Section of Context
+				// -------- get dest register value
+				// -------- get register block
+				// -------- get memory address in src register value
+				// -------- copy mem (x) style to reg 1-15 in particular block
 				UNIMPLEMENTED_INSTRUCTION;
 				break;
 
 			case  OP_MRBM:			// 0x07  --  Move Register-Block Section of Context File to Memory
+				// -------- get dest register value
+				// -------- get register block
+				// -------- get memory address in src register value
+				// -------- copy reg 1-15 of particular block to mem (X) style
 				UNIMPLEMENTED_INSTRUCTION;
 				break;
 
 			case  OP_MBR:			// 0x08 -- Move byte right register to register
 				tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE;
-				tmp16_val1.uval = (tmp16_val2.uval >> 8 ) & 0x00ff;
+				tmp16_val1.uval = (unsigned __int16)((tmp16_val2.uval >> 8 ) & 0x00ff);
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val1.uval);
 				SET_CC_CHAR(tmp16_val1.uval);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_MBL:			// 0x09 -- Move byte left register to register
-				tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE & 0x00ff;
-				tmp16_val1.uval = (tmp16_val2.uval << 8) & 0xff00;
+				tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE;
+				tmp16_val1.uval = (unsigned __int16)((tmp16_val2.uval << 8) & 0xff00);
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val1.uval);
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val1));
 				SET_CC_N(ISVAL16_NEG(tmp16_val1));
+				SET_CC_O(false);
+				SET_CC_C(false);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_IBR:			// 0x0a  --  Interchange Bytes Register to Register
 				tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
-				tmp16_val2.uval = ((tmp16_val1.uval << 8) & 0xff00) | ((tmp16_val1.uval >> 8) & 0x00ff);
+				tmp16_val2.uval = (unsigned __int16)(((tmp16_val1.uval << 8) & 0xff00) | ((tmp16_val1.uval >> 8) & 0x00ff));
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val2.uval);
 				SET_CC_CHAR(tmp16_val2.uval & 0x00ff);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_MUR:			// 0x0b -- Move upper byte register to register
-				tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE  & 0xff00;
-				SET_DESTINATION_REGISTER_VALUE(tmp16_val1.uval);
-				SET_CC_N(ISVAL16_NEG(tmp16_val1));
-				SET_CC_Z(ISVAL16_ZERO(tmp16_val1));
+				tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
+				tmp16_val2.uval = (unsigned __int16)(tmp16_val1.uval & 0xff00);
+				SET_DESTINATION_REGISTER_VALUE(tmp16_val2.uval);
+				SET_CC_N(ISVAL16_NEG(tmp16_val2));
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
+				SET_CC_O(false);
+				SET_CC_C(false);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_MLR:			// 0x0c -- Move lower byte register to register
-				tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE & 0x00ff;
-				SET_DESTINATION_REGISTER_VALUE(tmp16_val1.uval);
-				SET_CC_CHAR(tmp16_val1.uval);
+				tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
+				tmp16_val2.uval = (unsigned __int16)(tmp16_val1.uval & 0x00ff);
+				SET_DESTINATION_REGISTER_VALUE(tmp16_val2.uval);
+				SET_CC_CHAR(tmp16_val2.uval);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
@@ -1020,7 +1083,7 @@ void cpu_classic_7860() {
 				tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
 				tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
 				tmp32_val1.sval = tmp16_val1.sval;
-				tmp32_val2.sval = tmp16_val1.sval;
+				tmp32_val2.sval = tmp16_val2.sval;
 				tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
@@ -1064,8 +1127,8 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval + tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				SET_CC_N(tmp32_val3.uval & 0x80000000);
-				SET_CC_Z(tmp32_val3.uval == 0);
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_CC_C_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -1082,7 +1145,7 @@ void cpu_classic_7860() {
 				break;
 
 			case  OP_CAR:			// 0x24  --  CAR  --  Clear Active and Return        
-				if (cpu_priv_mode | !cpu_virtual_mode) {
+				if (IS_PRIV_MODE) {
 					// --------find highest active interrupt
 					new_int = 16;
 					for (j = 0; j < 16; j++) {
@@ -1117,16 +1180,34 @@ void cpu_classic_7860() {
 
 						// fprintf(stderr, "\n cpu - CAR return from interrupt level %d, new pc 0x%04x\n", new_int, program_counter);
 					}
+					// -------- If no interrupt is active when the CIR instruction is executed, the dedicated locations O and 1 are used to restore the PSD if register Rs = 0.
+					// -------- Assume this applies to CAR too.
+					// -------- TODO: check to make certain that 0 - PC and 1 - PSW (it only makes sense)
+					else {
+						// --------set return new PSW and PC
+						if ((tmp16_val1.uval = (instruction.parts.src_reg & 0x000d)) == 0) {
+							// --------get current process pc and status double word from dedicated memory location
+							program_counter = GET_MEMORY_VALUE_ABS(0);
+							tmp_PSW.all = GET_MEMORY_VALUE_ABS(1);
+							cpu_set_current_PSW(tmp_PSW);
+						}
+						else {
+							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
+							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
+							cpu_set_current_PSW(tmp_PSW);
+						}
+					}
+					// -------- allow one instruction to execute before the next interrupt.
+					skip_interrupt_determination = true;
 				}
 				// --------not priviledged.
 				else {
 					PRIV_INSTR_TRAP;
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				}
 				break;
 
 			case  OP_CIR:			// 0x25  --  CIR  --  Clear interrupt and Return        
-				if (cpu_priv_mode | !cpu_virtual_mode) {
+				if (IS_PRIV_MODE) {
 					// --------find highest active interrupt
 					new_int = 16;
 					for (j = 0; j < 16; j++) {
@@ -1173,13 +1254,31 @@ void cpu_classic_7860() {
 						else {
 							cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 						}
+						// -------- allow one instruction to execute before the next interrupt.
+						skip_interrupt_determination = true;
+
 						// fprintf(stderr, "\n cpu - CIR return from interrupt level %d, new pc 0x%04x\n", new_int, program_counter);
+					}
+					// -------- If no interrupt is active when the CIR instruction is executed, the dedicated locations O and 1 are used to restore the PSD if register Rs = 0.
+					// -------- TODO: check to make certain that 0 - PC and 1 - PSW (it only makes sense)
+					else {
+						// --------set return new PSW and PC
+						if ((tmp16_val1.uval = (instruction.parts.src_reg & 0x000d)) == 0) {
+							// --------get current process pc and status double word from dedicated memory location
+							program_counter = GET_MEMORY_VALUE_ABS(0);
+							tmp_PSW.all = GET_MEMORY_VALUE_ABS(1);
+							cpu_set_current_PSW(tmp_PSW);
+						}
+						else {
+							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
+							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
+							cpu_set_current_PSW(tmp_PSW);
+						}
 					}
 				}
 				// --------not priviledged.
 				else {
 					PRIV_INSTR_TRAP;
-					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				}
 				break;
 
@@ -1190,7 +1289,7 @@ void cpu_classic_7860() {
 
 					// SIA  --  Set interrupt Active         
 					case 0:
-						if (cpu_priv_mode | !cpu_virtual_mode) {
+						if (IS_PRIV_MODE) {
 							cpu_interrupt_active |= (tmp16_val1.uval & SIA_ALLOWED);
 							if (cpu_interrupt_active == 0) {
 								cpu_interrupt_active_mask = mask[15];
@@ -1198,6 +1297,7 @@ void cpu_classic_7860() {
 							else {
 								cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 							}
+							SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1206,8 +1306,9 @@ void cpu_classic_7860() {
 
 					// SIE  --  Set interrupt Enable         
 					case 4:
-						if (cpu_priv_mode | !cpu_virtual_mode) {
+						if (IS_PRIV_MODE) {
 							cpu_interrupt_enabled |= ( tmp16_val1.uval & SIE_ALLOWED );
+							SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1216,12 +1317,13 @@ void cpu_classic_7860() {
 
 					// SIR  --  Set interrupt Request         
 					case 8:
-						if (cpu_priv_mode | !cpu_virtual_mode) {
+						if (IS_PRIV_MODE) {
 							// -------- Request ownership of the critical section.
 							EnterCriticalSection(&CritSectInterruptRequest);
 							cpu_interrupt_request |= ( tmp16_val1.uval & SIR_ALLOWED );
 							// -------- Release ownership of the critical section.
 							LeaveCriticalSection(&CritSectInterruptRequest);
+							SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1232,7 +1334,6 @@ void cpu_classic_7860() {
 						ILLEGAL_INSTRUCTION;
 						break;
 				}
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_RIA_RIE_RIR:		//  0x27
@@ -1242,7 +1343,7 @@ void cpu_classic_7860() {
 
 					// RIA  --  Reset interrupt Active         
 					case 0:
-						if (cpu_priv_mode | !cpu_virtual_mode) {
+						if (IS_PRIV_MODE) {
 							cpu_interrupt_active &= ( tmp16_val1.uval | RIA_ALLOWED_NOT);
 							if (cpu_interrupt_active == 0) {
 								cpu_interrupt_active_mask = mask[15];
@@ -1250,6 +1351,7 @@ void cpu_classic_7860() {
 							else {
 								cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 							}
+							SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1258,8 +1360,9 @@ void cpu_classic_7860() {
 
 					// RIE  --  Reset interrupt Enable         
 					case 4:
-						if (cpu_priv_mode | !cpu_virtual_mode) {
+						if (IS_PRIV_MODE) {
 							cpu_interrupt_enabled &= ( tmp16_val1.uval | RIE_ALLOWED_NOT);
+							SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1268,12 +1371,13 @@ void cpu_classic_7860() {
 
 					// RIR  --  Reset interrupt Request         
 					case 8:
-						if (cpu_priv_mode | !cpu_virtual_mode) {
+						if (IS_PRIV_MODE) {
 							// -------- Request ownership of the critical section.
 							EnterCriticalSection(&CritSectInterruptRequest);
 							cpu_interrupt_request &= ( tmp16_val1.uval | RIR_ALLOWED_NOT);
 							// -------- Release ownership of the critical section.
 							LeaveCriticalSection(&CritSectInterruptRequest);
+							SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						}
 						else {
 							PRIV_INSTR_TRAP;
@@ -1284,7 +1388,6 @@ void cpu_classic_7860() {
 						ILLEGAL_INSTRUCTION;
 						break;
 				}
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_RLD_RLQ:			// 0x28
@@ -1303,8 +1406,7 @@ void cpu_classic_7860() {
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_O(false);
-						SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[32 - tmp_instr_src] & tmp32_val2.uval) != 0)));
-						// TODO: Set CC
+						SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[32 - tmp_instr_src] & tmp32_val2.uval) != 0)));  // compare unshifted value
 						//fprintf(stderr, " RLD before raw reg: 0x%08x numb reg: 0x%08x  after numb reg: 0x%08x raw reg: 0x%08x\n", 
 						//				tmp32_val1.uval, tmp32_val2.uval, tmp32_val3.uval, tmp32_val4.uval);
 						//disp_cur_reg(stderr);
@@ -1322,7 +1424,8 @@ void cpu_classic_7860() {
 						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
 						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
 						SET_CC_N(ISVAL64_NEG(tmp64_val3));
-						// TODO: Set CC
+						SET_CC_O(false);
+						SET_CC_C((tmp_instr_src == 0 ? false : ((bit64[64 - tmp_instr_src] & tmp64_val2.uval) != 0))); // compare unshifted value
 						// fprintf(stderr, " RLQ before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 						// disp_cur_reg(stderr);
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -1337,13 +1440,14 @@ void cpu_classic_7860() {
 			case  OP_RLS:			// 0x29  --  RLS  --  Shift Right Logical Single-Register         
 				// fprintf(stderr, " RLS before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 				// disp_cur_reg(stderr);
+				tmp_instr_src = instruction.parts.src_reg;
 				tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
-				tmp16_val2.uval = tmp16_val1.uval >> GET_SOURCE_REGISTER_NUMB;
+				tmp16_val2.uval = tmp16_val1.uval >> tmp_instr_src;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val2.uval);
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
 				SET_CC_N(ISVAL16_NEG(tmp16_val2));
 				SET_CC_O(false);
-				SET_CC_C((tmp_instr_src == 0 ? false : ((bit[16 - tmp_instr_src] & tmp16_val1.uval) != 0)));
+				SET_CC_C((tmp_instr_src == 0 ? false : ((bit[16 - tmp_instr_src] & tmp16_val1.uval) != 0))); // compare unshifted value
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				// fprintf(stderr, " before 0x%08x after 0x%08x\n", tmp16_val1.uval, tmp16_val2.uval);
 				// disp_cur_reg(stderr);
@@ -1365,8 +1469,7 @@ void cpu_classic_7860() {
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					SET_CC_O(false);
-					SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[32 - tmp_instr_src] & tmp32_val2.uval) != 0)));
-					// TODO: Set CC
+					SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[32 - tmp_instr_src] & tmp32_val2.uval) != 0))); // compare unshifted value
 					//fprintf(stderr, " RAD before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 					//disp_cur_reg(stderr);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -1385,8 +1488,7 @@ void cpu_classic_7860() {
 					SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
 					SET_CC_N(ISVAL64_NEG(tmp64_val3));
 					SET_CC_O(false);
-					SET_CC_C((tmp_instr_src == 0 ? false : ((tmp64_val2.uval & (unsigned __int64)bit32[15 - tmp_instr_src]) != 0)));
-					// TODO: Set CC
+					SET_CC_C((tmp_instr_src == 0 ? false : ((tmp64_val2.uval & bit64[64 - tmp_instr_src]) != 0))); // compare unshifted value
 					// fprintf(stderr, " RAQ before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 					// disp_cur_reg(stderr);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -1401,13 +1503,14 @@ void cpu_classic_7860() {
 			case  OP_RAS:			// RAS  --  Shift Right Arithmetic Single-Register        
 				// fprintf(stderr, "\n RAS ------------- inst: 0x%04x\n", instruction.all);
 				// disp_cur_reg(stderr);
+				tmp_instr_src = instruction.parts.src_reg;
 				tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
-				tmp16_val2.sval = tmp16_val1.sval >> instruction.parts.src_reg;
+				tmp16_val2.sval = tmp16_val1.sval >> tmp_instr_src;
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val2.uval);
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
 				SET_CC_N(ISVAL16_NEG(tmp16_val2));
 				SET_CC_O(false);
-				// TODO: Set CC C
+				SET_CC_C((tmp_instr_src == 0 ? false : ((bit[16 - tmp_instr_src] & tmp16_val1.uval) != 0))); // compare unshifted value
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				// fprintf(stderr, " before 0x%08x after 0x%08x\n", tmp16_val1.uval, tmp16_val2.uval);
 				// disp_cur_reg(stderr);
@@ -1426,7 +1529,7 @@ void cpu_classic_7860() {
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_O(false);
-						SET_CC_C( (tmp_instr_src == 0 ? false : ((bit32[tmp_instr_src-1] & tmp32_val2.uval) != 0) ) );
+						SET_CC_C( (tmp_instr_src == 0 ? false : ((bit32[tmp_instr_src-1+16] & tmp32_val2.uval) != 0) ) ); // compare unshifted value
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
 
@@ -1441,8 +1544,8 @@ void cpu_classic_7860() {
 						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
 						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
 						SET_CC_N(ISVAL64_NEG(tmp64_val3));
-						// TODO: Set CC O C
-						// fprintf(stderr, " LLQ before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
+						SET_CC_C((tmp_instr_src == 0 ? false : ((bit64[tmp_instr_src - 1 + 48] & tmp64_val2.uval) != 0))); // compare unshifted value
+						// fprintf(stderr, " LLQ before 0x%08x after 0x%08x\n", tmp64_val2.uval, tmp64_val3.uval);
 						// disp_cur_reg(stderr);
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
@@ -1462,7 +1565,7 @@ void cpu_classic_7860() {
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val2));
 				SET_CC_N(ISVAL16_NEG(tmp16_val2));
 				SET_CC_O(false);
-				SET_CC_C((tmp_instr_src == 0 ? false : ((bit[tmp_instr_src - 1] & tmp16_val2.uval) != 0)));
+				SET_CC_C((tmp_instr_src == 0 ? false : ((bit[tmp_instr_src - 1] & tmp16_val1.uval) != 0))); // compare unshifted value
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				// fprintf(stderr, " before 0x%08x after 0x%08x\n", tmp16_val1.uval, tmp16_val2.uval);
 				// disp_cur_reg(stderr);
@@ -1478,7 +1581,7 @@ void cpu_classic_7860() {
 					tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
 					GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val2);
 					tmp32_val3.sval = tmp32_val2.sval << tmp_instr_src;
-					if ((tmp32_val2.uval & 0x80000000) != 0) {
+					if (ISVAL32_NEG(tmp32_val2)) {
 						tmp32_val3.uval |= 0x80000000;
 					}
 					else {
@@ -1489,7 +1592,8 @@ void cpu_classic_7860() {
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					// TODO: Set CC O
-					SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[tmp_instr_src - 1] & tmp32_val2.uval) != 0)));
+					// TODO: check for arithmetic left shift could be off a bit.
+					SET_CC_C((tmp_instr_src == 0 ? false : ((bit32[tmp_instr_src - 1+16] & tmp32_val2.uval) != 0))); // compare unshifted value
 					//fprintf(stderr, " LAD before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 					//disp_cur_reg(stderr);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -1502,7 +1606,7 @@ void cpu_classic_7860() {
 					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
 					GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val2);
 					tmp64_val3.sval = tmp64_val2.sval << tmp_instr_src;
-					if ((tmp64_val2.uval & 0x8000000000000000) != 0) {
+					if (ISVAL64_NEG(tmp64_val2)) {
 						tmp64_val3.uval |= 0x8000000000000000;
 					}
 					else {
@@ -1512,7 +1616,9 @@ void cpu_classic_7860() {
 					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
 					SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
 					SET_CC_N(ISVAL64_NEG(tmp64_val3));
-					// TODO: Set CC
+					// TODO: Set CC O
+					// TODO: check for arithmetic left shift could be off a bit.
+					SET_CC_C((tmp_instr_src == 0 ? false : ((bit64[tmp_instr_src - 1 + 48] & tmp64_val2.uval) != 0))); // compare unshifted value
 					// fprintf(stderr, " LAQ before 0x%08x after 0x%08x\n", tmp32_val2.uval, tmp32_val3.uval);
 					// disp_cur_reg(stderr);
 					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -1529,7 +1635,7 @@ void cpu_classic_7860() {
 				// disp_cur_reg(stderr);
 				tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
 				tmp16_val2.sval = tmp16_val1.sval << instruction.parts.src_reg;
-				if ((tmp16_val1.uval & 0x8000) != 0) {
+				if (ISVAL16_NEG(tmp16_val1)) {
 					tmp16_val2.uval |= 0x8000;
 				}
 				else {
@@ -1553,8 +1659,13 @@ void cpu_classic_7860() {
 				UNIMPLEMENTED_INSTRUCTION;
 				break;
 
+				// --------temporary
 			case  OP_FMR:			// 0x32
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp32_val1.uval = 0;
+				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val1));
+				SET_CC_N(ISVAL32_NEG(tmp32_val1));
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_FDR:			// 0x33
@@ -2204,11 +2315,10 @@ void cpu_classic_7860() {
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
-				if (tmp16_val1.uval == tmp16_val2.uval) {
+				if (TEST_CC_Z) {
 					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 				}
-				// TODO: See if we need to used signed comparisons.
-				else if (tmp16_val1.sval < tmp16_val2.sval) {
+				else if (TEST_CC_N) {
 					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 3));
 				}
 				else {
@@ -2286,6 +2396,7 @@ void cpu_classic_7860() {
 					SET_SOURCE_REGISTER_VALUE_DOUBLE(tmp32_val2.uval);	// DEST -> SRC
 					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);		// SRC -> DEST
 					// TODO: IRRD set cond codes
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				}
 				// -------- TTRD  --  Transfer Two's Complement of Double- Register to Double-Register    
 				else {
@@ -2294,12 +2405,12 @@ void cpu_classic_7860() {
 					tmp32_val3.sval *= -1;
 					GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val1);
 					SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
-					SET_CC_Z(tmp32_val3.uval == 0);
-					SET_CC_N((tmp32_val3.uval & 0x80000000) != 0); 
-					SET_CC_O((tmp32_val3.uval == 0x80000000));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3)); 
+					SET_CC_O(ISVAL32_MAXNEG(tmp32_val3));
 					// TODO: Set CC C
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				}
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			case  OP_CRRT_CRRQ_TTRQ:			// 0x8b
@@ -2313,12 +2424,24 @@ void cpu_classic_7860() {
 						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
 						SET_CC_N(ISVAL64_NEG(tmp64_val3));
 						// TODO: Set CC C
-						SET_CC_O(tmp64_val3.uval == 0x8000000000000000);
+						SET_CC_O(ISVAL64_MAXNEG(tmp64_val3));
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
 
 					case 2:			// --  CRRT  --  Compare Triple Register to Triple Register      
-						UNIMPLEMENTED_INSTRUCTION;
+						// TODO: Check method for tripple compare.
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
+						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val4);
+						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val2, tmp64_val5);
+						tmp64_val4.uval &= 0xffffffffffff0000;  // use only top 3 word
+						tmp64_val5.uval &= 0xffffffffffff0000;  // use only top 3 word
+						tmp64_val3.uval = tmp64_val4.uval - tmp64_val5.uval;
+						tmp64_val3.uval &= 0xffffffffffff0000;  // use only top 3 word
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
+						// TODO: Set CC C
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
 
 					case 3:			// --  CRRQ  --  Compare Quad Register to Quad Register      
@@ -2327,8 +2450,8 @@ void cpu_classic_7860() {
 						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val4);
 						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val2, tmp64_val5);
 						tmp64_val3.uval = tmp64_val4.uval - tmp64_val5.uval;
-						SET_CC_Z(tmp64_val3.uval == 0);
-						SET_CC_N((tmp64_val3.uval & 0x8000000000000000) != 0);
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
 						// TODO: Set CC C
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
@@ -2347,8 +2470,8 @@ void cpu_classic_7860() {
 						tmp64_val3.sval = tmp32_val3.sval;
 						GET_RAW_QUAD_FROM_NUMERIC(tmp64_val3, tmp64_val4);
 						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val4.uval);
-						SET_CC_Z(ISVAL64_ZERO(tmp32_val3));
-						SET_CC_N(ISVAL64_NEG(tmp32_val3));
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
 						SET_CC_O(false);
 						SET_CC_C(false);
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -2365,7 +2488,6 @@ void cpu_classic_7860() {
 						SET_CC_C(false);
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
-
 				}
 				break;
 
@@ -2377,8 +2499,8 @@ void cpu_classic_7860() {
 						tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
 						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val1.uval);
 						GET_NUMERIC_QUAD_FROM_RAW(tmp64_val1, tmp64_val3);
-						SET_CC_Z(ISVAL64_ZERO(tmp32_val3));
-						SET_CC_N(ISVAL64_NEG(tmp32_val3));
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
 
@@ -2386,8 +2508,8 @@ void cpu_classic_7860() {
 						tmp32_val1.uval = GET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE;
 						SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val1.uval);
 						GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val1, tmp32_val3);
-						SET_CC_N(ISVAL32_NEG(tmp16_val3));
-						SET_CC_Z(ISVAL32_ZERO(tmp16_val3));
+						SET_CC_N(ISVAL32_NEG(tmp32_val3));
+						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 						break;
 				}
@@ -2596,11 +2718,10 @@ void cpu_classic_7860() {
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
-			if (tmp16_val1.uval == tmp16_val2.uval) {
+			if (TEST_CC_Z) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 1));
 			}
-			// TODO: See if we need to used signed comparisons.
-			else if (tmp16_val1.sval < tmp16_val2.sval) {
+			else if (TEST_CC_N) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 			}
 			else {
@@ -2686,11 +2807,10 @@ void cpu_classic_7860() {
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
-			if (tmp16_val1.uval == tmp16_val2.uval) {
+			if (TEST_CC_Z) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 1));
 			}
-			// TODO: See if we need to used signed comparisons.
-			else if (tmp16_val1.sval < tmp16_val2.sval) {
+			else if (TEST_CC_N) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 			}
 			else {
@@ -2704,7 +2824,7 @@ void cpu_classic_7860() {
 			tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
 			tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
 			tmp32_val1.sval = tmp16_val1.sval;
-			tmp32_val2.sval = tmp16_val1.sval;
+			tmp32_val2.sval = tmp16_val2.sval;
 			tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
 			GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
 			SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
@@ -2948,7 +3068,7 @@ void cpu_classic_7860() {
 				// --------read memory value
 				tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val3.uval);
 				if (temp_bit == 0) {
-					tmp16_val4.uval = (tmp16_val2.uval & 0xff00) >> 8;
+					tmp16_val4.uval = (tmp16_val2.uval >> 8 ) & 0x00ff;
 				}
 				else {
 					tmp16_val4.uval = (tmp16_val2.uval & 0x00ff);
@@ -2956,10 +3076,10 @@ void cpu_classic_7860() {
 				// -- STORE BYTE IN RIGHT SIDE OF REG (0 in left half )...
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val4.uval);
 				SET_CC_CHAR(tmp16_val4.uval);
-				if (gbl_verbose_debug)
-					fprintf(stderr,"\n Load byte from mem addr 0x%04x, valu 0x%04x, rx 0x%04x, rx+1 0x%04x\n", tmp16_val3.uval, tmp16_val2.uval, tmp16_val1.uval, tmp16_val5.uval);
+				// if (gbl_verbose_debug)
+					fprintf(stderr," Load byte from mem addr 0x%04x, valu 0x%04x, rx 0x%04x, rx+1 0x%04x\n", tmp16_val3.uval, tmp16_val2.uval, tmp16_val1.uval, tmp16_val5.uval);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_SBX:			// 	        0xaf  --  Store Byte in Memory (Byte-Indexed)       
@@ -2992,8 +3112,8 @@ void cpu_classic_7860() {
 				if ( gbl_verbose_debug )
 					fprintf(stderr, "\n Set byte in mem addr 0x%04x, valu 0x%04x, rx 0x%04x, rx+1 0x%04x\n", tmp16_val3.uval, tmp16_val2.uval,tmp16_val1.uval, tmp16_val5.uval);
 				SET_MEMORY_VALUE_OM(tmp16_val3.uval, tmp16_val2.uval);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 
@@ -3002,7 +3122,7 @@ void cpu_classic_7860() {
 			tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
 			tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
 			tmp32_val1.sval = tmp16_val1.sval;
-			tmp32_val2.sval = tmp16_val1.sval;
+			tmp32_val2.sval = tmp16_val2.sval;
 			tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
 			GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
 			SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
@@ -3125,7 +3245,7 @@ void cpu_classic_7860() {
 			tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
 			tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
 			tmp32_val1.sval = tmp16_val1.sval;
-			tmp32_val2.sval = tmp16_val1.sval;
+			tmp32_val2.sval = tmp16_val2.sval;
 			tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
 			GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
 			SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
@@ -3385,11 +3505,10 @@ void cpu_classic_7860() {
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
-			if (tmp16_val1.uval == tmp16_val2.uval) {
+			if (TEST_CC_Z) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 			}
-			// TODO: See if we need to used signed comparisons.
-			else if (tmp16_val1.sval < tmp16_val2.sval) {
+			else if (TEST_CC_N) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 3));
 			}
 			else {
@@ -3407,8 +3526,8 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval + tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC( tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				SET_CC_N(tmp32_val3.uval & 0x80000000);
-				SET_CC_Z(tmp32_val3.uval == 0);
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_CC_C_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -3422,8 +3541,8 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval + tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				SET_CC_N(tmp32_val3.uval & 0x80000000);
-				SET_CC_Z(tmp32_val3.uval == 0);
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_CC_C_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
@@ -3440,8 +3559,8 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				SET_CC_N(tmp32_val3.uval & 0x80000000);
-				SET_CC_Z(tmp32_val3.uval == 0);
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 				SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
@@ -3455,8 +3574,8 @@ void cpu_classic_7860() {
 				tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
-				SET_CC_N(tmp32_val3.uval & 0x80000000);
-				SET_CC_Z(tmp32_val3.uval == 0);
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 				SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
 				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
@@ -3536,8 +3655,16 @@ void cpu_classic_7860() {
 			UNIMPLEMENTED_INSTRUCTION;
 			break;
 
-		case  OP_TSBM:			// 	        0xcc
-			UNIMPLEMENTED_INSTRUCTION;
+		case  OP_TSBM:			// 	        0xcc  --  TSBM  --  Test and Set Bit Memory       
+			// -------TODO: Is a critical section needed here for TSBM ??
+			tmp16_val1.uval = GET_MEMORY_VALUE_DIRECT;
+			SET_CC_Z(ISVAL16_NEG(tmp16_val1));		// strange...
+			SET_CC_N(false);						// strange...
+			SET_CC_C(false);						// strange...
+			SET_CC_O((tmp16_val1.uval & bit[GET_DESTINATION_REGISTER_NUMB]) != 0); // test it
+			tmp16_val1.uval |= bit[GET_DESTINATION_REGISTER_NUMB];	// now set it.
+			SET_MEMORY_VALUE_DIRECT(tmp16_val1.uval);		// write new memory value..
+			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
 
@@ -3747,10 +3874,10 @@ void cpu_classic_7860() {
 				SET_CC_N(ISVAL16_NEG(tmp16_val3));
 				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
-				if (tmp16_val1.uval == tmp16_val2.uval) {
+				if (TEST_CC_Z) {
 					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 1));
 				}
-				else if (tmp16_val1.sval < tmp16_val2.sval) {
+				else if (TEST_CC_N) {
 					SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 				}
 				else {
@@ -3837,10 +3964,10 @@ void cpu_classic_7860() {
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
-			if (tmp16_val1.uval == tmp16_val2.uval) {
+			if (TEST_CC_Z) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 1));
 			}
-			else if (tmp16_val1.sval < tmp16_val2.sval) {
+			else if (TEST_CC_N) {
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_IM(program_counter + 2));
 			}
 			else {
@@ -3947,22 +4074,59 @@ void cpu_classic_7860() {
 
 				// --  1	LDES  --  Load Immediate and Extend Sign	
 			case 1:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp16_val1.uval = GET_MEMORY_VALUE_IMMEDIATE;
+				tmp32_val3.sval = tmp16_val1.sval;	// sign extend to 32 bits.
+				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
+				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 				// --  2	ADES  --  Add Immediate with Extended Sign	
 			case 2:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+				tmp32_val2.sval = tmp16_val2.sval;	// sign extend to 32 bits.
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+				tmp32_val3.uval = tmp32_val1.uval + tmp32_val2.uval;
+				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
+				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_O_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_CC_C_ADD_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 				// --  3	SUES  --  Subtract Immediate with Extended Sign	
 			case 3:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+				tmp32_val2.sval = tmp16_val2.sval;	// sign extend to 32 bits.
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+				tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
+				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val6);
+				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val6.uval);
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 				// --  4	CIES  --  Compare Immediate with Extended Sign	
 			case 4:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp32_val4.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+				tmp32_val2.sval = tmp16_val2.sval;	// sign extend to 32 bits.
+				GET_NUMERIC_DOUBLE_FROM_RAW(tmp32_val4, tmp32_val1);
+				tmp32_val3.uval = tmp32_val1.uval - tmp32_val2.uval;
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_O_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_CC_C_SUB_DOUBLE(tmp32_val1, tmp32_val2, tmp32_val3);
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 				// --  5	EXI  --  Execute Immediate	
@@ -3976,7 +4140,7 @@ void cpu_classic_7860() {
 				tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
 				tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest | 0x01);
 				tmp32_val1.sval = tmp16_val1.sval;
-				tmp32_val2.sval = tmp16_val1.sval;
+				tmp32_val2.sval = tmp16_val2.sval;
 				tmp32_val3.sval = tmp32_val1.sval * tmp32_val2.sval;
 				GET_RAW_DOUBLE_FROM_NUMERIC(tmp32_val3, tmp32_val4);
 				SET_DESTINATION_REGISTER_VALUE_DOUBLE(tmp32_val4.uval);
@@ -4203,11 +4367,11 @@ void cpu_classic_7860() {
 					SET_REGISTER_VALUE(tmp_instr_dest, GET_MEMORY_VALUE_IMMEDIATE);
 					SET_REGISTER_VALUE(tmp_instr_dest+1, 0);
 					// TODO: Set cc
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				}
 				else {
 					ILLEGAL_INSTRUCTION;
 				}
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 			case 2:	// -------- LDFD load floating double immediate 
@@ -4217,11 +4381,11 @@ void cpu_classic_7860() {
 					SET_REGISTER_VALUE(tmp_instr_dest + 1, 0);
 					SET_REGISTER_VALUE(tmp_instr_dest + 2, 0);
 					// TODO: Set cc
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				}
 				else {
 					ILLEGAL_INSTRUCTION;
 				}
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 			case 3: // -------- LDFQ load floating quad immediate
@@ -4232,11 +4396,11 @@ void cpu_classic_7860() {
 					SET_REGISTER_VALUE(tmp_instr_dest + 2, 0);
 					SET_REGISTER_VALUE(tmp_instr_dest + 3, 0);
 					// TODO: Set cc
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				}
 				else {
 					ILLEGAL_INSTRUCTION;
 				}
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 			default:
@@ -4368,7 +4532,7 @@ void cpu_classic_7860() {
 			if (instruction.all & 0x0080) {
 				SET_REGISTER_VALUE(8, program_counter + 1);
 				// TODO: check the address calculation
-				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_OM(GET_REGISTER_VALUE(2)+GET_HOP_OFFSET));
+				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_OM((unsigned __int16)(GET_REGISTER_VALUE(2)+GET_HOP_OFFSET)));
 			}
 			// HOP  --  Hop Unconditionally          
 			else {

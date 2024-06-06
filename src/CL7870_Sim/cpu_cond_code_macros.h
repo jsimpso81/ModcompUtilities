@@ -179,6 +179,9 @@
 // --------16 bit value is zero
 #define ISVAL16_ZERO( VAL_16 )  ( VAL_16.uval == 0 )
 
+// --------64 bit value is max negative
+#define ISVAL16_MAXNEG( VAL_16 )  ( VAL_16.uval == 0x8000 )
+
 // ------- test 32 bit values for neg and zero conditions
 
 // --------32 bit value is negative
@@ -186,6 +189,9 @@
 
 // --------32 bit value is zero
 #define ISVAL32_ZERO( VAL_32 )  ( VAL_32.uval == 0 )
+
+// --------64 bit value is max negative
+#define ISVAL32_MAXNEG( VAL_32 )  ( VAL_32.uval == 0x80000000 )
 
 // ------- test 64 bit values for neg and zero conditions
 
@@ -195,3 +201,5 @@
 // --------64 bit value is zero
 #define ISVAL64_ZERO( VAL_64 )  ( VAL_64.uval == 0 )
 
+// --------64 bit value is max negative
+#define ISVAL64_MAXNEG( VAL_64 )  ( VAL_64.uval == 0x8000000000000000 )

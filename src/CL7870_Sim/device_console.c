@@ -47,16 +47,16 @@ void  device_console_output_data(unsigned __int16 device_address, unsigned __int
 
 	device_common_buffer_put(&databuffer->out_buff, junk);
 
+	// --------if writing and buffer isn't empty
 	if (databuffer->write_in_progress && !device_common_buffer_isempty(&databuffer->out_buff)) {
-		//if (device_common_buffer_isfull(&databuffer->out_buff)) {
-		//	databuffer->ctrl_status |= status_data_not_ready;
-		//}
- 
+
+		// -------- Request ownership of the critical section.
+		EnterCriticalSection(&databuffer->CritSectStatusUpdate);
 		// -------set data not ready.
 		databuffer->ctrl_status |= status_data_not_ready;
+		// -------- Release ownership of the critical section.
+		LeaveCriticalSection(&databuffer->CritSectStatusUpdate);
 	}
-
-	printf("%c", junk);
 
 	// --------wake up comm thread.
 	databuffer->ctrl_wake++;
@@ -97,7 +97,11 @@ unsigned __int16  device_console_input_data(unsigned __int16 device_address) {
 
 	// --------If buffer is empty,, set data_not_ready flag in status word.
 	if (databuffer->read_in_progress && device_common_buffer_isempty(&databuffer->in_buff)) {
+		// -------- Request ownership of the critical section.
+		EnterCriticalSection(&databuffer->CritSectStatusUpdate);
 		databuffer->ctrl_status |= status_data_not_ready;
+		// -------- Release ownership of the critical section.
+		LeaveCriticalSection(&databuffer->CritSectStatusUpdate);
 	}
 
 	// fprintf(stderr," device_console input data -- called - 0x%04x, index %d, new: %s \n", ourvalue, databuffer->in_buff.last_byte_read_index, (new_data ? "New  " : "Empty"));
@@ -119,7 +123,10 @@ unsigned __int16  device_console_input_status(unsigned __int16 device_address) {
 
 
 	// --------allow other threads to run
-	SwitchToThread();
+	// SwitchToThread();
+
+	// -------- Request ownership of the critical section.
+	EnterCriticalSection(&databuffer->CritSectStatusUpdate);
 
 	// --------get current control status and return to user.
 	loc_status = databuffer->ctrl_status;
@@ -149,6 +156,8 @@ unsigned __int16  device_console_input_status(unsigned __int16 device_address) {
 	if (loc_status1 != loc_status) {
 		databuffer->ctrl_status = loc_status;
 	}
+	// -------- Release ownership of the critical section.
+	LeaveCriticalSection(&databuffer->CritSectStatusUpdate);
 
 	// printf("\n device_console input status -- called - 0x%04x\n", loc_status);
 
@@ -232,6 +241,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 				// TODO: Console calculate correct write timeout for different baud rates.
 				while (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 500) {
 					if (device_common_buffer_get(&device_data->out_buff, &loc_write_data[bytes_to_write])) {
+						printf("%c", loc_write_data[bytes_to_write]);
 						bytes_to_write++;
 					}
 				}
@@ -241,10 +251,15 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 						&bytes_written, NULL);
 					// fprintf(stderr, " Console bytes write requested %d, written %d.  Device Addr %d\n", bytes_to_write, bytes_written, loc_device_addr);
 
+					// -------- Request ownership of the critical section.
+					EnterCriticalSection(&device_data->CritSectStatusUpdate);
+
 					// --------signal buffer not full -- ready for more.
 					if (device_data->write_in_progress) {
 						device_data->ctrl_status &= (~status_data_not_ready);
 					}
+					// -------- Release ownership of the critical section.
+					LeaveCriticalSection(&device_data->CritSectStatusUpdate);
 
 					// --------initiate DI to get more
 					if (device_data->write_in_progress && device_data->DI_enabled) {
@@ -252,10 +267,15 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 					}
 				}
 
+				// -------- Request ownership of the critical section.
+				EnterCriticalSection(&device_data->CritSectStatusUpdate);
+
 				// --------signal buffer not full -- ready for more. -- JUST IN CASE.
 				if (device_data->write_in_progress && device_common_buffer_isempty(&device_data->out_buff)) {
 					device_data->ctrl_status &= (~status_data_not_ready);
 				}
+				// -------- Release ownership of the critical section.
+				LeaveCriticalSection(&device_data->CritSectStatusUpdate);
 
 				//}
 
@@ -274,8 +294,15 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 						for (j = 0; j < actual_read_bytes; j++) {
 							device_common_buffer_put(&device_data->in_buff, loc_read_data[j]);
 						}
+
+						// -------- Request ownership of the critical section.
+						EnterCriticalSection(&device_data->CritSectStatusUpdate);
+
 						// --------signal data ready.
 						device_data->ctrl_status &= (~status_data_not_ready);
+
+						// -------- Release ownership of the critical section.
+						LeaveCriticalSection(&device_data->CritSectStatusUpdate);
 
 						// --------initiate DI so they can process this byte.
 						if (device_data->DI_enabled) {
@@ -504,11 +531,17 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 	// ------- it is asked to exit on its own... No need to do this here.
 	// --------request comm thread to stop
 	// iop_thread_stop_request2[loc_device_addr] = 1;
-	// Sleep(200);
+
+	// --------wait a little for comm thread to exit.
+	Sleep(200);
 
 	// --------try to close com port
 	if ( loc_com_device != NULL )
 		device_common_serial_close(loc_com_device, &last_error);
+
+	// --------initialize the critical section for interrupt requests.
+	// Initialize the critical section one time only.
+	DeleteCriticalSection(&device_data->CritSectStatusUpdate);
 
 	// --------unset global values and deallocate memory
 	device_common_remove(loc_device_addr);
@@ -534,6 +567,7 @@ void device_console_init(unsigned __int16 device_address, unsigned __int16 bus, 
 	DEVICE_CONSOLE_DATA* device_data = 0;
 	unsigned __int16 loc_dev_addr;
 	loc_dev_addr = device_address;
+	bool status = false;
 
 	// --------make certain we aren't double allocating a device and allocate buffer memory for device.
 	device_data = device_common_device_buffer_allocate(device_address, sizeof(DEVICE_CONSOLE_DATA));
@@ -555,6 +589,15 @@ void device_console_init(unsigned __int16 device_address, unsigned __int16 bus, 
 		device_data->com_handle = NULL;
 		device_common_buffer_init(&device_data->in_buff);
 		device_common_buffer_init(&device_data->out_buff);
+
+		// --------initialize the critical section for interrupt requests.
+		// Initialize the critical section one time only.
+		status = InitializeCriticalSectionAndSpinCount(&device_data->CritSectStatusUpdate, 0x00000400);
+		if (!status) {
+			printf(" *** ERROR *** Console device could not create status update locking mechanism.\n");
+		}
+
+
 
 		// --------initialize main worker thread.
 		device_common_thread_init((LPVOID)device_data,
@@ -578,13 +621,22 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 	bool old_write = false;
 	bool need_SI = false;
 	bool need_DI = false;
+	bool msg_term_icb = false;
+	bool msg_unexpected_cmd = false;
+	int chg_di = 0;
+	int chg_si = 0;
+	int chg_wrt = 0;
+	int chg_rd = 0;
+
+	// --------get the type of command.
+	cmd_type = loc_cmd & cmd_mask;
+
+	// -------- Request ownership of the critical section.
+	EnterCriticalSection(&device_data->CritSectStatusUpdate);
 
 	// --------get internal status to work on...
 	loc_status = device_data->ctrl_status;
 	orig_status = loc_status;
-
-	// --------get the type of command.
-	cmd_type = loc_cmd & cmd_mask;
 
 	// --------process the various command types.
 	switch (cmd_type) {
@@ -602,8 +654,8 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 			if ((loc_cmd & ctrl_terminate) != 0) {
 
 				// --------stop all I/O
-				device_data->read_in_progress = false;
-				device_data->write_in_progress = false;
+				chg_rd = -1;
+				chg_wrt = -1;
 
 				// --------update status
 				loc_status |= (status_data_not_ready);		// set no data ready
@@ -612,12 +664,12 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 
 				// --------TERMINATE w/ICB   
 				if ((loc_cmd & ctrl_icb) != 0) {
-					fprintf(stderr, " Device console - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+					msg_term_icb = true;
 
 					// --------disable interrupts --- ARE WE CERTAIN??
 					// TODO: Should interrupts be disabled on terminate w/ICB?
-					device_data->SI_enabled = false;
-					device_data->DI_enabled = false;
+					// chg_si = -1;
+					// chg_di = -1;
 
 					// --------clear buffers
 					// device_common_buffer_set_empty(&device_data->in_buff);  // for now don't clear the input buffer.
@@ -635,7 +687,7 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 				}
 
 				// --------generate SI if enabled.
-				if (device_data->SI_enabled) {
+				if (device_data->SI_enabled || ( chg_si == 1 )) {
 					need_SI = true;
 				}
 			}
@@ -683,8 +735,8 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 				// fprintf(stderr, " Device console - NOOP Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 
 				// -------- enable or disable interrupts.
-				device_data->SI_enabled = ( (loc_cmd & ctrl_si_enable ) != 0) ? true : false;
-				device_data->DI_enabled = ( (loc_cmd & ctrl_di_enable ) != 0) ? true : false;
+				chg_si = ( (loc_cmd & ctrl_si_enable ) != 0) ? 1 : -1;
+				chg_di = ( (loc_cmd & ctrl_di_enable ) != 0) ? 1 : -1;
 
 				// -------- if not busy reset all status indications ??
 				// TODO: figure this out.
@@ -724,7 +776,7 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 				}
 
 				// --------generate SI if enabled.
-				if (device_data->SI_enabled) {
+				if (device_data->SI_enabled  || ( chg_si == 1) ) {
 					need_SI = true;
 				}
 
@@ -735,8 +787,8 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 		case cmd_transfer_initiate:
 
 			// -------- enable or disable interrupts.
-			device_data->SI_enabled = ((loc_cmd & ctrl_si_enable) != 0) ? true : false;
-			device_data->DI_enabled = ((loc_cmd & ctrl_di_enable) != 0) ? true : false;
+			chg_si = ((loc_cmd & ctrl_si_enable) != 0) ? 1 : -1;
+			chg_di = ((loc_cmd & ctrl_di_enable) != 0) ? 1 : -1;
 
 			// --------for some reason the console is backwards !		
 			// --------start a write.
@@ -747,12 +799,12 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 				old_write = device_data->write_in_progress;
 
 				// -------- indicate transfer in progress
-				device_data->read_in_progress = false;
-				device_data->write_in_progress = true;
+				chg_rd = -1;
+				chg_wrt = 1;
 				loc_status |= status_busy;
 
 				// -------- if ready for a byte send DI.   If we weren't already doing a write, send DI to get data.
-				if (device_data->DI_enabled && !old_write ) {
+				if ( (device_data->DI_enabled || ( chg_di == 1 )) && !old_write ) {
 					need_DI = true;
 				}
 			}
@@ -764,8 +816,8 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 				old_read = device_data->read_in_progress;
 
 				// -------- indicate transfer in progress
-				device_data->read_in_progress = true;
-				device_data->write_in_progress = false;
+				chg_rd = 1;
+				chg_wrt = -1;
 				loc_status |= status_busy;
 			}
 			// --------what interrupts are caused by transfer initiate???   (Always SI to signal completion??,   DI when starting write?)
@@ -778,11 +830,39 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 
 		// --------unexpected command...
 		default:
-			fprintf(stderr, " Device console - unexpected command.  Dev addr: %d,  cmd 0x%04x\n",device_data->device_address, loc_cmd);
+			msg_unexpected_cmd = true;
 
 		}		// -------- END OF COMMAND PROCESSING
 
-				
+
+		if (chg_si == 1) {
+			device_data->SI_enabled = true;
+		}
+		if (chg_di == 1) {
+			device_data->DI_enabled = true;
+		}
+
+		// --------change SI DI status
+		if (chg_si == -1) {
+			device_data->SI_enabled = false;
+		}
+		if (chg_di == -1) {
+			device_data->DI_enabled = false;
+		}
+		if (chg_rd == -1) {
+			device_data->read_in_progress = false;
+		}
+		if (chg_rd == 1) {
+			device_data->read_in_progress = true;
+		}
+		if (chg_wrt == -1) {
+			device_data->write_in_progress = false;
+		}
+		if (chg_wrt == 1) {
+			device_data->write_in_progress = true;
+		}
+
+
 		// -------- if reading and data available, update status.
 		if (device_data->read_in_progress) {
 			if (device_common_buffer_isempty(&device_data->in_buff)) {
@@ -805,6 +885,17 @@ void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DAT
 
 		// --------update device status
 		device_data->ctrl_status = loc_status;
+
+
+		// -------- Release ownership of the critical section.
+		LeaveCriticalSection(&device_data->CritSectStatusUpdate);
+
+		if ( msg_term_icb)
+			fprintf(stderr, " Device console - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+
+		if ( msg_unexpected_cmd )
+			fprintf(stderr, " Device console - unexpected command.  Dev addr: %d,  cmd 0x%04x\n", device_data->device_address, loc_cmd);
+
 
 		// -------- generate interrupts if needed.
 		if (need_SI) {
