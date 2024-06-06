@@ -412,6 +412,7 @@ unsigned __int16 cpu_get_register_value(unsigned __int16 reg_index) {
 
 
 // ===========================================================================================================
+// TODO: Only set program counter if halted....
 void cpu_set_program_counter(unsigned __int16 pc) {
 	program_counter = pc;
 }
