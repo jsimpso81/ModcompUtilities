@@ -122,23 +122,25 @@
 
 // TODO: Not sure this is correct.
 #define SET_CC_C_ADD( VAL1, VAL2, RES ) {\
-		SET_CC_C( !ISVAL16_NEG(VAL1) && !ISVAL16_NEG(VAL2) && ISVAL16_NEG(RES) );\
+		SET_CC_C( ( ISVAL16_NEG(VAL1) == ISVAL16_NEG(VAL2) ) && (  ISVAL16_NEG(VAL1) != ISVAL16_NEG(RES) ) );\
 		}
+// was SET_CC_C(!ISVAL16_NEG(VAL1) && !ISVAL16_NEG(VAL2) && ISVAL16_NEG(RES)); \
 
 
 // TODO: Not sure this is correct.
 #define SET_CC_C_ADD_DOUBLE( VAL1, VAL2, RES ) {\
-		SET_CC_C( !ISVAL32_NEG(VAL1) && !ISVAL32_NEG(VAL2) && ISVAL32_NEG(RES) );\
+		SET_CC_C( ( ISVAL32_NEG(VAL1) == ISVAL32_NEG(VAL2) ) && (  ISVAL32_NEG(VAL1) != ISVAL32_NEG(RES) ) );\
 		}
 
 // TODO: Not sure this is correct.
 #define SET_CC_C_SUB( VAL1, VAL2, RES ) {\
-		SET_CC_C( !ISVAL16_NEG(VAL1) && ISVAL16_NEG(VAL2) && ISVAL16_NEG(RES) );\
+		SET_CC_C( ( ISVAL16_NEG(VAL1) != ISVAL16_NEG(VAL2) ) && (  ISVAL16_NEG(VAL1) != ISVAL16_NEG(RES) ) );\
 		}
+// was SET_CC_C(!ISVAL16_NEG(VAL1) && ISVAL16_NEG(VAL2) && ISVAL16_NEG(RES)); \
 
 // TODO: Not sure this is correct.
 #define SET_CC_C_SUB_DOUBLE( VAL1, VAL2, RES ) {\
-		SET_CC_C( !ISVAL32_NEG(VAL1) && ISVAL32_NEG(VAL2) && ISVAL32_NEG(RES) );\
+		SET_CC_C( ( ISVAL32_NEG(VAL1) != ISVAL32_NEG(VAL2) ) && (  ISVAL32_NEG(VAL1) != ISVAL32_NEG(RES) ) );\
 		}
 
 
@@ -166,7 +168,7 @@
 #define TEST_CC_LT (cpu_cond_code_n != cpu_cond_code_o) 
 
 // -------- Not higher
-#define TEST_CC_NH	( !cpu_cond_code_c || cpu_cond_code_z )
+#define TEST_CC_NH	( !cpu_cond_code_c || cpu_cond_code_z )	
 
 // -------- Higher than
 #define TEST_CC_HI	( cpu_cond_code_c && (!cpu_cond_code_z) )

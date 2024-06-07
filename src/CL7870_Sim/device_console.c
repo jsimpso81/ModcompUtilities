@@ -44,6 +44,11 @@ void  device_console_output_data(unsigned __int16 device_address, unsigned __int
 	DEVICE_CONSOLE_DATA* databuffer = (DEVICE_CONSOLE_DATA*)iop_device_buffer[device_address];
 
 	unsigned __int8 junk = data_value & 0x00ff;
+	// -------- just some diagnostics.
+	unsigned __int8 junk2 = (unsigned __int8)((data_value >> 8) & 0x00ff);
+	if (junk2 != 0) {
+		fprintf(stderr, " Console output data, high byte not zero: 0x%04x\n", junk2);
+	}
 
 	device_common_buffer_put(&databuffer->out_buff, junk);
 
