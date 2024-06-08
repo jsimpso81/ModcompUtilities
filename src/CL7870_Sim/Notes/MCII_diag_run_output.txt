@@ -1,0 +1,56 @@
+
+
+
+========================================================
+MC II DIAG 1
+switches 0
+========================================================
+CL7860>
+06AC TST14 ADR,3,4 OVFL ERROR
+06AC TST14 ADR,3,4 OVFL ERROR
+06AC TST14 ADR,3,4 OVFL ERROR
+06AC TST14 ADR,3,4 OVFL ERROR
+.
+.
+.  duplicate messages removed....
+.
+06AC TST14 ADR,3,4 OVFL ERROR
+06AC TST14 ADR,3,4 OVFL ERROR
+06AC TST14 ADR,3,4 OVFL ERROR
+06AC TST14 ADR,3,4 OVFL ERROR
+07DF TST18 SUR,3,4 OVFL ERROR
+07DF TST18 SUR,3,4 OVFL ERROR
+07DF TST18 SUR,3,4 OVFL ERROR
+07DF TST18 SUR,3,4 OVFL ERROR
+07DF TST18 SUR,3,4 OVFL ERROR
+07DF TST18 SUR,3,4 OVFL ERROR
+MC II/III/7810 CPU DIAG. PT 1
+600801-001 C.3  6/21/82
+PASS COMPLETE    1
+Cpu halted.  pc = 0x1143
+CL7860>
+
+
+
+========================================================
+MC II DIAG 2
+switches 0
+========================================================
+
+0206 OVERFLOW ERROR LAS,2,4  ORIG. R2=#8FFF
+0233 OVERFLOW ERROR LAD,4,1  ORIG. R4,5 =#4000 #0000
+MC II/III/7810 CPU DIAG PT2
+600801-002 C.3  24JUN82
+PASS COMPLETE    1
+Cpu halted.  pc = 0x10d1
+CL7860>
+
+
+========================================================
+MC II DIAG 3
+switches 0
+========================================================
+
+see separate file...
+
+

@@ -109,30 +109,31 @@
 					SET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR+1, (unsigned __int16)(VAL & 0x0000ffff ));\
 					}
 
+
+// ------- dont need the order is done by the access macros.
 // -------WORD ORDER TRANSLATION MACROS
-#define GET_NUMERIC_DOUBLE_FROM_RAW( IN_RAW, OUT_NUM ) {\
-		OUT_NUM.uval = IN_RAW.uval;\
-		}
+// #define GET_NUMERIC_DOUBLE_FROM_RAW( IN_RAW, OUT_NUM ) {\
+//		OUT_NUM.uval = IN_RAW.uval;\
+//		}
 
-#define GET_RAW_DOUBLE_FROM_NUMERIC( IN_NUM, OUT_RAW ) {\
-		OUT_RAW.uval = IN_NUM.uval;\
-		}
+// #define GET_RAW_DOUBLE_FROM_NUMERIC( IN_NUM, OUT_RAW ) {\
+// 		OUT_RAW.uval = IN_NUM.uval;\
+//		}
 
 
 // -------WORD ORDER TRANSLATION MACROS
-// TODO: once register load store are fixed this may not be needed..!
-#define GET_NUMERIC_QUAD_FROM_RAW( IN_RAW, OUT_NUM ) {\
-		OUT_NUM.zval[0] = IN_RAW.zval[0];\
-		OUT_NUM.zval[1] = IN_RAW.zval[1];\
-		OUT_NUM.zval[2] = IN_RAW.zval[2];\
-		OUT_NUM.zval[3] = IN_RAW.zval[3];\
-		}
-#define GET_RAW_QUAD_FROM_NUMERIC( IN_NUM, OUT_RAW ) {\
-		OUT_RAW.zval[0] = IN_NUM.zval[0];\
-		OUT_RAW.zval[1] = IN_NUM.zval[1];\
-		OUT_RAW.zval[2] = IN_NUM.zval[2];\
-		OUT_RAW.zval[3] = IN_NUM.zval[3];\
-		}
+// #define GET_NUMERIC_QUAD_FROM_RAW( IN_RAW, OUT_NUM ) {\
+// 		OUT_NUM.zval[0] = IN_RAW.zval[0];\
+// 		OUT_NUM.zval[1] = IN_RAW.zval[1];\
+// 		OUT_NUM.zval[2] = IN_RAW.zval[2];\
+// 		OUT_NUM.zval[3] = IN_RAW.zval[3];\
+// 		}
+// #define GET_RAW_QUAD_FROM_NUMERIC( IN_NUM, OUT_RAW ) {\
+// 		OUT_RAW.zval[0] = IN_NUM.zval[0];\
+// 		OUT_RAW.zval[1] = IN_NUM.zval[1];\
+// 		OUT_RAW.zval[2] = IN_NUM.zval[2];\
+// 		OUT_RAW.zval[3] = IN_NUM.zval[3];\
+// 		}
 
 
 // ===============================================================================================================

@@ -28,6 +28,10 @@ subtract overflow definition ----
 
 ------------------------------------------------------------------
 
+
+=======================
+fillable
+=======================
 SAL 
 	loads and runs.   First thing typed in always gets KEY ERROR.
 	think this is related to buffering....
@@ -113,8 +117,8 @@ MC IV CPU diag part 2
 	loads
 	GO
 	runs
-	LOTS OF CONDITION CODE FAILURES
-		RIght and left logic and arithmetic shifts.
+
+
 
 MC IV CPU diag part 3
 	loads

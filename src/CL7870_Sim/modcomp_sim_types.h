@@ -2,6 +2,26 @@
 #include <windows.h>
 #include <stdbool.h>
 
+
+typedef union {
+	unsigned __int16 uval;
+	signed __int16 sval;
+} VAL16;
+
+
+typedef union {
+	unsigned __int32 uval;
+	signed __int32 sval;
+	unsigned __int16 zval[2];
+} VAL32;
+
+typedef union {
+	unsigned __int64 uval;
+	signed __int64 sval;
+	unsigned __int16 zval[4];
+} VAL64;
+
+
 // --------processor status word.
 typedef struct {
 	bool cc_c : 1;
@@ -57,30 +77,17 @@ typedef union {
 } INSTRUCTION;
 
 
-typedef union {
-	unsigned __int16 uval;
-	signed __int16 sval;
-} VAL16;
-
-
-typedef union {
-	unsigned __int32 uval;
-	signed __int32 sval;
-	unsigned __int16 zval[2];
-} VAL32;
-
-typedef union {
-	unsigned __int64 uval;
-	signed __int64 sval;
-	unsigned __int16 zval[4];
-} VAL64;
-
-
 typedef struct {
 	unsigned __int16 pc;		// program counter
 	unsigned __int16 ps;		// status word
 } PROC_STATUS_DOUBLEWORD;
 
+
+typedef union {
+	unsigned __int16 reg16[16];
+	unsigned __int32 reg32[8];
+	unsigned __int64 reg64[4];
+} REG_BLOCK;
 
 // -------- IO procedures
 typedef void (*DEVICE_OUTPUT_DATA)(unsigned __int16 device_address, unsigned __int16 data_word);
