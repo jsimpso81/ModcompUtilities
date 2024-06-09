@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
     // --------if an initial configuration file exists, read it and process the commands.
 
     // -------- process user commands.   it returns when the exit command is given.
-    process_user_commands();
+    process_user_commands(stdin);
 
     rtclock_stop_thread();
     cpu_stop_thread();

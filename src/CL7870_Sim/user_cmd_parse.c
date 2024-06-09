@@ -6,7 +6,7 @@
 
 void cmd_process_parse( char* cmd_line, int max_len, char* cmd_line_parse[], int max_items, int* count_found) {
 
-	const char delim[] = "\t ,.=-;:\n\0";
+	const char delim[] = "\t ,.=-:\n\0";
 	// int cmd_line_len = 0;
 	char* context = NULL;
 	char* token = NULL;

@@ -31,7 +31,7 @@ void rtclock_start_thread();
 void rtclock_stop_thread();
 
 // -------- user command
-void process_user_commands();
+void process_user_commands(FILE* cmd_src);
 void user_cmd_print_help();
 void cmd_process_print_prompt();
 void cmd_process_parse(char* cmd_line, int max_len, char* cmd_line_parse[], int max_items, int* count_found);
