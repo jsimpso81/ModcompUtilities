@@ -1,30 +1,29 @@
 #pragma once
-#include <windows.h>
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "modcomp_sim_types.h"
-
 // -------- cpu
 void cpu_init_data();
-unsigned __int16 cpu_get_program_counter();
+SIMJ_U16 cpu_get_program_counter();
 PSW cpu_get_current_PSW();
-unsigned __int16 cpu_get_register_value(unsigned __int16 reg_index);
-void cpu_set_register_value(unsigned __int16 reg_index, unsigned __int16 reg_value);
-void cpu_set_program_counter(unsigned __int16 pc);
-void cpu_set_switches(unsigned __int16 switch_value);
+SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index);
+void cpu_set_register_value(SIMJ_U16 reg_index, SIMJ_U16 reg_value);
+void cpu_set_program_counter(SIMJ_U16 pc);
+void cpu_set_switches(SIMJ_U16 switch_value);
 void cpu_classic_7860();
 void cpu_start_thread();
 void cpu_stop_thread();
 void cpu_stop_data();
 void cpu_trigger_clock_interrupt();
 void cpu_trigger_console_interrupt();
-unsigned __int16 cpu_get_clock_trigger_count();
-unsigned __int32 cpu_get_instruction_count();
-void cpu_request_DI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr);
-void cpu_request_SI(unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dev_addr);
-void cpu_get_interrupt(unsigned __int16* act, unsigned __int16* req, unsigned __int16* ena,
-	unsigned __int32* di_req, unsigned __int32* di_prc, unsigned __int32* si_req, unsigned __int32* si_prc);
+SIMJ_U16 cpu_get_clock_trigger_count();
+SIMJ_U32 cpu_get_instruction_count();
+void cpu_request_DI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
+void cpu_request_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
+void cpu_get_interrupt(SIMJ_U16* act, SIMJ_U16* req, SIMJ_U16* ena,
+	SIMJ_U32* di_req, SIMJ_U32* di_prc, SIMJ_U32* si_req, SIMJ_U32* si_prc);
 void cpu_master_clear();
 
 // -------- Real time clock
@@ -41,8 +40,8 @@ void cmd_process_parse(char* cmd_line, int max_len, char* cmd_line_parse[], int 
 void iop_init_data();
 
 // -------- device common
-void* device_common_device_buffer_allocate(unsigned __int16 device_address, size_t buffer_size);
-void device_common_remove(unsigned __int16 device_address);
+void* device_common_device_buffer_allocate(SIMJ_U16 device_address, size_t buffer_size);
+void device_common_remove(SIMJ_U16 device_address);
 uintptr_t device_common_start_thread(void* data_buffer, DEVICE_WORKER_THREAD thread_proc, unsigned* thread_id);
 void device_common_stop_all();
 
@@ -54,8 +53,8 @@ int device_common_serial_set_params(HANDLE hCom, DWORD* last_error, bool USE_HDW
 void device_common_buffer_init(volatile DEVICE_BUFFER* buff);
 bool device_common_buffer_isempty(volatile DEVICE_BUFFER* buff);
 bool device_common_buffer_isfull(volatile DEVICE_BUFFER* buff);
-bool device_common_buffer_get(volatile DEVICE_BUFFER* buff, unsigned __int8* to_get);
-void device_common_buffer_put(volatile DEVICE_BUFFER* buff, unsigned __int8 to_put);
+bool device_common_buffer_get(volatile DEVICE_BUFFER* buff, SIMJ_U8* to_get);
+void device_common_buffer_put(volatile DEVICE_BUFFER* buff, SIMJ_U8 to_put);
 void device_common_buffer_set_empty(volatile DEVICE_BUFFER* buff);
 
 void device_common_thread_init(LPVOID data_buffer,
@@ -66,29 +65,29 @@ void device_common_thread_init(LPVOID data_buffer,
 	DEVICE_INPUT_STATUS input_status_proc);
 
 // -------- specific devices
-void device_null_init(unsigned __int16 device_address, unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dmp);
-void device_console_init(unsigned __int16 device_address, unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dmp);
+void device_null_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
+void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
 
 // -------- generic queue routines
 void que_uword_init(volatile QUEUE_UWORD* que);
-bool que_uword_recv(volatile QUEUE_UWORD* que, __int16* cmd_word);
-bool que_uword_send(volatile QUEUE_UWORD* queue, unsigned __int16 value);
+bool que_uword_recv(volatile QUEUE_UWORD* que, SIMJ_U16* cmd_word);
+bool que_uword_send(volatile QUEUE_UWORD* queue, SIMJ_U16 value);
 
 // -------- display routines
 void disp_devices( FILE* io_unit );
 void disp_cur_reg( FILE* io_unit);
 void disp_interrupts(FILE* io_unit);
-void disp_pc( FILE* io_unit, unsigned __int16 loc_pc);
+void disp_pc( FILE* io_unit, SIMJ_U16 loc_pc);
 void disp_psw( FILE* io_unit, PSW loc_psw);
 void disp_instruction_use( FILE* io_unit);
 
 // -------- util
-void util_get_opcode_disp(unsigned __int16 instruction, char* op_buffer, size_t buf_size);
+void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size);
 
 // --------templates for external interface
-void rmi_request(unsigned __int16 rmi_request);
+void rmi_request(SIMJ_U16 rmi_request);
 
 // --------memory
-unsigned __int16 memory_plane_RMPS(unsigned __int16 first_reg, unsigned __int16 second_reg);
+SIMJ_U16 memory_plane_RMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg);
 void memory_plane_init();
 

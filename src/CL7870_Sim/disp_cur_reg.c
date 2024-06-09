@@ -1,8 +1,7 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
-
-#include "modcomp_sim_types.h"
-#include "modcomp_sim_procedures.h"
 
 void disp_cur_reg(FILE* io_unit) {
 

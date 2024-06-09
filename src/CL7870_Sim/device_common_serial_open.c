@@ -1,5 +1,5 @@
+#include "simj_base.h"
 
-#include <windows.h>
 
 // -------- open com port 0 = good status
 int device_common_serial_open(char* com_port, HANDLE* com_handle, DWORD* last_error ) {

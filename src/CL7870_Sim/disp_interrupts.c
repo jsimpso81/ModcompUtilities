@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include "simj_base.h"
 
-#include "modcomp_sim_procedures.h"
+#include <stdio.h>
 
 #define WORD_TO_BINARY( val)  \
   (( val ) & 0x8000 ? '1' : '0'), \
@@ -23,13 +23,13 @@
 void disp_interrupts(FILE* io_unit) {
 
 
-	unsigned __int16 act = 0;
-	unsigned __int16 req = 0;
-	unsigned __int16 ena = 0;
-	unsigned __int32 di_req = 0;
-	unsigned __int32 di_prc = 0;
-	unsigned __int32 si_req = 0;
-	unsigned __int32 si_prc = 0;
+	SIMJ_U16 act = 0;
+	SIMJ_U16 req = 0;
+	SIMJ_U16 ena = 0;
+	SIMJ_U32 di_req = 0;
+	SIMJ_U32 di_prc = 0;
+	SIMJ_U32 si_req = 0;
+	SIMJ_U32 si_prc = 0;
 
 	// ------- get data on interrupts
 	cpu_get_interrupt( &act, &req, &ena, &di_req, &di_prc, &si_req, &si_prc);

@@ -1,9 +1,8 @@
+#include "simj_base.h"
 
 #include <stdbool.h>
 
-#include "modcomp_sim_procedures.h"
-
-bool que_uword_recv( volatile QUEUE_UWORD* que, __int16* cmd_word ) {
+bool que_uword_recv( volatile QUEUE_UWORD* que, SIMJ_U16* cmd_word ) {
 
 	// --------is there anything to do?
 	// TODO: see if we need to also check that the pointers are equal.

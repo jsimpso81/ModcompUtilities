@@ -1,13 +1,14 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 
-#include "modcomp_sim_types.h"
 #include "modcomp_opcode_string.h"
 #include "modcomp_opcodes.h"
 
 
-void util_get_opcode_disp(unsigned __int16 instruction, char* op_buffer, size_t buf_size) {
+void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size) {
 
 	INSTRUCTION loc_inst = { .all = 0 };
 

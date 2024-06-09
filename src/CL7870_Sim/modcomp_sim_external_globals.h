@@ -7,13 +7,13 @@
 #include "modcomp_sim_types.h"
 
 // -------- main memory
-extern volatile unsigned __int16  gbl_mem[2097152];
+extern volatile SIMJ_U16  gbl_mem[2097152];
 
 // -------- items for front panel
-extern volatile unsigned __int16 gbl_fp_switches;
-extern volatile unsigned __int16 gbl_fp_datalights;
-extern volatile unsigned __int16 gbl_fp_addrlights;
-extern volatile unsigned __int16 gbl_regselectswitches;
+extern volatile SIMJ_U16 gbl_fp_switches;
+extern volatile SIMJ_U16 gbl_fp_datalights;
+extern volatile SIMJ_U16 gbl_fp_addrlights;
+extern volatile SIMJ_U16 gbl_regselectswitches;
 extern volatile bool gbl_fp_powerlight;
 extern volatile bool gbl_fp_standbylight;
 extern volatile bool gbl_fp_backupfailure;
@@ -30,11 +30,11 @@ extern volatile bool gbl_fp_single_step ;
 // -------- not done more front panel info
 
 // -------- CPU ITEMS (for debug)
-extern volatile unsigned __int32 cpu_inst_used[256];
+extern volatile SIMJ_U32 cpu_inst_used[256];
 
 
 // -------- IO DEVICES
-// extern volatile unsigned __int16 iop_last_dev_status[64];
+// extern volatile SIMJ_U16 iop_last_dev_status[64];
 
 extern DEVICE_OUTPUT_DATA  iop_output_data_proc[64];
 extern DEVICE_OUTPUT_CMD   iop_output_cmd_proc[64];

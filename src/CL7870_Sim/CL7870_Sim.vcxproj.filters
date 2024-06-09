@@ -33,9 +33,6 @@
     <ClCompile Include="cpu_start_thread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cpu_init_data.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="iop_init_data.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -134,6 +131,9 @@
     </ClCompile>
     <ClCompile Include="disp_interrupts.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="simj_base.h">
+      <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

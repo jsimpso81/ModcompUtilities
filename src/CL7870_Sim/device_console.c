@@ -1,13 +1,10 @@
 // -------- CONSOLE DEVICE -- VIA COMM PORT
 
-#include <windows.h>
+#include "simj_base.h"
+
 #include <process.h>
 #include <stdio.h>
 #include <stdbool.h>
-
-#include "modcomp_sim_types.h"
-#include "modcomp_sim_external_globals.h"
-#include "modcomp_sim_procedures.h"
 
 
 // -------- DEVICE CONSOLE
@@ -35,17 +32,17 @@
 #define transinit_write			0x0800
 
 
-void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DATA* device_data);
+void device_console_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* device_data);
 
 
 // ============================================================================================================================
-void  device_console_output_data(unsigned __int16 device_address, unsigned __int16 data_value) {
+void  device_console_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 
 	DEVICE_CONSOLE_DATA* databuffer = (DEVICE_CONSOLE_DATA*)iop_device_buffer[device_address];
 
-	unsigned __int8 junk = data_value & 0x00ff;
+	SIMJ_U8 junk = data_value & 0x00ff;
 	// -------- just some diagnostics.
-	unsigned __int8 junk2 = (unsigned __int8)((data_value >> 8) & 0x00ff);
+	SIMJ_U8 junk2 = (SIMJ_U8)((data_value >> 8) & 0x00ff);
 	if (junk2 != 0) {
 		fprintf(stderr, " Console output data, high byte not zero: 0x%04x\n", junk2);
 	}
@@ -73,7 +70,7 @@ void  device_console_output_data(unsigned __int16 device_address, unsigned __int
 }
 
 // ============================================================================================================================
-void  device_console_output_cmd(unsigned __int16 device_address, unsigned __int16 cmd_value) {
+void  device_console_output_cmd(SIMJ_U16 device_address, SIMJ_U16 cmd_value) {
 
 	DEVICE_CONSOLE_DATA* databuffer = (DEVICE_CONSOLE_DATA*)iop_device_buffer[device_address];
 
@@ -88,11 +85,11 @@ void  device_console_output_cmd(unsigned __int16 device_address, unsigned __int1
 }
 
 // ============================================================================================================================
-unsigned __int16  device_console_input_data(unsigned __int16 device_address) {
+SIMJ_U16  device_console_input_data(SIMJ_U16 device_address) {
 
 	DEVICE_CONSOLE_DATA* databuffer = (DEVICE_CONSOLE_DATA*)iop_device_buffer[device_address];
-	unsigned __int16 ourvalue = 0;
-	unsigned __int8 ourbyte = 0;
+	SIMJ_U16 ourvalue = 0;
+	SIMJ_U8 ourbyte = 0;
 	bool new_data = false;
 
 	// --------if there is a byte, get it.
@@ -119,12 +116,12 @@ unsigned __int16  device_console_input_data(unsigned __int16 device_address) {
 }
 
 // ============================================================================================================================
-unsigned __int16  device_console_input_status(unsigned __int16 device_address) {
+SIMJ_U16  device_console_input_status(SIMJ_U16 device_address) {
 
 	DEVICE_CONSOLE_DATA* databuffer = (DEVICE_CONSOLE_DATA*)iop_device_buffer[device_address];
 
-	unsigned __int16 loc_status;
-	unsigned __int16 loc_status1;
+	SIMJ_U16 loc_status;
+	SIMJ_U16 loc_status1;
 
 
 	// --------allow other threads to run
@@ -173,16 +170,16 @@ unsigned __int16  device_console_input_status(unsigned __int16 device_address) {
 // ============================================================================================================================
 DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
-	unsigned __int16 loc_device_addr = 0;
+	SIMJ_U16 loc_device_addr = 0;
 	DEVICE_CONSOLE_DATA* device_data = 0;
-	unsigned __int16 last_wake = 0;
+	SIMJ_U16 last_wake = 0;
 	unsigned int com_state = 0;
 	HANDLE loc_comm_handle = NULL;
-	unsigned __int8 loc_read_data[2000] = { 0 };
+	SIMJ_U8 loc_read_data[2000] = { 0 };
 	DWORD desired_read_bytes = 0;
 	DWORD actual_read_bytes = 0;
 	BOOL read_status = false;
-	unsigned __int8 loc_write_data[2000] = { 0 };
+	SIMJ_U8 loc_write_data[2000] = { 0 };
 	DWORD bytes_to_write = 0;
 	DWORD bytes_written = 0;
 	BOOL write_status = false;
@@ -192,7 +189,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
 
 	// -------- get local device address from calling parameter to this routine 
-	loc_device_addr = *(unsigned __int16*)lpParam;
+	loc_device_addr = *(SIMJ_U16*)lpParam;
 
 
 	printf(" Starting device console communications thread at device address %d\n", loc_device_addr);
@@ -358,7 +355,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 // ============================================================================================================================
 DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 
-	unsigned __int16 loc_device_addr = 0;
+	SIMJ_U16 loc_device_addr = 0;
 	DEVICE_CONSOLE_DATA* device_data = 0;
 
 	// bool dev_reading = false;
@@ -366,10 +363,10 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 	// bool si_enabled = false;
 	// bool di_enabled = false;
 
-	unsigned __int16 last_wake = 0;
-	// unsigned __int16 loc_status = 0;
-	// unsigned __int16 orig_status = 0;
-	// unsigned __int16 loc_cmd = 0;
+	SIMJ_U16 last_wake = 0;
+	// SIMJ_U16 loc_status = 0;
+	// SIMJ_U16 orig_status = 0;
+	// SIMJ_U16 loc_cmd = 0;
 
 
 	DWORD last_error = 0;
@@ -384,7 +381,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 
 
 	// -------- get local device address from calling parameter to this routine 
-	loc_device_addr = *(unsigned __int16*)lpParam;
+	loc_device_addr = *(SIMJ_U16*)lpParam;
 	printf(" Starting device console at device address %d\n", loc_device_addr);
 	if (loc_device_addr == 0) {
 		printf(" *** ERROR *** Console device thread didn't get device address \n");
@@ -495,7 +492,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 		//	last_wake = device_data->ctrl_wake;
 
 
-		//	device_console_process_command( unsigned __int16 loc_cmd, DEVICE_CONSOLE_DATA* device_data );
+		//	device_console_process_command( SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* device_data );
 
 
 		// }
@@ -567,10 +564,10 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 // ============================================================================================================================
 // --------initialize the device.  calls common routines.  Only custom thing is to initialize the 
 // --------data buffer after it is created.
-void device_console_init(unsigned __int16 device_address, unsigned __int16 bus, unsigned __int16 prio, unsigned __int16 dmp) {
+void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp) {
 
 	DEVICE_CONSOLE_DATA* device_data = 0;
-	unsigned __int16 loc_dev_addr;
+	SIMJ_U16 loc_dev_addr;
 	loc_dev_addr = device_address;
 	bool status = false;
 
@@ -617,11 +614,11 @@ void device_console_init(unsigned __int16 device_address, unsigned __int16 bus, 
 
 
 // ============================================================================================================================
-void device_console_process_command(unsigned __int16 loc_cmd, DEVICE_CONSOLE_DATA* device_data) {
+void device_console_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* device_data) {
 
-	unsigned __int16 cmd_type = 0;
-	unsigned __int16 orig_status = 0;
-	unsigned __int16 loc_status = 0;
+	SIMJ_U16 cmd_type = 0;
+	SIMJ_U16 orig_status = 0;
+	SIMJ_U16 loc_status = 0;
 	bool old_read = false;
 	bool old_write = false;
 	bool need_SI = false;

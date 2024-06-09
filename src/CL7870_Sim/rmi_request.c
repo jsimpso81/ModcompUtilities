@@ -1,3 +1,5 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 
 
@@ -8,7 +10,7 @@
 //			L2 = 0x4
 //			L3 = 0x2
 //			L4 = 0x1
-void rmi_request( unsigned __int16 rmi_request) {
+void rmi_request( SIMJ_U16 rmi_request) {
 
 	printf("\n ==== RMI OUTPUT ==== Requested.  0x%04x\n",rmi_request);
 }

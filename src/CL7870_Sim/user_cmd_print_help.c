@@ -1,9 +1,12 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 
 void user_cmd_print_help() {
 
 	printf("\n\nCL7870_sim - Simulate a MODCOMP classic 7870 CPU \n\n");
 	printf("\n   Command line parameters:\n");
+	printf("        -c <config file>  load configuration file\n");
 	printf("        -h       print help message and exit\n");
 	printf("        -?       print help message and exit\n");
 	printf("        -v       verbose debug messages.\n");
@@ -17,6 +20,7 @@ void user_cmd_print_help() {
 	printf("      exit - stop emulation and exit program\n");
 	printf("      halt - halt cpu\n");
 	printf("      help - print this list of commands\n");
+	printf("      power - power on.  Simulates a system power cycle.  More than a master clear.\n");
 	printf("      mc - master clear\n");
 	printf("      run - run cpu\n");
 	printf("\n");

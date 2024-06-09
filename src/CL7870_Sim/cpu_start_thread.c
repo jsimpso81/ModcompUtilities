@@ -1,9 +1,8 @@
-#include <windows.h>
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <process.h>
 
-#include "modcomp_sim_external_globals.h"
-#include "modcomp_sim_procedures.h"
 
 uintptr_t   cpu_thread_handle;
 DWORD   cpu_thread_id;

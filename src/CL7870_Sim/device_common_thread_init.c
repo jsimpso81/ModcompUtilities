@@ -1,9 +1,6 @@
- #include <windows.h>
-#include <stdio.h>
+#include "simj_base.h"
 
-#include "modcomp_sim_types.h"
-#include "modcomp_sim_external_globals.h"
-#include "modcomp_sim_procedures.h"
+#include <stdio.h>
 
 
 
@@ -22,7 +19,7 @@ void device_common_thread_init(LPVOID data_buffer,
 
 	generic_data_ptr = (DEVICE_GENERIC_DATA*)data_buffer;
 
-	unsigned __int16 device_address = generic_data_ptr->device_address;
+	SIMJ_U16 device_address = generic_data_ptr->device_address;
 
 	if (device_address <= 0 || device_address > 63) {
 		printf("\n *** ERROR *** Trouble creating device.  Device address %02x is invalid.  Device not created.\n", device_address);

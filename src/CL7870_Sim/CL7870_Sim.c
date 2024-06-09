@@ -1,7 +1,7 @@
 // CL7870_Sim.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-
+#include "simj_base.h"
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -10,7 +10,6 @@
 // #include <pthread.h>
 
 #include "modcomp_sim_global.h"
-#include "modcomp_sim_procedures.h"
 
 /* ========================================================================================================================*/
 int main(int argc, char* argv[]) {
@@ -41,6 +40,21 @@ int main(int argc, char* argv[]) {
                 gbl_verbose_debug = true;
             }
 
+            /* -------- configuration file. */
+            if (strcmp(argv[j], "-c") == 0) {
+
+                // --------there should be another argument that is the file name.
+                j++;
+                if (j < argc) {
+                    // --------get and store configuration file name.
+                    // --------make certain the configuration file exists, otherwise flag error.
+                }
+                else {
+                    printf(" *** ERROR ***  Configuration file command line parameer -c must be followed with the confuration filename.\n");
+                }
+ 
+            }
+
 
             /* --------unrecognized parameter */
             else {
@@ -67,6 +81,8 @@ int main(int argc, char* argv[]) {
 
     // --------wait a little for things to start
     Sleep(500);
+
+    // --------if an initial configuration file exists, read it and process the commands.
 
     // -------- process user commands.   it returns when the exit command is given.
     process_user_commands();

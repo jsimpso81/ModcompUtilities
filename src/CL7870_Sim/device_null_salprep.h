@@ -4,7 +4,7 @@
 // -------- of this only 290 bytes are used.  (note thate this data
 // -------- comes from a disk -- cant remember if the serial loader 
 // -------- is different....
-unsigned __int8 salprep_data[] = {
+SIMJ_U8 salprep_data[] = {
 
 	//	last mem loc index,		negative size
 	// 0x04, 0x90, 0xFF, 0x70,

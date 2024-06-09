@@ -1,11 +1,10 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "modcomp_sim_types.h"
-#include "modcomp_sim_procedures.h"
-
 // ---- returns true if new data was read.
-bool device_common_buffer_get(volatile DEVICE_BUFFER* buff, unsigned __int8* to_get) {
+bool device_common_buffer_get(volatile DEVICE_BUFFER* buff, SIMJ_U8* to_get) {
 
 	unsigned int next_inx = 0;
 	bool ret_value = false;

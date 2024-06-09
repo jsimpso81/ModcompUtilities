@@ -1,4 +1,4 @@
-#include <windows.h>
+#include "simj_base.h"
 
 // -------- close an open com port, 0 = no error
 int device_common_serial_close(HANDLE com_handle, DWORD* last_error) {

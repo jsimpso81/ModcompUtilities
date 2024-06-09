@@ -1,9 +1,11 @@
-unsigned __int16 device_address;
-volatile unsigned __int16 ctrl_wake;
-volatile unsigned __int16 ctrl_status;
-volatile unsigned __int16 bus;	// IO bus 0-3
-volatile unsigned __int16 dmp;	// for non dmp devices, specify 0
-volatile unsigned __int16 pri;	// priority 0 - 15 (or is it 1 - 15)
+#include "simj_base.h"
+
+SIMJ_U16 device_address;
+volatile SIMJ_U16 ctrl_wake;
+volatile SIMJ_U16 ctrl_status;
+volatile SIMJ_U16 bus;	// IO bus 0-3
+volatile SIMJ_U16 dmp;	// for non dmp devices, specify 0
+volatile SIMJ_U16 pri;	// priority 0 - 15 (or is it 1 - 15)
 volatile bool SI_enabled;
 volatile bool DI_enabled;
 volatile bool write_in_progress;

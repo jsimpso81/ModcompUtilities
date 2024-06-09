@@ -1,10 +1,8 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-
-#include "modcomp_sim_procedures.h"
-#include "modcomp_sim_external_globals.h"
-
 
 void process_user_commands() {
 
@@ -17,8 +15,8 @@ void process_user_commands() {
 	static int k = 0;
 	static unsigned int uj = 0;
 
-	static unsigned __int32 last_starting_mem_address = 0;
-	static unsigned __int32 last_ending_mem_address = 1023;
+	static SIMJ_U32 last_starting_mem_address = 0;
+	static SIMJ_U32 last_ending_mem_address = 1023;
 
 // -------- commands
 //      mc - master clear
@@ -119,7 +117,7 @@ void process_user_commands() {
 
 					//--------mem
 					else if (strcmp(cmd_line_parsed[1], "mem") == 0) {
-						unsigned __int32 parm_parse = 0;
+						SIMJ_U32 parm_parse = 0;
 						if (cmd_count_found >= 3) {
 							if (sscanf_s(cmd_line_parsed[2], "%li", &parm_parse) == 1) {
 								last_starting_mem_address = parm_parse;
@@ -187,8 +185,8 @@ void process_user_commands() {
 
 					//--------switches
 					if (strcmp(cmd_line_parsed[1], "switches") == 0) {
-						unsigned __int16 new_switch_value = 0;
-						unsigned __int16 parm_parse = 0;
+						SIMJ_U16 new_switch_value = 0;
+						SIMJ_U16 parm_parse = 0;
 						if (cmd_count_found >= 3) {
 							if (sscanf_s(cmd_line_parsed[2], "%hi", &parm_parse) == 1) {
 								new_switch_value = parm_parse;
@@ -207,9 +205,9 @@ void process_user_commands() {
 					//--------set memory
 					else if (strcmp(cmd_line_parsed[1], "mem") == 0) {
 						if (cmd_count_found >= 4) {
-							unsigned __int32 parm_parse = 0;
-							unsigned __int32 set_addr = 0;
-							unsigned __int16 set_value = 0;
+							SIMJ_U32 parm_parse = 0;
+							SIMJ_U32 set_addr = 0;
+							SIMJ_U16 set_value = 0;
 							if (sscanf_s(cmd_line_parsed[2], "%i", &parm_parse) == 1) {
 								set_addr = parm_parse;
 								if (sscanf_s(cmd_line_parsed[3], "%i", &parm_parse) == 1) {
@@ -232,9 +230,9 @@ void process_user_commands() {
 					//--------set register
 					else if (strcmp(cmd_line_parsed[1], "reg") == 0) {
 						if (cmd_count_found >= 4) {
-							unsigned __int32 parm_parse = 0;
-							unsigned __int16 set_reg = 0;
-							unsigned __int16 set_value = 0;
+							SIMJ_U32 parm_parse = 0;
+							SIMJ_U16 set_reg = 0;
+							SIMJ_U16 set_value = 0;
 							if (sscanf_s(cmd_line_parsed[2], "%i", &parm_parse) == 1) {
 								set_reg = parm_parse;
 								if (sscanf_s(cmd_line_parsed[3], "%i", &parm_parse) == 1) {
@@ -281,8 +279,8 @@ void process_user_commands() {
 					//--------set pc
 					else if (strcmp(cmd_line_parsed[1], "pc") == 0) {
 						if (cmd_count_found >= 3) {
-							unsigned __int32 parm_parse = 0;
-							unsigned __int32 set_pc = 0;
+							SIMJ_U32 parm_parse = 0;
+							SIMJ_U32 set_pc = 0;
 							if (sscanf_s(cmd_line_parsed[2], "%i", &parm_parse) == 1) {
 								set_pc = parm_parse;
 								cpu_set_program_counter(set_pc);
@@ -360,10 +358,10 @@ void process_user_commands() {
 			// TODO: add switch value for device address
 			else if (strcmp(cmd_line_parsed[0], "fill") == 0) {
 				if (!gbl_fp_runlight) {
-					unsigned __int16 fill_device_address = 10;
+					SIMJ_U16 fill_device_address = 10;
 					if (cmd_count_found >= 2) {
-						unsigned __int16 new_switch_value = 0;
-						unsigned __int16 parm_parse = 0;
+						SIMJ_U16 new_switch_value = 0;
+						SIMJ_U16 parm_parse = 0;
 						if (sscanf_s(cmd_line_parsed[1], "%hi", &parm_parse) == 1) {
 							new_switch_value = parm_parse;
 							cpu_set_switches(new_switch_value);

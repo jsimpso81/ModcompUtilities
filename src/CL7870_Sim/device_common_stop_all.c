@@ -1,7 +1,6 @@
-#include <windows.h>
-#include <stdio.h>
+#include "simj_base.h"
 
-#include "modcomp_sim_external_globals.h"
+#include <stdio.h>
 
 
 void device_common_stop_all() {

@@ -1,8 +1,7 @@
-#include <windows.h>
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
-
-#include "modcomp_sim_procedures.h"
 
 // -------- set com parameters -- for now 9600,8,N,1 - no hand shaking.
 int device_common_serial_set_params( HANDLE hCom, DWORD *last_error, bool USE_HDWR_OUTPUT_HANDSHAKE ) {

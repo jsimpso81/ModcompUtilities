@@ -1,7 +1,7 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
-
-#include "modcomp_sim_types.h"
 
 
 void disp_psw(FILE* io_unit, PSW loc_psw ) {

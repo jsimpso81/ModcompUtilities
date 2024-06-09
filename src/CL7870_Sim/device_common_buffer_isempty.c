@@ -1,7 +1,7 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
-
-#include "modcomp_sim_types.h"
 
 // ---- returns true if empty
 bool device_common_buffer_isempty(volatile DEVICE_BUFFER* buff) {

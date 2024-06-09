@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include "simj_base.h"
 
-#include "modcomp_sim_types.h"
+#include <stdio.h>
 
 // --------returns true if ful
 bool device_common_buffer_isfull(volatile DEVICE_BUFFER* buff) {

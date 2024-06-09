@@ -8,22 +8,25 @@
 					}
 
 // TODO: Make sure endian things don't mess this up! -- THEY DO... NEED TO FIX....
-#define GET_REGISTER_VALUE_DOUBLE( DREG ) (unsigned __int32)( ( cpu_register.reg32[DREG] >> 16 ) | ( cpu_register.reg32[DREG] << 16 ))
+#define GET_REGISTER_VALUE_DOUBLE( DREG ) (SIMJ_U32)( ( cpu_register.reg32[DREG] >> 16 ) | ( cpu_register.reg32[DREG] << 16 ))
 #define SET_REGISTER_VALUE_DOUBLE( DREG,DVAL) {\
-					cpu_register.reg32[DREG] = (unsigned __int32)( ( (unsigned __int32)DVAL >> 16 ) | ( (unsigned __int32)DVAL << 16 ) ); \
+					cpu_register.reg32[DREG] = (SIMJ_U32)( ( (SIMJ_U32)DVAL >> 16 ) | ( (SIMJ_U32)DVAL << 16 ) ); \
 					}
 // TODO: Make sure endian things don't mess this up! -- THEY DO... NEED TO FIX....
-#define GET_REGISTER_VALUE_QUAD( QREG )  (unsigned __int64)( \
-							( ( cpu_register.reg64[QREG] >> 48 ) & (unsigned __int64)0x000000000000ffff ) | \
-							( ( cpu_register.reg64[QREG] >> 16 ) & (unsigned __int64)0x00000000ffff0000 ) | \
-							( ( cpu_register.reg64[QREG] << 16 ) & (unsigned __int64)0x0000ffff00000000 ) | \
-							( ( cpu_register.reg64[QREG] << 48 ) & (unsigned __int64)0xffff000000000000 ))
+#define GET_REGISTER_VALUE_QUAD( QREG )  (SIMJ_U64)( \
+							( ( cpu_register.reg64[QREG] >> 48 ) & (SIMJ_U64)0x000000000000ffff ) | \
+							( ( cpu_register.reg64[QREG] >> 16 ) & (SIMJ_U64)0x00000000ffff0000 ) | \
+							( ( cpu_register.reg64[QREG] << 16 ) & (SIMJ_U64)0x0000ffff00000000 ) | \
+							( ( cpu_register.reg64[QREG] << 48 ) & (SIMJ_U64)0xffff000000000000 ))
 
 
 #define SET_REGISTER_VALUE_QUAD( QREG,QVAL) {\
-						cpu_register.reg64[QREG] = (unsigned __int64)( \
-							( ( (unsigned __int64)QVAL >> 48 ) & (unsigned __int64)0x000000000000ffff ) | \
-							( ( (unsigned __int64)QVAL >> 16 ) & (unsigned __int64)0x00000000ffff0000 ) | \
-							( ( (unsigned __int64)QVAL << 16 ) & (unsigned __int64)0x0000ffff00000000 ) | \
-							( ( (unsigned __int64)QVAL << 48 ) & (unsigned __int64)0xffff000000000000 )); \
+						cpu_register.reg64[QREG] = (SIMJ_U64)( \
+							( ( (SIMJ_U64)QVAL >> 48 ) & (SIMJ_U64)0x000000000000ffff ) | \
+							( ( (SIMJ_U64)QVAL >> 16 ) & (SIMJ_U64)0x00000000ffff0000 ) | \
+							( ( (SIMJ_U64)QVAL << 16 ) & (SIMJ_U64)0x0000ffff00000000 ) | \
+							( ( (SIMJ_U64)QVAL << 48 ) & (SIMJ_U64)0xffff000000000000 )); \
 					}
+
+#define ISREGNUM_DOUBLE( REG )  ( ( REG & 0x1) == 0 )
+#define ISREGNUM_QUAD( REG )  ( ( REG & 0x3) == 0 )

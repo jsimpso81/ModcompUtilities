@@ -1,8 +1,8 @@
 //  util_start_thread
-#include <windows.h>
-#include <process.h>
+#include "simj_base.h"
 
-#include "modcomp_sim_types.h"
+
+#include <process.h>
 
 
 uintptr_t device_common_start_thread(void* data_buffer,  DEVICE_WORKER_THREAD thread_proc, unsigned* thread_id ) {

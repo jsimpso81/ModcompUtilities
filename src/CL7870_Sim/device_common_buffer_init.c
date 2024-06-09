@@ -1,6 +1,5 @@
+#include "simj_base.h"
 
-
-#include "modcomp_sim_types.h"
 
 void device_common_buffer_init(volatile DEVICE_BUFFER* buff) {
 

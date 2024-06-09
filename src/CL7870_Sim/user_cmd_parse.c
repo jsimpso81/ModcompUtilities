@@ -1,7 +1,8 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-
 
 void cmd_process_parse( char* cmd_line, int max_len, char* cmd_line_parse[], int max_items, int* count_found) {
 

@@ -1,6 +1,5 @@
+#include "simj_base.h"
 
-
-#include "modcomp_sim_procedures.h"
 
 void que_uword_init(volatile QUEUE_UWORD* que) {
 

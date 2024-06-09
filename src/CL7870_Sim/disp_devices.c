@@ -1,8 +1,9 @@
+#include "simj_base.h"
+
 #include <stdio.h>
+
 #include <stdbool.h>
 #include <string.h>
-
-#include "modcomp_sim_external_globals.h"
 
 
 void disp_devices(FILE* io_unit) {

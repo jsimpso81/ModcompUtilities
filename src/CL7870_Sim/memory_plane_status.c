@@ -1,9 +1,7 @@
+#include "simj_base.h"
+
 #include <stdio.h>
 
-
-#include "modcomp_sim_types.h"
-
-#include "modcomp_sim_procedures.h"
 
 // --- word 0
 //			0 - e - error
@@ -32,7 +30,7 @@
 #define MEM_STAT_ID_128KW_SS	1
 
 typedef struct {
-	unsigned __int16 memory_plane_status[5];
+	SIMJ_U16 memory_plane_status[5];
 } MEM_PLANE_STATUS;
 
 //  -------- use 3586-3 memory 256 kw boards each with 2 128 kw module
@@ -56,13 +54,13 @@ void memory_plane_init() {
 
 
 // ===================================================================================================================
-unsigned __int16 memory_plane_RMPS(unsigned __int16 first_reg, unsigned __int16 second_reg) {
+SIMJ_U16 memory_plane_RMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg) {
 
-	unsigned __int16 ema;
-	unsigned __int16 ma;
-	unsigned __int16 reg;
+	SIMJ_U16 ema;
+	SIMJ_U16 ma;
+	SIMJ_U16 reg;
 
-	unsigned __int16 plane;
+	SIMJ_U16 plane;
 
 	// first reg
 	//	0 - 10 not used

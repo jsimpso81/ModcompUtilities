@@ -1,24 +1,26 @@
 #pragma once
-#include <windows.h>
+
+#include "simj_base.h"
+
 #include <stdbool.h>
 
 
 typedef union {
-	unsigned __int16 uval;
-	signed __int16 sval;
+	SIMJ_U16 uval;
+	SIMJ_S16 sval;
 } VAL16;
 
 
 typedef union {
-	unsigned __int32 uval;
-	signed __int32 sval;
-	unsigned __int16 zval[2];
+	SIMJ_U32 uval;
+	SIMJ_S32 sval;
+	SIMJ_U16 zval[2];
 } VAL32;
 
 typedef union {
-	unsigned __int64 uval;
-	signed __int64 sval;
-	unsigned __int16 zval[4];
+	SIMJ_U64 uval;
+	SIMJ_S64 sval;
+	SIMJ_U16 zval[4];
 } VAL64;
 
 
@@ -29,14 +31,14 @@ typedef struct {
 	bool cc_z : 1;
 	bool cc_n : 1;
 	bool oh : 1;
-	unsigned __int8 om : 3;
-	unsigned _int8  grb : 4;
+	SIMJ_U8 om : 3;
+	SIMJ_U8  grb : 4;
 	bool prv : 1;
-	unsigned __int8 im : 3;
+	SIMJ_U8 im : 3;
 }  PSW_BITS;
 
 typedef union {
-	unsigned __int16 all;
+	SIMJ_U16 all;
 	PSW_BITS sep;
 } PSW;
 
@@ -53,11 +55,11 @@ typedef enum {
 // --------Mem map entry
 typedef union {
 	struct {
-		unsigned __int16 mem_page : 13;
+		SIMJ_U16 mem_page : 13;
 		bool shared : 1;
 		MEM_ACC_RIGHTS : 2;
 	} parts;
-	unsigned __int16 all;
+	SIMJ_U16 all;
 }  MEM_MAP_BITS;
 
 // -------- a complete memory map
@@ -69,42 +71,42 @@ typedef union {
 // -------- instruction parts
 typedef union {
 	struct {
-		unsigned __int8	src_reg : 4;
-		unsigned __int8 dest_reg : 4;
-		unsigned __int8 op_code : 8;
+		SIMJ_U8	src_reg : 4;
+		SIMJ_U8 dest_reg : 4;
+		SIMJ_U8 op_code : 8;
 	} parts;
-	unsigned __int16 all;
+	SIMJ_U16 all;
 } INSTRUCTION;
 
 
 typedef struct {
-	unsigned __int16 pc;		// program counter
-	unsigned __int16 ps;		// status word
+	SIMJ_U16 pc;		// program counter
+	SIMJ_U16 ps;		// status word
 } PROC_STATUS_DOUBLEWORD;
 
 
 typedef union {
-	unsigned __int16 reg16[16];
-	unsigned __int32 reg32[8];
-	unsigned __int64 reg64[4];
+	SIMJ_U16 reg16[16];
+	SIMJ_U32 reg32[8];
+	SIMJ_U64 reg64[4];
 } REG_BLOCK;
 
 // -------- IO procedures
-typedef void (*DEVICE_OUTPUT_DATA)(unsigned __int16 device_address, unsigned __int16 data_word);
-typedef void (*DEVICE_OUTPUT_CMD)(unsigned __int16 device_address, unsigned __int16 cmd_word);
-typedef unsigned __int16 (*DEVICE_INPUT_STATUS)(unsigned __int16 device_address );
-typedef unsigned __int16 (*DEVICE_INPUT_DATA)(unsigned __int16 device_address );
+typedef void (*DEVICE_OUTPUT_DATA)(SIMJ_U16 device_address, SIMJ_U16 data_word);
+typedef void (*DEVICE_OUTPUT_CMD)(SIMJ_U16 device_address, SIMJ_U16 cmd_word);
+typedef SIMJ_U16 (*DEVICE_INPUT_STATUS)(SIMJ_U16 device_address );
+typedef SIMJ_U16 (*DEVICE_INPUT_DATA)(SIMJ_U16 device_address );
 //typedef DWORD (*DEVICE_WORKER_THREAD)(LPVOID lpParam);
 #define DEVICE_WORKER_THREAD  LPTHREAD_START_ROUTINE
 
 
 // --------structure for unsigned word queues
 typedef struct {
-	volatile unsigned __int16	data[256];
-	volatile unsigned __int8	next_in_index;
-	volatile unsigned __int8	last_proc_index;
-	volatile unsigned __int16	unproc_count;
-	volatile unsigned __int16	proc_count;
+	volatile SIMJ_U16	data[256];
+	volatile SIMJ_U8	next_in_index;
+	volatile SIMJ_U8	last_proc_index;
+	volatile SIMJ_U16	unproc_count;
+	volatile SIMJ_U16	proc_count;
 } QUEUE_UWORD;
 
 // TODO: Make this a macro to support different sizes.
@@ -113,7 +115,7 @@ typedef struct {
 	unsigned int buf_len;
 	volatile unsigned int last_byte_writen_index;		// when next write index = last read index = buffer is full.
 	volatile unsigned int last_byte_read_index;			//  when index = nothing to read. 
-	volatile unsigned __int8 buffer[DEVICE_BUFFER_MAX_LEN];
+	volatile SIMJ_U8 buffer[DEVICE_BUFFER_MAX_LEN];
 } DEVICE_BUFFER;
 
 

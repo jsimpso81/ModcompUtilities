@@ -1,4 +1,5 @@
-#include <windows.h>
+#include "simj_base.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 

@@ -1,12 +1,11 @@
-#include <stdio.h>
+#include "simj_base.h"
 
-#include "modcomp_sim_external_globals.h"
-#include "modcomp_sim_procedures.h"
+#include <stdio.h>
 
 
 void disp_instruction_use(FILE* io_unit) {
 
-	unsigned __int16 j = 0;
+	SIMJ_U16 j = 0;
 	char opcode[100];
 
 	for (j = 0; j < 256; j++) {

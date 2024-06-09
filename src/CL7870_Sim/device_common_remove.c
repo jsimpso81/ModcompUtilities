@@ -1,8 +1,6 @@
-#include <windows.h>
+#include "simj_base.h"
 
-#include "modcomp_sim_external_globals.h"
-
-void device_common_remove(unsigned __int16 device_address) {
+void device_common_remove(SIMJ_U16 device_address) {
 
 	iop_output_data_proc[device_address] = NULL;
 	iop_output_cmd_proc[device_address] = NULL;

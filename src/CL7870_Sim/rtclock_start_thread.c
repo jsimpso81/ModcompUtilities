@@ -1,19 +1,8 @@
+#include "simj_base.h"
 
-#include <windows.h>
-#include <synchapi.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <process.h>
-
-#include "modcomp_sim_external_globals.h"
-#include "modcomp_sim_procedures.h"
-
-
-#include <windows.h>
-#include <stdio.h>
-
-#include "modcomp_sim_external_globals.h"
-#include "modcomp_sim_procedures.h"
 
 uintptr_t   rtclock_thread_handle;
 DWORD   rtclock_thread_id;

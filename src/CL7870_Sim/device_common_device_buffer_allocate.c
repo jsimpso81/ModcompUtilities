@@ -1,15 +1,12 @@
-#include <windows.h>
-#include <stdio.h>
+#include "simj_base.h"
 
-#include "modcomp_sim_types.h"
-#include "modcomp_sim_external_globals.h"
-#include "modcomp_sim_procedures.h"
+#include <stdio.h>
 
 
 // ---------this just allocates the memory, nothing else....
-void* device_common_device_buffer_allocate(unsigned __int16 device_address, size_t buffer_size) {
+void* device_common_device_buffer_allocate(SIMJ_U16 device_address, size_t buffer_size) {
 
-	unsigned __int16 loc_dev_addr;
+	SIMJ_U16 loc_dev_addr;
 
 	loc_dev_addr = device_address;
 
