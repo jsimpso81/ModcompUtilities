@@ -16,10 +16,12 @@ void user_cmd_print_help() {
 //	printf("      device console tcp <port> - define console device and assign to tcp port\n");
 
 	printf("      ci - console interrupt\n");
+	printf("      config file <file_name>	- process a file of commands.\n");
 	printf("      fill <device addr> - fill\n");
 	printf("      exit - stop emulation and exit program\n");
 	printf("      halt - halt cpu\n");
 	printf("      help - print this list of commands\n");
+	printf("      ? - print this list of commands\n");
 	printf("      power - power on.  Simulates a system power cycle.  More than a master clear.\n");
 	printf("      mc - master clear\n");
 	printf("      run - run cpu\n");
@@ -37,6 +39,7 @@ void user_cmd_print_help() {
 	printf("      show int - show interrupts\n");
 	printf("      show mem <start> <end> - show memory\n");
 	printf("      show pc - show program counter\n");
+	printf("      show power - show power on status\n");
 	printf("      show psw - show processor status word\n");
 	printf("      show reg - show current register value\n");
 	printf("      show run - show current cpu run state\n");

@@ -149,6 +149,7 @@ static bool skip_interrupt_determination = false;
 
 static int use_extended_addressing_mode = 0;	// state machine 0 = none, 1 = next instr to use, 2 = after next instruction
 
+static bool cpu_power_on = false;
 
 #include "cpu_macro_register_access.h"
 
@@ -173,6 +174,9 @@ void cpu_init_data() {
 // ===========================================================================================================
 void cpu_stop_data() {
 
+	// -------- set virtual cpu power off.
+	cpu_power_on = false;
+
 	// --------initialize the critical section for interrupt requests.
 	// Initialize the critical section one time only.
 	DeleteCriticalSection(&CritSectInterruptRequest);
@@ -180,9 +184,27 @@ void cpu_stop_data() {
 
 }
 
+// ===========================================================================================================
+void cpu_set_power_on() {
+
+	// -------- set virtual power on.
+	cpu_power_on = true;
+
+	// --------do a master clear -- real power on probably does some extra stuff.
+	cpu_master_clear();
+
+	return;
+
+}
 
 // ===========================================================================================================
 void cpu_master_clear() {
+
+	// --------can't master clear unless cpu virtual power is on.
+	if (!cpu_power_on) {
+		printf(" *** ERROR ***  Cant Master Clear cpu.  Cpu must be powered on first.\n");
+		return;
+	}
 
 	// --------set actual mode (non-virtual mode)
 	cpu_virtual_mode = false;
@@ -235,6 +257,12 @@ void cpu_master_clear() {
 }
 
 // ===========================================================================================================
+bool cpu_get_power_on() {
+	return cpu_power_on;
+}
+
+
+// ===========================================================================================================
 void cpu_get_interrupt(SIMJ_U16* act, SIMJ_U16* req, SIMJ_U16* ena, 
 				SIMJ_U32* di_req, SIMJ_U32* di_prc, SIMJ_U32* si_req, SIMJ_U32* si_prc ) {
 	*act = cpu_interrupt_active;
@@ -252,10 +280,9 @@ void cpu_get_interrupt(SIMJ_U16* act, SIMJ_U16* req, SIMJ_U16* ena,
 void cpu_request_DI( SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr ) {
 
 
-
 	// ------- prio, bus combinations should result in unique dev-addr...
 
-	if ( ( cpu_intr_DI & cpu_interrupt_enabled ) != 0) {
+	if ( (( cpu_intr_DI & cpu_interrupt_enabled ) != 0) && cpu_power_on ) {
 
 		// -------- Request ownership of the critical section.
 		EnterCriticalSection(&CritSectInterruptRequest);
@@ -280,7 +307,7 @@ void cpu_request_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr) {
 
 	// ------- prio, bus combinations should result in unique dev-addr...
 
-	if ( ( cpu_intr_SI & cpu_interrupt_enabled ) != 0 ) {
+	if ( ( ( cpu_intr_SI & cpu_interrupt_enabled ) != 0 ) && cpu_power_on ) {
 		// -------- Request ownership of the critical section.
 		EnterCriticalSection(&CritSectInterruptRequest);
 		cpu_interrupt_SI_request_dev_addr[prio][bus] = dev_addr;
@@ -388,29 +415,40 @@ SIMJ_U16 cpu_get_clock_trigger_count() {
 
 // ===========================================================================================================
 void cpu_trigger_console_interrupt() {
-	// -------- Request ownership of the critical section.
-	EnterCriticalSection(&CritSectInterruptRequest);
-	cpu_interrupt_request |= (cpu_intr_console & cpu_interrupt_enabled);
-	// -------- Release ownership of the critical section.
-	LeaveCriticalSection(&CritSectInterruptRequest);
+
+	if (cpu_power_on) {
+		// -------- Request ownership of the critical section.
+		EnterCriticalSection(&CritSectInterruptRequest);
+		cpu_interrupt_request |= (cpu_intr_console & cpu_interrupt_enabled);
+		// -------- Release ownership of the critical section.
+		LeaveCriticalSection(&CritSectInterruptRequest);
+	}
 }
 
 
 
 // ===========================================================================================================
 void cpu_trigger_clock_interrupt() {
-	cpu_trigger_clock_int++;
-	// -------- Request ownership of the critical section.
-	EnterCriticalSection(&CritSectInterruptRequest);
-	cpu_interrupt_request |= (cpu_intr_clock & cpu_interrupt_enabled);
-	// -------- Release ownership of the critical section.
-	LeaveCriticalSection(&CritSectInterruptRequest);
+
+	if (cpu_power_on) {
+		cpu_trigger_clock_int++;
+		// -------- Request ownership of the critical section.
+		EnterCriticalSection(&CritSectInterruptRequest);
+		cpu_interrupt_request |= (cpu_intr_clock & cpu_interrupt_enabled);
+		// -------- Release ownership of the critical section.
+		LeaveCriticalSection(&CritSectInterruptRequest);
+	}
 }
 
 // ===========================================================================================================
 // TODO: only set if halted.
 void cpu_set_register_value(SIMJ_U16 reg_index, SIMJ_U16 reg_value) {
-	SET_REGISTER_VALUE( reg_index, reg_value );
+	if (!gbl_fp_runlight && !gbl_fp_single_step) {
+		SET_REGISTER_VALUE(reg_index, reg_value);
+	}
+	else {
+		printf(" *** ERROR ***  Cant set register value while CPU is running.\n");
+	}
 }
 
 
@@ -423,7 +461,12 @@ SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index) {
 // ===========================================================================================================
 // TODO: Only set program counter if halted....
 void cpu_set_program_counter(SIMJ_U16 pc) {
-	program_counter = pc;
+	if (!gbl_fp_runlight && !gbl_fp_single_step) {
+		program_counter = pc;
+	}
+	else {
+		printf(" *** ERROR ***  Cant set program counter value while CPU is running.\n");
+	}
 }
 
 

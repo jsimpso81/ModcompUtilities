@@ -16,6 +16,8 @@ int main(int argc, char* argv[]) {
 
     bool done = false;
     int j;
+    bool have_config_file = false;
+    char config_file_name[500];
 
 
     /* -------- annouce our program  */
@@ -46,15 +48,15 @@ int main(int argc, char* argv[]) {
                 // --------there should be another argument that is the file name.
                 j++;
                 if (j < argc) {
-                    // --------get and store configuration file name.
-                    // --------make certain the configuration file exists, otherwise flag error.
+                    // --------store config file name, set flag indicating there is a config file.
+                    strcpy_s(&config_file_name[0], sizeof(config_file_name), argv[j]);
+                    have_config_file = true;
                 }
                 else {
                     printf(" *** ERROR ***  Configuration file command line parameer -c must be followed with the confuration filename.\n");
                 }
  
             }
-
 
             /* --------unrecognized parameter */
             else {
@@ -83,6 +85,9 @@ int main(int argc, char* argv[]) {
     Sleep(500);
 
     // --------if an initial configuration file exists, read it and process the commands.
+    if (have_config_file) {
+        user_cmd_config_execute(&config_file_name[0]);
+    }
 
     // -------- process user commands.   it returns when the exit command is given.
     process_user_commands(stdin);

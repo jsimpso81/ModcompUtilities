@@ -135,6 +135,21 @@
     <ClCompile Include="simj_base.h">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="user_cmd_config_execute.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpu_do_fill.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpu_do_run.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpu_do_step.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util_is_same_stream.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

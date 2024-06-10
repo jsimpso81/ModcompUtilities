@@ -6,10 +6,15 @@
 
 // -------- cpu
 void cpu_init_data();
+void cpu_do_fill(SIMJ_U16 new_switch_value);
+void cpu_do_run();
+void cpu_do_step(SIMJ_U16 step_count);
 SIMJ_U16 cpu_get_program_counter();
 PSW cpu_get_current_PSW();
 SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index);
+bool cpu_get_power_on();
 void cpu_set_register_value(SIMJ_U16 reg_index, SIMJ_U16 reg_value);
+void cpu_set_power_on();
 void cpu_set_program_counter(SIMJ_U16 pc);
 void cpu_set_switches(SIMJ_U16 switch_value);
 void cpu_classic_7860();
@@ -32,9 +37,11 @@ void rtclock_stop_thread();
 
 // -------- user command
 void process_user_commands(FILE* cmd_src);
+void user_cmd_config_execute(char* input_file_name);
 void user_cmd_print_help();
 void cmd_process_print_prompt();
 void cmd_process_parse(char* cmd_line, int max_len, char* cmd_line_parse[], int max_items, int* count_found);
+void user_cmd_config_execute(char* input_file_name);
 
 // -------- iop
 void iop_init_data();
@@ -83,6 +90,7 @@ void disp_instruction_use( FILE* io_unit);
 
 // -------- util
 void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size);
+bool util_is_same_stream(FILE* one, FILE* two);
 
 // --------templates for external interface
 void rmi_request(SIMJ_U16 rmi_request);
