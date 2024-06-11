@@ -825,6 +825,18 @@ void cpu_classic_7860() {
 		// -------- fetch the next instruction
 		instruction.all = GET_MEMORY_VALUE_IM(program_counter);
 
+		// -------- check for EXI and EXR instructions.  These are special.  Replace the value
+		// -------- of instruction with the results of that instruction.
+		if (instruction.parts.op_code == OP_EXR) {
+			cpu_inst_used[instruction.parts.op_code]++;	// debug
+			instruction.all = GET_SOURCE_REGISTER_VALUE | GET_DESTINATION_REGISTER_VALUE;
+		}
+		else if ((instruction.all & 0xff0f) == 0xe805) {
+			cpu_inst_used[instruction.parts.op_code]++;	// debug
+			instruction.all = GET_MEMORY_VALUE_IMMEDIATE | GET_DESTINATION_REGISTER_VALUE;
+			program_counter++;		// it only makes sense to do this.  document doesn't mention this.
+		}
+
 		// -------- debug -- fill array of used instrutions
 		cpu_inst_used[instruction.parts.op_code]++;
 
@@ -1268,27 +1280,32 @@ void cpu_classic_7860() {
 			break;
 
 			case  OP_DVR:			// 0x21  --  Divide Register By Register
-				tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-				tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE;
-				tmp32_val2.sval = tmp16_val2.sval;		// sign extend
-				if (tmp32_val2.sval != 0) {		// dont divide by zero.
-					tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
-					tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+				if ( ISREGNUM_DOUBLE(tmp_instr_dest) ) {
+					tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+					tmp16_val2.uval = GET_SOURCE_REGISTER_VALUE;
+					tmp32_val2.sval = tmp16_val2.sval;		// sign extend
+					if (tmp32_val2.sval != 0) {		// dont divide by zero.
+						tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+						tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+					}
+					else {
+						tmp32_val3.uval = 0;
+						tmp32_val6.uval = 0;
+					}
+					tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+					tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+					tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+					SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+					SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+					SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				}
 				else {
-					tmp32_val3.uval = 0;
-					tmp32_val6.uval = 0;
+					ILLEGAL_INSTRUCTION;
 				}
-				tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
-				tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
-				tmp_instr_dest = ( GET_DESTINATION_REGISTER_NUMB & 0x00e );		// must be even.
-				SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
-				SET_REGISTER_VALUE(tmp_instr_dest+1, tmp16_val3.uval);		// quotient
-				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
-				SET_CC_N(ISVAL32_NEG(tmp32_val3));
-				SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
-				SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 				break;
 
 			// TODO: This is the same as ADRD ????
@@ -3102,27 +3119,32 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_DVM:			// 	        0xa1  --  DVM  --  Divide Register by Memory        
-			tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-			tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
-			tmp32_val2.sval = tmp16_val2.sval;	// sign extend.
-			if ( tmp32_val2.sval != 0 ) {
-				tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
-				tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+			if ( ISREGNUM_DOUBLE(tmp_instr_dest) ) {
+				tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp16_val2.uval = GET_MEMORY_VALUE_DIRECT;
+				tmp32_val2.sval = tmp16_val2.sval;	// sign extend.
+				if (tmp32_val2.sval != 0) {
+					tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+					tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+				}
+				else {
+					tmp32_val3.uval = 0;
+					tmp32_val6.uval = 0;
+				}
+				tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+				tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+				tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+				SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+				SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+				SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			}
 			else {
-				tmp32_val3.uval = 0;
-				tmp32_val6.uval = 0;
+				ILLEGAL_INSTRUCTION;
 			}
-			tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
-			tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
-			tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
-			SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
-			SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
-			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
-			SET_CC_N(ISVAL32_NEG(tmp32_val3));
-			SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
-			SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 			break;
 
 		case  OP_MPRD_MPMD:		//        0xa2 --
@@ -3183,7 +3205,66 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_DVRD_DVMD:		//        0xa3
-			UNIMPLEMENTED_INSTRUCTION;
+			switch (instruction.parts.dest_reg & 0x1) {
+
+				case 0:				//  --  DVRD  --  Divide Quad-Register by Double-Register        
+					if ( ISREGNUM_QUAD(tmp_instr_dest) && ISREGNUM_DOUBLE(tmp_instr_src) ) {
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+						tmp32_val2.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+						tmp64_val2.sval = tmp32_val2.sval;		// sign extend
+						if (tmp64_val2.sval != 0) {		// dont divide by zero.
+							tmp64_val3.sval = tmp64_val1.sval / tmp32_val2.sval;	// quotient
+							tmp64_val6.sval = tmp64_val1.sval % tmp32_val2.sval;	// remainder
+						}
+						else {
+							tmp64_val3.uval = 0;
+							tmp64_val6.uval = 0;
+						}
+						tmp32_val3.uval = (SIMJ_U32)(tmp64_val3.uval & 0x00000000ffffffff);		// low 32 bits of quotient.
+						tmp32_val6.uval = (SIMJ_U32)(tmp64_val6.uval & 0x00000000ffffffff);		// low 32 bits of remainder.
+						tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB_DOUBLE & 0x000e;			// must be even
+						SET_REGISTER_VALUE_DOUBLE(tmp_instr_dest, tmp32_val6.uval);				// remainder
+						SET_REGISTER_VALUE_DOUBLE(tmp_instr_dest + 1, tmp32_val3.uval);			// quotient
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
+						SET_CC_O(((tmp64_val3.uval & 0xffffffff00000000) != 0) && ((tmp64_val3.uval & 0xffffffff00000000) != 0xffffffff00000000));	// not a 32 bit result
+						SET_CC_C(ISVAL64_ZERO(tmp64_val2));		// divide by zero
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
+					}
+					else {
+						ILLEGAL_INSTRUCTION;
+					}
+					break;
+
+				case 1:				//  --  DVMD  --  Divide Quad-Register by Memory Doubleword       
+					if (ISREGNUM_QUAD(tmp_instr_dest) && ISREGNUM_DOUBLE(tmp_instr_src)) {
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+						tmp32_val2.uval = GET_MEMORY_VALUE_DIRECT_DOUBLE;
+						tmp64_val2.sval = tmp32_val2.sval;		// sign extend
+						if (tmp64_val2.sval != 0) {		// dont divide by zero.
+							tmp64_val3.sval = tmp64_val1.sval / tmp32_val2.sval;	// quotient
+							tmp64_val6.sval = tmp64_val1.sval % tmp32_val2.sval;	// remainder
+						}
+						else {
+							tmp64_val3.uval = 0;
+							tmp64_val6.uval = 0;
+						}
+						tmp32_val3.uval = (SIMJ_U32)(tmp64_val3.uval & 0x00000000ffffffff);		// low 32 bits of quotient.
+						tmp32_val6.uval = (SIMJ_U32)(tmp64_val6.uval & 0x00000000ffffffff);		// low 32 bits of remainder.
+						tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB_DOUBLE & 0x00e;			// must be even
+						SET_REGISTER_VALUE_DOUBLE(tmp_instr_dest, tmp32_val6.uval);				// remainder
+						SET_REGISTER_VALUE_DOUBLE(tmp_instr_dest + 1, tmp32_val3.uval);			// quotient
+						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
+						SET_CC_N(ISVAL64_NEG(tmp64_val3));
+						SET_CC_O(((tmp64_val3.uval & 0xffffffff00000000) != 0) && ((tmp64_val3.uval & 0xffffffff00000000) != 0xffffffff00000000));	// not a 32 bit result
+						SET_CC_C(ISVAL64_ZERO(tmp64_val2));		// divide by zero
+						SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
+					}
+					else {
+						ILLEGAL_INSTRUCTION;
+					}
+					break;
+			}
 			break;
 
 		case  OP_LFM:			// 	        0xa4
@@ -3465,27 +3546,32 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_DVS:			// 	        0xb1  --  DVS  --  Divide Register by Memory (Short-Displaced)       
-			tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-			tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
-			tmp32_val2.sval = tmp16_val2.sval;
-			if ( tmp32_val2.sval != 0 ) {
-				tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
-				tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+			if ( ISREGNUM_DOUBLE(tmp_instr_dest) ) {
+				tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_DISPLACED;
+				tmp32_val2.sval = tmp16_val2.sval;
+				if (tmp32_val2.sval != 0) {
+					tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+					tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+				}
+				else {
+					tmp32_val3.uval = 0;
+					tmp32_val6.uval = 0;
+				}
+				tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+				tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+				tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+				SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+				SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+				SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			else {
-				tmp32_val3.uval = 0;
-				tmp32_val6.uval = 0;
+				ILLEGAL_INSTRUCTION;
 			}
-			tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
-			tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
-			tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
-			SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
-			SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
-			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
-			SET_CC_N(ISVAL32_NEG(tmp32_val3));
-			SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
-			SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_SCCC:			// 	        0xb2  - SCCC  --  Sefect Current Condition Codes in PSD      
@@ -3497,8 +3583,10 @@ void cpu_classic_7860() {
 			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
+		// -------- the only way to get here is if the result of an EXI or EXR instruction is an EXI
+		// -------- instruction.
 		case  OP_EXR:			// 	        0xb3
-			UNIMPLEMENTED_INSTRUCTION;
+			ILLEGAL_INSTRUCTION;
 			break;
 
 		case  OP_LFS:			// 	        0xb4
@@ -3598,27 +3686,32 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_DVX:			// 	        0xb9  --  DVX  --  Divide Register by Memory (Short-Indexed)       
-			tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-			tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
-			tmp32_val2.sval = tmp16_val2.sval;
-			if ( tmp32_val2.sval != 0 ) {
-				tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
-				tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+			if ( ISREGNUM_DOUBLE(tmp_instr_dest) ) {
+				tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				tmp16_val2.uval = GET_MEMORY_VALUE_SHORT_INDEXED;
+				tmp32_val2.sval = tmp16_val2.sval;
+				if (tmp32_val2.sval != 0) {
+					tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+					tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+				}
+				else {
+					tmp32_val3.uval = 0;
+					tmp32_val6.uval = 0;
+				}
+				tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+				tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+				tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+				SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+				SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+				SET_CC_N(ISVAL32_NEG(tmp32_val3));
+				SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+				SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+				SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			}
 			else {
-				tmp32_val3.uval = 0;
-				tmp32_val6.uval = 0;
+				ILLEGAL_INSTRUCTION;
 			}
-			tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
-			tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
-			tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
-			SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
-			SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
-			SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
-			SET_CC_N(ISVAL32_NEG(tmp32_val3));
-			SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
-			SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
-			SET_NEXT_PROGRAM_COUNTER(program_counter + 1);
 			break;
 
 		case  OP_PLM:			// 	        0xba
@@ -4509,8 +4602,10 @@ void cpu_classic_7860() {
 				break;
 
 				// --  5	EXI  --  Execute Immediate	
+				// -------- the only way to get here is if the result of an EXI or EXR instruction is an EXI
+				// -------- instruction.
 			case 5:
-				UNIMPLEMENTED_INSTRUCTION;
+				ILLEGAL_INSTRUCTION;
 				break;
 
 				// --  6	MPI  --  Multiply Immediate	
@@ -4542,27 +4637,32 @@ void cpu_classic_7860() {
 
 				// --  7	DVI  --  Divide Immediate	
 			case 7:
-				tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
-				tmp32_val2.sval = tmp16_val2.sval;
-				if ( tmp32_val2.sval != 0 ) {
-					tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
-					tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+				if ( ISREGNUM_DOUBLE(tmp_instr_dest) ) {
+					tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+					tmp32_val2.sval = tmp16_val2.sval;
+					if (tmp32_val2.sval != 0) {
+						tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
+						tmp32_val6.sval = tmp32_val1.sval % tmp32_val2.sval;	// remainder
+					}
+					else {
+						tmp32_val3.uval = 0;
+						tmp32_val6.uval = 0;
+					}
+					tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
+					tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
+					tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
+					SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
+					SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
+					SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
+					SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				}
 				else {
-					tmp32_val3.uval = 0;
-					tmp32_val6.uval = 0;
+					ILLEGAL_INSTRUCTION;
 				}
-				tmp16_val3.uval = (SIMJ_U16)(tmp32_val3.uval & 0x0000ffff);		// low 16 bits of quotient.
-				tmp16_val6.uval = (SIMJ_U16)(tmp32_val6.uval & 0x0000ffff);		// low 16 bits of remainder.
-				tmp_instr_dest = (GET_DESTINATION_REGISTER_NUMB & 0x00e);		// must be even.
-				SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val6.uval);		// remainder
-				SET_REGISTER_VALUE(tmp_instr_dest + 1, tmp16_val3.uval);		// quotient
-				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
-				SET_CC_N(ISVAL32_NEG(tmp32_val3));
-				SET_CC_O(((tmp32_val3.uval & 0xffff0000) != 0) && ((tmp32_val3.uval & 0xffff0000) != 0xffff0000));	// not a 16 bit result
-				SET_CC_C(ISVAL32_ZERO(tmp32_val2));		// divide by zero
-				SET_NEXT_PROGRAM_COUNTER(program_counter + 2);
 				break;
 
 				// --  8	EPMD  --  Enter Pipeline Mode of Execution	
