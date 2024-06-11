@@ -42,6 +42,9 @@ void user_cmd_print_help();
 void cmd_process_print_prompt();
 void cmd_process_parse(char* cmd_line, int max_len, char* cmd_line_parse[], int max_items, int* count_found);
 void user_cmd_config_execute(char* input_file_name);
+bool user_cmd_parse_u16(char* in_str, SIMJ_U16* out_val, SIMJ_U16 min_val, SIMJ_U16 max_val);
+bool user_cmd_parse_device_type(char* in_device, SIMJ_U16* out_device_type);
+void user_cmd_attach_device(SIMJ_U16 device_type, SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, SIMJ_U16 extra_count, char* extra1, char* extra2);
 
 // -------- iop
 void iop_init_data();

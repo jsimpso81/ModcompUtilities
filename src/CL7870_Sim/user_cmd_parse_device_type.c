@@ -1,0 +1,39 @@
+#include "simj_base.h"
+
+
+bool user_cmd_parse_device_type(char* in_device, SIMJ_U16* out_device_type) {
+
+	const char* valid_devices[8] = {
+			"null",
+			"console",
+			"consoletcp",
+			"tape",
+			"disk_lx",
+			"disk_ips2",
+			"a4811",
+			"modacs"
+	};
+
+	const SIMJ_U16 valid_device_count = 8;
+
+	SIMJ_U16 j;
+	SIMJ_U16 found_device = 9999;
+
+	bool retval = false;
+
+	for (j = 0; j < valid_device_count; j++) {
+		if (strcmp(in_device, valid_devices[j]) == 0) {
+			found_device = j;
+			*out_device_type = j+1;
+			retval = true;
+			break;
+		}
+	}
+
+	if (!retval) {
+		printf(" *** ERROR *** Not a valid device type: %s\n", in_device);
+	}
+
+	return retval;
+
+}

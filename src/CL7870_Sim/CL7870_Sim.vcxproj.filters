@@ -150,6 +150,15 @@
     <ClCompile Include="util_is_same_stream.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="user_cmd_parse_u16.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="user_cmd_parse_device_type.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="user_cmd_attach_device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_procedures.h">

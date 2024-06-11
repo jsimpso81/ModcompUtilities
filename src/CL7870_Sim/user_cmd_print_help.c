@@ -15,6 +15,13 @@ void user_cmd_print_help() {
 //	printf("      device console <comx> - define console device and assign to com port\n");
 //	printf("      device console tcp <port> - define console device and assign to tcp port\n");
 
+
+
+	printf("      attach device console <dev addr> <bus> <prio> <dmp>\n");
+	printf("      attach device null    <dev addr> <bus> <prio> <dmp>\n");
+
+	printf("\n");
+
 	printf("      ci - console interrupt\n");
 	printf("      config file <file_name>	- process a file of commands.\n");
 	printf("      fill <device addr> - fill\n");

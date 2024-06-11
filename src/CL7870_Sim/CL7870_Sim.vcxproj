@@ -164,8 +164,11 @@
     <ClCompile Include="que_uword_send.c" />
     <ClCompile Include="rmi_request.c" />
     <ClCompile Include="simj_base.h" />
+    <ClCompile Include="user_cmd_attach_device.c" />
     <ClCompile Include="user_cmd_config_execute.c" />
     <ClCompile Include="user_cmd_parse.c" />
+    <ClCompile Include="user_cmd_parse_device_type.c" />
+    <ClCompile Include="user_cmd_parse_u16.c" />
     <ClCompile Include="user_cmd_print_help.c" />
     <ClCompile Include="user_cmd_print_prompt.c" />
     <ClCompile Include="device_console.c" />

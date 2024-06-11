@@ -72,6 +72,7 @@ void process_user_commands(FILE* cmd_src) {
 			}
 
 			// --------break command line into separate tokens.   This is VERY crude.
+			// --------cmd_line is changed by this routine.
 			cmd_process_parse(cmd_data->cmd_line, 1023, cmd_data->parsed_list, 100, &cmd_count_found);
 
 			// printf("\n count found = %d\n", cmd_count_found);
@@ -85,6 +86,82 @@ void process_user_commands(FILE* cmd_src) {
 
 				// --------comment
 				if (strcmp(cmd_data->cmd_line_parsed[0], ";") == 0) {
+				}
+
+				// --------config file <filenname>
+				else if (strcmp(cmd_data->cmd_line_parsed[0], "config") == 0) {
+					// -------- not enough parameters
+					if (cmd_count_found != 3) {
+						printf(" *** ERROR *** Expecting \"config file filename.cfg\" Number of parameters : %d\n", cmd_count_found);
+					}
+					// -------- second parameter isnt "file"
+					else if (strcmp(cmd_data->cmd_line_parsed[1], "file") != 0) {
+						printf(" *** ERROR *** Expecting \"config file filename.cfg\" command line is: %s\n", cmd_data->cmd_line);
+					}
+					else if (input_from_file) {
+						printf(" *** ERROR *** Configuration files can not be executed from within a configuratio file.\n");
+					}
+					// -------- all is good execute the file.
+					else {
+						user_cmd_config_execute(cmd_data->cmd_line_parsed[2]);
+					}
+				}
+
+				// --------attach
+				else if (strcmp(cmd_data->cmd_line_parsed[0], "attach") == 0) {
+					// -------- not enough parameters
+					if (cmd_count_found < 2) {
+						printf(" *** ERROR *** Attach command expects at least one more parameter\n");
+					}
+					// -------- device 
+					else if (strcmp(cmd_data->cmd_line_parsed[1], "device") == 0) {
+
+						// -------- check to ensure there are at least 6 parmeters <dev type> <dev addr> <prio> <dmp> <opt1> <opt2>
+						if (cmd_count_found < 7) {
+							printf(" *** ERROR *** Attach device command does not have enough parameters.\n");
+						}
+
+						// --------so far looks good, call a routine to process the specifics.
+						// TODO: add bus number
+						else {
+							bool good1 = false;
+							bool good2 = false;
+							bool good3 = false;
+							bool good4 = false;
+							bool good5 = false;
+							SIMJ_U16 device_type;
+							SIMJ_U16 dev_addr;
+							SIMJ_U16 bus;
+							SIMJ_U16 prio;
+							SIMJ_U16 dmp;
+							good1 = user_cmd_parse_device_type(cmd_data->cmd_line_parsed[2], &device_type);
+							good2 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[3], &dev_addr, 0, 0x3f);
+							if (!good2) {
+								printf(" *** ERROR *** Not a valid device address: %s\n", cmd_data->cmd_line_parsed[3]);
+							}
+							good3 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[4], &bus, 0, 3);
+							if (!good3) {
+								printf(" *** ERROR *** Not a valid I/O bus: %s\n", cmd_data->cmd_line_parsed[4]);
+							}
+							good4 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[5], &prio, 0, 15);
+							if (!good4) {
+								printf(" *** ERROR *** Not a valid priority: %s\n", cmd_data->cmd_line_parsed[5]);
+							}
+							good5 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[6], &dmp, 0, 0x3f);
+							if (!good5) {
+								printf(" *** ERROR *** Not a valid DMP: %s\n", cmd_data->cmd_line_parsed[6]);
+							}
+							// -------- if all good try and initialize this device.
+							if (good1 && good2 && good3 && good4 && good5 ) {
+								user_cmd_attach_device(device_type, dev_addr, bus, prio, dmp, cmd_count_found - 6,
+									cmd_data->cmd_line_parsed[7], cmd_data->cmd_line_parsed[8]);
+							}
+						}
+					}
+					// -------- not a valid attach sub-command..
+					else {
+						printf(" *** ERROR *** Not a valid attach sub-command : %s\n", cmd_data->cmd_line_parsed[1]);
+					}
 				}
 
 				// --------show
