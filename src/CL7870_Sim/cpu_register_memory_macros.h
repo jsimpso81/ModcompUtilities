@@ -65,6 +65,7 @@
 				SET_MEMORY_VALUE_IM( (SIMJ_U16)(program_counter + 1), VAL);\
 				}
 #define GET_MEMORY_VALUE_IMMEDIATE_2ND (GET_MEMORY_VALUE_IM( (SIMJ_U16)(program_counter + 2)))
+#define GET_MEMORY_VALUE_IMMEDIATE_3RD (GET_MEMORY_VALUE_IM( (SIMJ_U16)(program_counter + 3)))
 
 
 // -------- SHORT DISPLACED (S)

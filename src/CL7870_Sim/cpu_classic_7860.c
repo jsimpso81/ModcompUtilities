@@ -4699,22 +4699,58 @@ void cpu_classic_7860() {
 
 				// --  C	LTIL  --  Loop Termination with Indirectly Addressed Control Variable and Literal Terminal Value	
 			case 12:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp16_val5.uval = GET_MEMORY_VALUE_OM(GET_MEMORY_VALUE_IMMEDIATE_2ND);  // -- control variable address
+				tmp16_val1.uval = GET_MEMORY_VALUE_OM(tmp16_val5.uval) + 1;	// -- increment control variable
+				SET_MEMORY_VALUE_OM(tmp16_val5.uval, tmp16_val1.uval);		// -- update control variable
+				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;		// -- terminal value
+				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
+				SET_CC_N(ISVAL16_NEG(tmp16_val3));
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				CONDITIONAL_BRANCH(cpu_cond_code_n, GET_MEMORY_VALUE_IMMEDIATE_3RD, program_counter + 4);
 				break;
 
 				// --  D	LTDL  --  Loop Terminationwit h Directly Addressed Control - Variable - and Literal Terminal Value	
 			case 13:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp16_val5.uval = GET_MEMORY_VALUE_IMMEDIATE_2ND;	// -- control variable address
+				tmp16_val1.uval = GET_MEMORY_VALUE_OM(tmp16_val5.uval) + 1;	// -- increment control variable
+				SET_MEMORY_VALUE_OM(tmp16_val5.uval, tmp16_val1.uval);		// -- update control variable
+				tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;		// -- terminal value
+				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
+				SET_CC_N(ISVAL16_NEG(tmp16_val3));
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				CONDITIONAL_BRANCH( cpu_cond_code_n, GET_MEMORY_VALUE_IMMEDIATE_3RD, program_counter+4 );
 				break;
 
 				// --  E	LTlD  --  Lo0p Termination with Indirectly Addressed Control Variable and Directly Addressed Terminal Value	
 			case 14:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp16_val5.uval = GET_MEMORY_VALUE_OM( GET_MEMORY_VALUE_IMMEDIATE_2ND );	// -- control variable address
+				tmp16_val1.uval = GET_MEMORY_VALUE_OM(tmp16_val5.uval) + 1;	// -- increment control variable
+				SET_MEMORY_VALUE_OM(tmp16_val5.uval, tmp16_val1.uval);		// -- update control variable
+				tmp16_val2.uval = GET_MEMORY_VALUE_OM(GET_MEMORY_VALUE_IMMEDIATE);		// -- terminal value
+				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
+				SET_CC_N(ISVAL16_NEG(tmp16_val3));
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				CONDITIONAL_BRANCH(cpu_cond_code_n, GET_MEMORY_VALUE_IMMEDIATE_3RD, program_counter + 4);
 				break;
 
 				// --  F	LTDD  --  Loop Termination with Directly Addressed - Control Variable and Directly Addressed Terminal Value
 			case 15:
-				UNIMPLEMENTED_INSTRUCTION;
+				tmp16_val5.uval = GET_MEMORY_VALUE_IMMEDIATE_2ND;	// -- control variable address
+				tmp16_val1.uval = GET_MEMORY_VALUE_OM(tmp16_val5.uval) + 1;	// -- increment control variable
+				SET_MEMORY_VALUE_OM(tmp16_val5.uval, tmp16_val1.uval);		// -- update control variable
+				tmp16_val2.uval = GET_MEMORY_VALUE_OM( GET_MEMORY_VALUE_IMMEDIATE );		// -- terminal value
+				tmp16_val3.uval = tmp16_val1.uval - tmp16_val2.uval;
+				SET_CC_N(ISVAL16_NEG(tmp16_val3));
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+				SET_CC_O_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				SET_CC_C_SUB(tmp16_val1, tmp16_val2, tmp16_val3);
+				CONDITIONAL_BRANCH(cpu_cond_code_n, GET_MEMORY_VALUE_IMMEDIATE_3RD, program_counter + 4);
 				break;
 
 			default:
