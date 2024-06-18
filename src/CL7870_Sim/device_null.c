@@ -28,6 +28,8 @@
 
 #define transinit_write			0x0800
 
+void device_null_load_sal(DEVICE_NULL_DATA* device_data);
+void device_null_load_sal_new(DEVICE_NULL_DATA * device_data);
 
 
 // ============================================================================================================================
@@ -113,9 +115,6 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	SIMJ_U16 loc_device_addr = 0;
 	DEVICE_NULL_DATA* device_data = 0;
 
-#include "device_null_initial_boot_block.h"
-#include "device_null_salprep.h"
-#include "device_null_sal.h"
 
 	bool dev_reading = false;
 	bool dev_writing = false;
@@ -127,40 +126,6 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	SIMJ_U16 loc_status = 0;
 	SIMJ_U16 orig_status = 0;
 	SIMJ_U16 loc_cmd = 0;
-
-	int j;
-	int maxj;
-
-	union {
-		SIMJ_U8 byte[2];
-		SIMJ_S16 word;
-		SIMJ_U16 uword;
-	} chksum = { .word = 0 };
-
-	union {
-		SIMJ_U8 byte[2];
-		SIMJ_S16 word;
-		SIMJ_U16 uword;
-	} chksum2 = { .word = 0 };
-
-	union {
-		SIMJ_U8 byte[2];
-		SIMJ_S16 word;
-		SIMJ_U16 uword;
-	} chksum3 = { .word = 0 };
-
-	union {
-		SIMJ_U8 byte[2];
-		SIMJ_S16 word;
-		SIMJ_U16 uword;
-	} chksum_neg = { .word = 0 };
-
-
-	union {
-		SIMJ_U8 byte[2];
-		SIMJ_S16 word;
-		SIMJ_U16 uword;
-	} tmp16 = { .word = 0 };
 
 
 	// -------- get local device address from calling parameter to this routine 
@@ -181,109 +146,10 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	loc_status = (status_exists | status_data_not_ready);
 	device_data->ctrl_status = loc_status;
 
-	// ========================================== Buffer for booting =============================================================================
-	// --------add specific bytes for different I/O cards.  For now use 4809... (these differences may be ignorned
-	// --------anyway by the console controller.
-	//	FIL100(B3LDR) = Z'8000'
-	//	FIL100(B4LDR) = Z'8080'
-	//	FIL100(SMBTI) = Z'8023'
 
-	// --------calculate word checksum of 100 boot block.
-	chksum.word = 0;
-	maxj = sizeof(boot100_data);
-	for (j = 0; j < maxj; j += 2) {
-		tmp16.byte[1] = boot100_data[j];	
-		tmp16.byte[0] = boot100_data[j+1];
-		chksum.uword += tmp16.uword;
-	}
-	chksum_neg.word = -1 * chksum.word;	// so it adds up to zero.
-	fprintf(stderr, " 100 block checksum = 0x%04hx\n", chksum.uword);
+	// device_null_load_sal( device_data );
+	device_null_load_sal_new( device_data );
 
-	// --------store in buffer.
-	boot100_data[maxj - 4] = chksum_neg.byte[1];
-	boot100_data[maxj - 3] = chksum_neg.byte[0];
-
-
-	// --------copy initial boot block to device input data global.
-	maxj = sizeof(initial_boot_block);
-	for (j = 0; j < maxj; j++) {
-		device_common_buffer_put(&device_data->in_buff, initial_boot_block[j]);
-	}
-	fprintf(stderr," initial boot block - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
-	
-	// --------copy 100 boot block start and size to device input data global.
-	maxj = sizeof(boot100_loc_size);
-	for (j = 0; j < maxj; j++) {
-		device_common_buffer_put(&device_data->in_buff, boot100_loc_size[j] );
-	}
-	fprintf(stderr, " 100 boot block offset / size  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
-
-	// --------copy 100 boot block to device input data global.
-	maxj = sizeof(boot100_data);
-	for (j = 0; j < maxj; j++) {
-		device_common_buffer_put(&device_data->in_buff, boot100_data[j] );
-	}
-	fprintf(stderr, " 100 boot block   - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
-
-	// --------copy salprep (400) boot block to device input data global.
-	maxj = sizeof(salprep_data);
-	for (j = 0; j < maxj; j++) {
-		device_common_buffer_put(&device_data->in_buff, salprep_data[j] );
-	}
-	fprintf(stderr, " salprep - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
-
-	// --------calculate word checksum of 400 boot block.
-	chksum2.uword = 0;
-	maxj = sizeof(salprep_data);
-	for (j = 0; j < maxj; j += 2) {
-		tmp16.byte[1] = salprep_data[j];
-		tmp16.byte[0] = salprep_data[j + 1];
-		chksum2.uword += tmp16.uword;
-	}
-
-	chksum.word = chksum2.word * -1;
-
-	fprintf(stderr, " 400 block (salprep) checksum = 0x%04hx\n", chksum.uword);
-
-	//	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum2.byte[1];
-	//	device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = chksum2.byte[0];
-	
-	// device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
-	// device_data->ctrl_input_buffer[device_data->ctrl_input_buffer_count++] = 0;
-
-	// --------copy sal  to device input data global.
-	maxj = sizeof(sal_data);
-	for (j = 0; j < maxj; j++) {
-		device_common_buffer_put(&device_data->in_buff, sal_data[j]);
-	}
-	fprintf(stderr, " sal  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
-
-	// --------calculate word checksum of sal block.
-	// -------- this is a running checksum so dont start at zero.
-	chksum3.uword = 0;
-	maxj = sizeof(sal_data);
-	for (j = 0; j < maxj; j += 2) {
-		tmp16.byte[1] = sal_data[j];
-		tmp16.byte[0] = sal_data[j + 1];
-		chksum3.uword += tmp16.uword;
-	}
-
-	chksum.uword = chksum3.word * -1;
-
-	fprintf(stderr, " sal checksum = 0x%04hx\n", chksum.uword);
-
-	chksum.uword = chksum2.uword + chksum3.uword;
-	chksum.word *= -1;
-	fprintf(stderr, " 400 boot (salprep) and sal overall checksum = 0x%04hx\n", chksum.uword);
-
-	// --------copy running 400 (salprep) boot and sal checksum to input buffer.
-	device_common_buffer_put(&device_data->in_buff, chksum.byte[1]);
-	device_common_buffer_put(&device_data->in_buff, chksum.byte[0]);
-	device_common_buffer_put(&device_data->in_buff, 0);
-	device_common_buffer_put(&device_data->in_buff, 0);
-
-
-	fprintf(stderr, " Null device -- input buffer data filled size = %d\n", device_data->in_buff.last_byte_writen_index);
 
 	// -------------------------------------------------------------------------------------------
 	// -------- do forever, until requested to stop and exit.
@@ -525,4 +391,188 @@ void device_null_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ
 								device_null_input_status);
 
 	}
+}
+
+// ================================================================================================
+void device_null_load_sal( DEVICE_NULL_DATA* device_data ) {
+	// ========================================== Buffer for booting =============================================================================
+	// --------add specific bytes for different I/O cards.  For now use 4809... (these differences may be ignorned
+	// --------anyway by the console controller.
+	//	FIL100(B3LDR) = Z'8000'
+	//	FIL100(B4LDR) = Z'8080'
+	//	FIL100(SMBTI) = Z'8023'
+
+#include "device_null_initial_boot_block.h"
+#include "device_null_salprep.h"
+#include "device_null_sal.h"
+
+	int j;
+	int maxj;
+
+	union {
+		SIMJ_U8 byte[2];
+		SIMJ_S16 word;
+		SIMJ_U16 uword;
+	} chksum = { .word = 0 };
+
+	union {
+		SIMJ_U8 byte[2];
+		SIMJ_S16 word;
+		SIMJ_U16 uword;
+	} chksum2 = { .word = 0 };
+
+	union {
+		SIMJ_U8 byte[2];
+		SIMJ_S16 word;
+		SIMJ_U16 uword;
+	} chksum3 = { .word = 0 };
+
+	union {
+		SIMJ_U8 byte[2];
+		SIMJ_S16 word;
+		SIMJ_U16 uword;
+	} chksum_neg = { .word = 0 };
+
+
+	union {
+		SIMJ_U8 byte[2];
+		SIMJ_S16 word;
+		SIMJ_U16 uword;
+	} tmp16 = { .word = 0 };
+
+
+
+	// --------calculate word checksum of 100 boot block.
+	chksum.word = 0;
+	maxj = sizeof(boot100_data);
+	for (j = 0; j < maxj; j += 2) {
+		tmp16.byte[1] = boot100_data[j];
+		tmp16.byte[0] = boot100_data[j + 1];
+		chksum.uword += tmp16.uword;
+	}
+	chksum_neg.word = -1 * chksum.word;	// so it adds up to zero.
+	fprintf(stderr, " 100 block checksum = 0x%04hx\n", chksum.uword);
+
+	// --------store in buffer.
+	// boot100_data[maxj - 4] = chksum_neg.byte[1];
+	// boot100_data[maxj - 3] = chksum_neg.byte[0];
+
+	// --------copy initial boot block to device input data global.
+	maxj = sizeof(initial_boot_block);
+	for (j = 0; j < maxj; j++) {
+		device_common_buffer_put(&device_data->in_buff, initial_boot_block[j]);
+	}
+	fprintf(stderr, " initial boot block - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+
+	// --------copy 100 boot block start and size to device input data global.
+	maxj = sizeof(boot100_loc_size);
+	for (j = 0; j < maxj; j++) {
+		device_common_buffer_put(&device_data->in_buff, boot100_loc_size[j]);
+	}
+	fprintf(stderr, " 100 boot block offset / size  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+
+	// --------copy 100 boot block to device input data global.
+	maxj = sizeof(boot100_data);
+	for (j = 0; j < maxj; j++) {
+		device_common_buffer_put(&device_data->in_buff, boot100_data[j]);
+	}
+	fprintf(stderr, " 100 boot block   - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+
+	// boot100_data[maxj - 4] = chksum_neg.byte[1];
+	// boot100_data[maxj - 3] = chksum_neg.byte[0];
+	fprintf(stderr, " 100 block checksum = 0x%04hx\n", chksum_neg.word);
+
+	device_common_buffer_put(&device_data->in_buff, chksum_neg.byte[1]);
+	device_common_buffer_put(&device_data->in_buff, chksum_neg.byte[0]);
+
+	// -------- add zero to end....
+	device_common_buffer_put(&device_data->in_buff, 0);
+	device_common_buffer_put(&device_data->in_buff, 0);
+
+	// --------copy salprep (400) boot block end and length to device input data global.
+	// maxj = sizeof(salprep_loc_size);
+	// for (j = 0; j < maxj; j++) {
+	// 	device_common_buffer_put(&device_data->in_buff, salprep_loc_size[j]);
+	// }
+	// fprintf(stderr, " salprep - loc /size bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+
+	// --------copy salprep (400) boot block to device input data global.
+	maxj = sizeof(salprep_data);
+	for (j = 0; j < maxj; j++) {
+		device_common_buffer_put(&device_data->in_buff, salprep_data[j]);
+	}
+	fprintf(stderr, " salprep - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+
+	// --------calculate word checksum of 400 boot block.
+	chksum2.uword = 0;
+	maxj = sizeof(salprep_data);
+	for (j = 0; j < maxj; j += 2) {
+		tmp16.byte[1] = salprep_data[j];
+		tmp16.byte[0] = salprep_data[j + 1];
+		chksum2.uword += tmp16.uword;
+	}
+
+	chksum.word = chksum2.word * -1;
+
+	fprintf(stderr, " 400 block (salprep) checksum = 0x%04hx\n", chksum.uword);
+
+	//  device_common_buffer_put(&device_data->in_buff, chksum2.byte[1] );
+	//  device_common_buffer_put(&device_data->in_buff, chksum2.byte[0] );
+
+	// -------- add zero to end....
+	//  device_common_buffer_put(&device_data->in_buff,0 );
+	//  device_common_buffer_put(&device_data->in_buff,0 );
+
+	// --------copy sal  to device input data global.
+	maxj = sizeof(sal_data);
+	for (j = 0; j < maxj; j++) {
+		device_common_buffer_put(&device_data->in_buff, sal_data[j]);
+	}
+	fprintf(stderr, " sal  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+
+	// --------calculate word checksum of sal block.
+	// -------- this is a running checksum so dont start at zero.
+	chksum3.uword = 0;
+	maxj = sizeof(sal_data);
+	for (j = 0; j < maxj; j += 2) {
+		tmp16.byte[1] = sal_data[j];
+		tmp16.byte[0] = sal_data[j + 1];
+		chksum3.uword += tmp16.uword;
+	}
+
+	chksum.uword = chksum3.word * -1;
+
+	fprintf(stderr, " sal checksum = 0x%04hx\n", chksum.uword);
+
+	chksum.uword = chksum2.uword + chksum3.uword;
+	chksum.word *= -1;
+	fprintf(stderr, " 400 boot (salprep) and sal overall checksum = 0x%04hx\n", chksum.uword);
+
+	// --------copy running 400 (salprep) boot and sal checksum to input buffer.
+	device_common_buffer_put(&device_data->in_buff, chksum.byte[1]);
+	device_common_buffer_put(&device_data->in_buff, chksum.byte[0]);
+	device_common_buffer_put(&device_data->in_buff, 0);
+	device_common_buffer_put(&device_data->in_buff, 0);
+
+
+	fprintf(stderr, " Null device -- input buffer data filled size = %d\n", device_data->in_buff.last_byte_writen_index);
+
+}
+
+
+// ================================================================================================
+void device_null_load_sal_new(DEVICE_NULL_DATA* device_data) {
+
+#include "device_null_sal_new.h"
+
+	int maxj;
+	int j;
+
+	// --------copy sal  to device input data global.
+	maxj = sizeof(sal_data);
+	for (j = 0; j < maxj; j++) {
+		device_common_buffer_put(&device_data->in_buff, sal_data[j]);
+	}
+	fprintf(stderr, " salnew  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+
 }

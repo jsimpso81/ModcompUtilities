@@ -12,16 +12,12 @@ void user_cmd_print_help() {
 	printf("        -v       verbose debug messages.\n");
 	printf("\n   Commands:\n");
 
-//	printf("      device console <comx> - define console device and assign to com port\n");
-//	printf("      device console tcp <port> - define console device and assign to tcp port\n");
-
-
-
 	printf("      attach device console <dev addr> <bus> <prio> <dmp>\n");
 	printf("      attach device null    <dev addr> <bus> <prio> <dmp>\n");
 
 	printf("\n");
 
+	printf("      cc - capture console input to file.\n");
 	printf("      ci - console interrupt\n");
 	printf("      config file <file_name>	- process a file of commands.\n");
 	printf("      fill <device addr> - fill\n");
@@ -33,6 +29,8 @@ void user_cmd_print_help() {
 	printf("      mc - master clear\n");
 	printf("      run - run cpu\n");
 	printf("\n");
+	printf("      set key lock - lock front panel\n");
+	printf("      set key unlock - unlock front panel\n");
 	printf("      set mem <addr> <value> - set memory value\n");
 	printf("      set pc <value> - set program counter value\n");
 	printf("      set reg <reg> <value> - set register value\n");
@@ -44,6 +42,7 @@ void user_cmd_print_help() {
 	printf("      show devices - show all configured devices\n");
 	printf("      show inst - show instruction (opcode) use counts\n");
 	printf("      show int - show interrupts\n");
+	printf("      show key - show front panel key status\n");
 	printf("      show mem <start> <end> - show memory\n");
 	printf("      show pc - show program counter\n");
 	printf("      show power - show power on status\n");

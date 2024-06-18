@@ -1,5 +1,5 @@
-#include "simj_base.h"
 
+#include "simj_base.h"
 
 void cpu_do_fill(SIMJ_U16 new_switch_value) {
 

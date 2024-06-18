@@ -1,4 +1,4 @@
-#include "simj_base.h"
+// #include "simj_base.h"
 
 SIMJ_U16 device_address;
 volatile SIMJ_U16 ctrl_wake;

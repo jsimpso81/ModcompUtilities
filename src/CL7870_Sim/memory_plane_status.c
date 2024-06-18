@@ -34,7 +34,8 @@ typedef struct {
 } MEM_PLANE_STATUS;
 
 //  -------- use 3586-3 memory 256 kw boards each with 2 128 kw module
-static MEM_PLANE_STATUS mem_status_registers[8];
+// static MEM_PLANE_STATUS mem_status_registers[8];
+static MEM_PLANE_STATUS mem_status_registers[16];
 
 
 // ===================================================================================================================
@@ -44,6 +45,13 @@ void memory_plane_init() {
 
 	for (j = 0; j < 8; j++) {
 		mem_status_registers[j].memory_plane_status[0] = MEM_STAT_DM | MEM_STAT_CM | MEM_STAT_ID_128KW_SS | ( ( j << MEM_STAT_MOD_SHIFT ) & MEM_STAT_MOD_MASK );
+		mem_status_registers[j].memory_plane_status[1] = 0x0000;
+		mem_status_registers[j].memory_plane_status[2] = 0x0000;
+		mem_status_registers[j].memory_plane_status[3] = 0x0000;
+		mem_status_registers[j].memory_plane_status[4] = 0x0000;
+	}
+	for (j = 8; j < 16; j++) {
+		mem_status_registers[j].memory_plane_status[0] = 0x0000; // MEM_STAT_DM | MEM_STAT_CM | MEM_STAT_ID_128KW_SS | ((j << MEM_STAT_MOD_SHIFT) & MEM_STAT_MOD_MASK);
 		mem_status_registers[j].memory_plane_status[1] = 0x0000;
 		mem_status_registers[j].memory_plane_status[2] = 0x0000;
 		mem_status_registers[j].memory_plane_status[3] = 0x0000;
@@ -77,7 +85,7 @@ SIMJ_U16 memory_plane_RMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg) {
 
 	// --------calculate plane number
 	// --------for now ignore modules 9-15....
-	plane = ((ema >> 3) & 0x0001) | ma;
+	plane = (((ema >> 3) & 0x0003) <<2) | ma;
 
 	return mem_status_registers[plane].memory_plane_status[reg];
 

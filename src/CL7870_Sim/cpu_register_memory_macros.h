@@ -38,25 +38,28 @@
 					}
 
 // TODO: finish set_destination_register_value_triple
-#define SET_DESTINATION_REGISTER_VALUE_TRIPLE( V1, V2, V3 ) {}
+// #define SET_DESTINATION_REGISTER_VALUE_TRIPLE( V1, V2, V3 ) {}
 
 #define SET_DESTINATION_REGISTER_VALUE_QUAD( QV1 ) {\
 					SET_REGISTER_VALUE_QUAD( GET_DESTINATION_REGISTER_NUMB_QUAD, QV1); \
 					}
 
 // -------- direct memory access
-#define GET_MEMORY_VALUE_IM( A ) (gbl_mem[ (SIMJ_U16)(A)])
-#define GET_MEMORY_VALUE_OM( A ) (gbl_mem[(SIMJ_U16)(A)])
 #define GET_MEMORY_VALUE_ABS( A ) (gbl_mem[(A)])
-#define SET_MEMORY_VALUE_IM( A, VAL ) {\
-				gbl_mem[(SIMJ_U16)(A)] = VAL;\
-				}
-#define SET_MEMORY_VALUE_OM( A, VAL ) {\
-				gbl_mem[(SIMJ_U16)(A)] = VAL;\
-				}
-#define SET_MEMORY_VALUE_ABS( A, VAL ) {\
-				gbl_mem[(A)] = VAL;\
-				}
+
+#define GET_MEMORY_VALUE_IM( A ) (GET_MEMORY_VALUE_ABS( (SIMJ_U16)(A)))
+			
+#define GET_MEMORY_VALUE_OM( A ) (GET_MEMORY_VALUE_ABS( (SIMJ_U16)(A)))
+
+#define SET_MEMORY_VALUE_ABS( A, VAL ) (gbl_mem[(A)] = (VAL))
+
+#define SET_MEMORY_VALUE_IM_VIRT( A, VAL ) (gbl_mem[(A)] = (VAL))
+
+#define SET_MEMORY_VALUE_OM_VIRT( A, VAL ) (gbl_mem[(A)] = (VAL))
+
+#define SET_MEMORY_VALUE_IM( A, VAL ) ( cpu_virtual_mode ? SET_MEMORY_VALUE_IM_VIRT( (SIMJ_U16)(A), VAL ) : SET_MEMORY_VALUE_ABS( (SIMJ_U16)(A), VAL ))
+
+#define SET_MEMORY_VALUE_OM( A, VAL ) ( cpu_virtual_mode ? SET_MEMORY_VALUE_OM_VIRT( (SIMJ_U16)(A), VAL ) : SET_MEMORY_VALUE_ABS( (SIMJ_U16)(A), VAL ))
 
 
 // -------- IMMEDIATE MODE (I)
@@ -69,9 +72,9 @@
 
 
 // -------- SHORT DISPLACED (S)
-#define GET_MEMORY_ADDR_SHORT_DISPLACED  ( (SIMJ_U16)(GET_REGISTER_VALUE(1) + ( instruction.parts.src_reg)) )
+#define GET_MEMORY_ADDR_SHORT_DISPLACED  ( (SIMJ_U16)(GET_REGISTER_VALUE(1) + instruction.parts.src_reg) )
 //#define SHORT_DISPLACED_ADDR_FAULT (  ( ( GET_REGISTER_VALUE(1) & 0x8000 ) != ( GET_MEMORY_ADDR_SHORT_DISPLACED & 0x8000 ) ? true : false ) )
-#define SHORT_DISPLACED_ADDR_FAULT (  false )
+//#define SHORT_DISPLACED_ADDR_FAULT (  false )
 #define GET_MEMORY_VALUE_SHORT_DISPLACED 	(GET_MEMORY_VALUE_OM( GET_MEMORY_ADDR_SHORT_DISPLACED ))
 #define SET_MEMORY_VALUE_SHORT_DISPLACED( VAL ) {\
 				SET_MEMORY_VALUE_OM( GET_MEMORY_ADDR_SHORT_DISPLACED , VAL);\
@@ -95,8 +98,8 @@
 // -------- DIRECT
 // --------note that the first two are for only for use by GET_MEMORY_DIRECT !!!
 // TODO: Look at signed vs unsigned...
-#define GET_MEMORY_DIRECT_ADDR_PARITAL 	((instruction.all & 0x0007) == 0 ? GET_MEMORY_VALUE_IMMEDIATE : ( (SIMJ_S32)GET_MEMORY_VALUE_IMMEDIATE + (SIMJ_S32)GET_REGISTER_VALUE(instruction.all & 0x0007)) & 0x0000ffff )
-#define GET_MEMORY_DIRECT_ADDR ((instruction.all & 0x0008) == 0 ? GET_MEMORY_DIRECT_ADDR_PARITAL : GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR_PARITAL ))
+#define GET_MEMORY_DIRECT_ADDR_PARTIAL 	((instruction.all & 0x0007) == 0 ? GET_MEMORY_VALUE_IMMEDIATE : (SIMJ_U16)( (SIMJ_U16)GET_MEMORY_VALUE_IMMEDIATE + (SIMJ_U16)GET_REGISTER_VALUE(instruction.all & 0x0007) ) & 0xffff )
+#define GET_MEMORY_DIRECT_ADDR ((instruction.all & 0x0008) == 0 ? GET_MEMORY_DIRECT_ADDR_PARTIAL : GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR_PARTIAL ))
 
 #define GET_MEMORY_VALUE_DIRECT (GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR ))
 

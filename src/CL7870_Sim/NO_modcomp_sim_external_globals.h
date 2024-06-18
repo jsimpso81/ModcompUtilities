@@ -1,10 +1,9 @@
 // =================================================================================
-#pragma once
+// #pragma once
 
-#include <windows.h>
-#include <stdbool.h>
+// #include <windows.h>
+// #include <stdbool.h>
 
-#include "modcomp_sim_types.h"
 
 // -------- main memory
 extern volatile SIMJ_U16  gbl_mem[2097152];
@@ -26,6 +25,8 @@ extern volatile bool gbl_fp_io_light ;
 extern volatile bool gbl_fp_task_light ;
 extern volatile bool gbl_fp_memerror_light ;
 extern volatile bool gbl_fp_single_step ;
+
+extern volatile bool gbl_fp_keylocked;
 
 // -------- not done more front panel info
 

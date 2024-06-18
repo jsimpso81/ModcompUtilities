@@ -42,10 +42,10 @@ void  device_console_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 
 	SIMJ_U8 junk = data_value & 0x00ff;
 	// -------- just some diagnostics.
-	SIMJ_U8 junk2 = (SIMJ_U8)((data_value >> 8) & 0x00ff);
-	if (junk2 != 0) {
-		fprintf(stderr, " Console output data, high byte not zero: 0x%04x\n", junk2);
-	}
+	// SIMJ_U8 junk2 = (SIMJ_U8)((data_value >> 8) & 0x00ff);
+	// if (junk2 != 0) {
+	// 	fprintf(stderr, " Console output data, high byte not zero: 0x%04x\n", data_value);
+	// }
 
 	device_common_buffer_put(&databuffer->out_buff, junk);
 
@@ -295,6 +295,9 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 						// fprintf(stderr, " Console bytes read %d.  Device Addr %d\n", actual_read_bytes, loc_device_addr);
 						for (j = 0; j < actual_read_bytes; j++) {
 							device_common_buffer_put(&device_data->in_buff, loc_read_data[j]);
+							if (gbl_capture_console) {
+								device_common_capture_console(loc_read_data[j]);
+							}
 						}
 
 						// -------- Request ownership of the critical section.

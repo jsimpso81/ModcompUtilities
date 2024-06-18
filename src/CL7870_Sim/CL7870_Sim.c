@@ -1,15 +1,14 @@
 // CL7870_Sim.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+#define SIMJ_MAIN true
+
 #include "simj_base.h"
 
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
-// #include <pthread.h>
-
-#include "modcomp_sim_global.h"
 
 /* ========================================================================================================================*/
 int main(int argc, char* argv[]) {
@@ -95,6 +94,7 @@ int main(int argc, char* argv[]) {
     rtclock_stop_thread();
     cpu_stop_thread();
     device_common_stop_all();
+    device_common_capture_console_close();
 
     printf("\nCL7860_sim -- terminating.\n");
     exit(0);

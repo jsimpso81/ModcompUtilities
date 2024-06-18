@@ -159,21 +159,24 @@
     <ClCompile Include="user_cmd_attach_device.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="device_common_capture_console.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="modcomp_sim_procedures.h">
+    <ClInclude Include="NO_modcomp_sim_procedures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="modcomp_sim_global.h">
+    <ClInclude Include="modcomp_sim_globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="modcomp_sim_types.h">
+    <ClInclude Include="NO_modcomp_sim_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="modcomp_opcodes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="modcomp_sim_external_globals.h">
+    <ClInclude Include="NO_modcomp_sim_external_globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="device_null_sal.h">
@@ -200,7 +203,13 @@
     <ClInclude Include="cpu_cond_code_macros.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="no_no_no_no_cpu_register_macros.h">
+    <ClInclude Include="NO_cpu_register_macros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deivce_null_salprep_OLD.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="device_null_sal_new.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

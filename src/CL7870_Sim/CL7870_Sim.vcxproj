@@ -135,6 +135,7 @@
     <ClCompile Include="cpu_do_fill.c" />
     <ClCompile Include="cpu_do_run.c" />
     <ClCompile Include="cpu_do_step.c" />
+    <ClCompile Include="device_common_capture_console.c" />
     <ClCompile Include="disp_interrupts.c" />
     <ClCompile Include="memory_plane_status.c" />
     <ClCompile Include="rtclock_start_thread.c" />
@@ -182,7 +183,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpu_cond_code_macros.h" />
-    <ClInclude Include="no_no_no_no_cpu_register_macros.h" />
+    <ClInclude Include="deivce_null_salprep_OLD.h" />
+    <ClInclude Include="device_null_sal_new.h" />
+    <ClInclude Include="NO_cpu_register_macros.h" />
     <ClInclude Include="cpu_macro_register_access.h" />
     <ClInclude Include="cpu_register_memory_macros.h" />
     <ClInclude Include="device_null_initial_boot_block.h" />
@@ -191,10 +194,10 @@
     <ClInclude Include="generic_device_variables.h" />
     <ClInclude Include="modcomp_opcodes.h" />
     <ClInclude Include="modcomp_opcode_string.h" />
-    <ClInclude Include="modcomp_sim_external_globals.h" />
-    <ClInclude Include="modcomp_sim_global.h" />
-    <ClInclude Include="modcomp_sim_procedures.h" />
-    <ClInclude Include="modcomp_sim_types.h" />
+    <ClInclude Include="NO_modcomp_sim_external_globals.h" />
+    <ClInclude Include="modcomp_sim_globals.h" />
+    <ClInclude Include="NO_modcomp_sim_procedures.h" />
+    <ClInclude Include="NO_modcomp_sim_types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

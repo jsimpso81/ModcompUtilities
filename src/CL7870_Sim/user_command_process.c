@@ -195,6 +195,10 @@ void process_user_commands(FILE* cmd_src) {
 							disp_devices(stdout);
 						}
 
+						//--------key
+						else if (strcmp(cmd_data->cmd_line_parsed[1], "key") == 0) {
+							printf(" Front panel key is : %s\n", ( gbl_fp_keylocked ? "Locked" : "Unlocked" ));
+						}
 
 						//--------switches
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "switches") == 0) {
@@ -399,7 +403,25 @@ void process_user_commands(FILE* cmd_src) {
 								printf(" *** ERROR *** Expecting two numeric values following set mem\n");
 							}
 						}
-	
+
+						//--------set key
+						else if (strcmp(cmd_data->cmd_line_parsed[1], "key") == 0) {
+							if (cmd_count_found != 3) {
+								printf(" *** ERROR *** Command set key expects a third parameter lock or unlock.\n");
+							}
+							else if (strcmp(cmd_data->cmd_line_parsed[2], "lock") == 0) {
+								gbl_fp_keylocked = true;
+								printf(" Front panel key is now locked.\n");
+							}
+							else if (strcmp(cmd_data->cmd_line_parsed[2], "unlock") == 0) {
+								gbl_fp_keylocked = true;
+								printf(" Front panel key is now unlocked.\n");
+							}
+							else {
+								printf(" *** ERROR *** Command set key command 3rd parameter must be lock or unlock.  Parameter is : %s.\n", cmd_data->cmd_line_parsed[2]);
+							}
+						}
+
 						// --------not a valid set command
 						else {
 							printf(" *** ERROR *** Not a valid set command %s.\n", cmd_data->cmd_line_parsed[1]);
@@ -417,6 +439,11 @@ void process_user_commands(FILE* cmd_src) {
 					cpu_trigger_console_interrupt();
 				}
 	
+				// --------cc
+				else if (strcmp(cmd_data->cmd_line_parsed[0], "cc") == 0) {
+					gbl_capture_console = true;
+				}
+
 				// --------halt
 				else if (strcmp(cmd_data->cmd_line_parsed[0], "halt") == 0) { 
 					// TODO: Make a separate procedure.

@@ -21,6 +21,95 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			
 		//	OP_RMPS_RMWS
 		//	OP_AUG0E
+		case  OP_AUG0E:			// 0x0e
+			switch (loc_inst.parts.src_reg) {
+
+			// -------- 0	TRO  -- Transfer and Reset Overflow Status History      
+			case 0:
+				strcpy_s(op_buffer, buf_size, "TRO");
+				break;
+
+			// -------- 1	LCPS  -- Load Register with Current Program Status Register of PSD   
+			case 1:
+				strcpy_s(op_buffer, buf_size, "LCPS");
+				break;
+
+			// -------- 2	LCPR  -- Load Register with Current Program Register of PSD   
+			case 2:
+				strcpy_s(op_buffer, buf_size, "LCPR");
+				break;
+
+			// -------- 3	LCCC  -- Load Register with Current Condition Code of PSD   
+			case 3:
+				strcpy_s(op_buffer, buf_size, "LCCC");
+				break;
+
+			// -------- 4	LCIA  -- Load Register with Current interrupt Active Latches    
+			case 4:
+				strcpy_s(op_buffer, buf_size, "LCIA");
+				break;
+
+			// -------- 5	LCIE  -- Load Register with Current interrupt Enable Latches     
+			case 5:
+				strcpy_s(op_buffer, buf_size, "LCIE");
+				break;
+
+			// -------- 6	LCIR  -- Load Register with Current interrupt Request Latches     
+			case 6:
+				strcpy_s(op_buffer, buf_size, "LCIR");
+				break;
+
+			// -------- 7	MBVV  -- Move Virtual Block to Virtual Block       
+			case 7:
+				strcpy_s(op_buffer, buf_size, "MBVV");
+				break;
+
+			// -------- 8	MBVE  -- Move Block from Virtual to Extended Memory     
+			case 8:
+				strcpy_s(op_buffer, buf_size, "MBVE");
+				break;
+
+			// -------- 9	MBEV  -- Move Block from Extended to Virtual Memory     
+			case 9:
+				strcpy_s(op_buffer, buf_size, "MBEV");
+				break;
+
+			// -------- A	MPES  -- Multiply Immediate with Extended Sign       
+			case 10:
+				strcpy_s(op_buffer, buf_size, "MPES");
+				break;
+
+			// -------- B	DVES  -- Divide lmmediate with Extended Sign       
+			case 11:
+				strcpy_s(op_buffer, buf_size, "DVES");
+				break;
+
+			// -------- C	RDI  -- Read Internal Registers         
+			case 12:
+				strcpy_s(op_buffer, buf_size, "RDI");
+				break;
+
+			// -------- D	WIR  -- Write Internal Register         
+			case 13:
+				strcpy_s(op_buffer, buf_size, "WIR");
+				break;
+
+			// -------- E	BRM  -- Branch to Microroutine Immediate        
+			case 14:
+				strcpy_s(op_buffer, buf_size, "BRM");
+				break;
+
+			// -------- F	BRMI  -- Branch to Microroutine Immediate        
+			case 15:
+				strcpy_s(op_buffer, buf_size, "BRMI");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "----");
+				break;
+		}
+		break;
+
 		//	OP_SIA_SIE_SIR
 		//	OP_RIA_RIE_RIR
 		//	OP_RLD_RLQ
