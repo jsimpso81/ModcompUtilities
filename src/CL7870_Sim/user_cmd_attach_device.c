@@ -6,10 +6,12 @@ void user_cmd_attach_device(SIMJ_U16 device_type, SIMJ_U16 device_address, SIMJ_
 	switch (device_type) {
 		case 1:  //  "null",
 			device_null_init(device_address, bus, prio, dmp);
+			Sleep(1000);
 			break;
 
 		case 2:  //  "console",
 			device_console_init(device_address, bus, prio, dmp);
+			Sleep(1000);
 			break;
 
 		case 	3:  //  "consoletcp",
