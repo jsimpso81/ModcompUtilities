@@ -1,6 +1,21 @@
-// #pragma once
-
-// #include "modcomp_sim_types.h"
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			device_null_salprep_OLD.h
+//
+//	Description:	contains code for SALPREP (400 boot block).
+//
+//	Externally accessible routines:
+// 
+// Notes:			This is loaded after the initial loader. It currently doesn't work.
+//
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
 
 // -------- 400 boot block is 2 sectors ( 256 words )
 // -------- of this only 290 bytes are used.  (note thate this data

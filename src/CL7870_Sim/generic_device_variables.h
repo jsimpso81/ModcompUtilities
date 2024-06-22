@@ -1,4 +1,21 @@
-// #include "simj_base.h"
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			generic_device_variables.h
+//
+//	Description:	defines variables used by all deivces.
+//
+//	Externally accessible routines:
+// 
+// Notes:			Custom variables for each device are added after these.
+//
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
 
 SIMJ_U16 device_address;
 volatile SIMJ_U16 ctrl_wake;

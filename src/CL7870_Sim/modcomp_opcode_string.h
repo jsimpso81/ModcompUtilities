@@ -1,3 +1,25 @@
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			modcomp_opcode_string.h
+//
+//	Description:	Strings for Modcomp classic 16 bit opcodes.
+//
+//	Externally accessible routines:
+// 
+// Notes:			This header only includes strings for opcodes that have a unique instruction
+//					for the first byte of the instruction.  Other opcode strings are assigned
+//					in the routine util_get_opcode_disp.
+//	
+//
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
+
 #pragma once
 
 

@@ -4,7 +4,16 @@
 
 void user_cmd_print_help() {
 
-	printf("\n\nCL7870_sim - Simulate a MODCOMP classic 7870 CPU \n\n");
+
+#if  SIMJ_SIM_CPU == 7860
+	printf("\n\nCL7860_sim - Simulate a MODCOMP classic 7860/7870 CPU \n\n");
+#elif  SIMJ_SIM_CPU == 7830
+	printf("\n\nCL7830_sim - Simulate a MODCOMP classic 7830 CPU \n\n");
+#elif  SIMJ_SIM_CPU == II15
+	printf("\n\nCLII/15_sim - Simulate a MODCOMP classic II/15 CPU \n\n");
+#else
+#error SIMJ_SIM_CPU Had invalid cpu model.
+#endif
 	printf("\n   Command line parameters:\n");
 	printf("        -c <config file>  load configuration file\n");
 	printf("        -h       print help message and exit\n");

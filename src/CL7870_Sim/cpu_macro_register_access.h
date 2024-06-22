@@ -1,6 +1,23 @@
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			cpu_macro_register_access.h
+//
+//	Description:	Contains macros used by the CPU module for accessing registers.
+//
+//	Externally accessible routines:
+// 
+// Notes:			
+//
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
+
 #pragma once
-
-
 
 #define GET_REGISTER_VALUE( REG ) ( cpu_register.reg16[REG])
 #define SET_REGISTER_VALUE( REG,VAL) {\
@@ -30,3 +47,5 @@
 
 #define ISREGNUM_DOUBLE( REG )  ( ( REG & 0x1) == 0 )
 #define ISREGNUM_QUAD( REG )  ( ( REG & 0x3) == 0 )
+
+// ================================================================================================

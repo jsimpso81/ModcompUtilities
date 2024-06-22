@@ -20,7 +20,15 @@ int main(int argc, char* argv[]) {
 
 
     /* -------- annouce our program  */
-    printf("\nCL7870_Sim - Modcomp classic 7870 simulator.\n");
+#if  SIMJ_SIM_CPU == 7860
+    printf("\nCL7860_Sim - Modcomp classic 7860/7870 simulator.\n");
+#elif  SIMJ_SIM_CPU == 7830
+    printf("\nCL7830_Sim - Modcomp classic 7830 simulator.\n");
+#elif  SIMJ_SIM_CPU == II15
+    printf("\nCLII/15_Sim - Modcomp classic II/15 simulator.\n");
+#else
+#error SIMJ_SIM_CPU Had invalid cpu model.
+#endif
 
     /* printf("\n arc = % d \n", argc); */
 

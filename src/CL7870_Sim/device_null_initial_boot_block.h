@@ -1,3 +1,21 @@
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			device_null_initial_boot_block.h
+//
+//	Description:	contains code for the initial boot block.
+//
+//	Externally accessible routines:
+// 
+// Notes:			This is the first thing loaded.  It currently doesn't work.
+//
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
 
 
 // --------data to send to device when requested
@@ -43,5 +61,6 @@ SIMJ_U8 boot100_data[] = {
 	0x00, 0x00, 0xFF, 0x07, 0x00, 0x00, 0xFF, 0x07, 0x00, 0x00, 0xFF, 0x07 };
 
 									// 0x00, 0x00, 0x00, 0x00
-	//								   chksum, 0
+//								   chksum, 0
 // 
+// ================================================================================================

@@ -162,6 +162,9 @@
     <ClCompile Include="device_common_capture_console.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="util_cvt_float.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NO_modcomp_sim_procedures.h">
