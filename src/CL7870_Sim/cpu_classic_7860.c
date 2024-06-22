@@ -2040,6 +2040,7 @@ void cpu_classic_7860() {
 				SET_CC_N(ISVAL32_NEG(tmp32_val3));
 				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 				SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				break;
 
 			case  OP_FDR:			// 0x33
@@ -2053,6 +2054,7 @@ void cpu_classic_7860() {
 				SET_CC_N(ISVAL32_NEG(tmp32_val3));
 				SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 				SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				break;
 
 			case  OP_FARD_FARQ_CFDI:	//          0x34
@@ -2060,15 +2062,13 @@ void cpu_classic_7860() {
 				case 0:				// fard, farq
 					switch (instruction.parts.dest_reg & 0x1) {
 					case 0:			// FARD  --  Floating Point Add Triple Register to Triple Register    
-						tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
-						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+						tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 + tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval, tmp16_val2.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval + 1, tmp16_val3.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval + 2, tmp16_val4.uval);
+						// SET_DESTINATION_REGISTER_TRIPLE( tmp_f64_val3 ); 
 						// TODO: Set tripple result
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
@@ -2107,15 +2107,13 @@ void cpu_classic_7860() {
 				case 0:				 
 					switch (instruction.parts.dest_reg & 0x1) {
 					case 0:			// FSRD
-						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
-						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 - tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval, tmp16_val2.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval + 1, tmp16_val3.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval + 2, tmp16_val4.uval);
+						// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
 						// TODO: Set tripple result
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
@@ -2154,15 +2152,13 @@ void cpu_classic_7860() {
 				case 0:				// 
 					switch (instruction.parts.dest_reg & 0x1) {
 					case 0:			// FMRD
-						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
-						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 * tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval, tmp16_val2.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval + 1, tmp16_val3.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval + 2, tmp16_val4.uval);
+						// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
 						// TODO: Set tripple result
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
@@ -2202,15 +2198,13 @@ void cpu_classic_7860() {
 				case 0:				// 
 					switch (instruction.parts.dest_reg & 0x1) {
 					case 0:			// FDRD
-						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
-						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 / tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval, tmp16_val2.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval + 1, tmp16_val3.uval);
-						// SET_REGISTER_VALUE_OM(tmp16_val1.uval + 2, tmp16_val4.uval);
+						// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
 						// TODO: Set tripple result
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
@@ -2374,19 +2368,251 @@ void cpu_classic_7860() {
 				break;
 
 			case  OP_FAMD_FAMQ_FAID_FAIQ:	//      0x3c
-				UNIMPLEMENTED_INSTRUCTION;
+				switch (instruction.parts.dest_reg & 0x3) {
+					case 0:		// famd
+						tmp64_val1.uval = GET_MEMORY_VALUE_DIRECT_TRIPLE;
+						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+						tmp_f64_val3 = tmp_f64_val1 + tmp_f64_val2;
+						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
+						// TODO: implement triple register set...
+						// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
+						SET_CC_N(ISVAL32_NEG(tmp32_val3));
+						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+						break;
+					case 1:		// famq
+						tmp64_val1.uval = GET_MEMORY_VALUE_DIRECT_QUAD;
+						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+						fstatus1 = util_cvt_MCS64_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+						fstatus2 = util_cvt_MCS64_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+						tmp_f64_val3 = tmp_f64_val1 + tmp_f64_val2;
+						fstatus3 = util_cvt_IEEE64_MCS64(tmp_f64_val3, &tmp64_val3.uval);
+						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val3.uval);
+						SET_CC_N(ISVAL32_NEG(tmp32_val3));
+						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+						break;
+					case 2:		// faid
+						tmp16_val1.uval = GET_MEMORY_VALUE_IMMEDIATE;
+						tmp64_val1.uval = ((SIMJ_U64)tmp16_val1.uval << 48) & 0xffff000000000000;
+						// TODO: Implement get triple register
+						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+						tmp_f64_val3 = tmp_f64_val1 + tmp_f64_val2;
+						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
+						// TODO: Implement set triple register
+						// SET_DESTINATION_REGISTER_VALUE_TRIPPLE(tmp64_val3.uval);
+						SET_CC_N(ISVAL32_NEG(tmp32_val3));
+						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+						break;
+					case 3:		// faiq
+						tmp16_val1.uval = GET_MEMORY_VALUE_IMMEDIATE;
+						tmp64_val1.uval = ((SIMJ_U64)tmp16_val1.uval << 48) & 0xffff000000000000;
+						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+						fstatus1 = util_cvt_MCS64_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+						fstatus2 = util_cvt_MCS64_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+						tmp_f64_val3 = tmp_f64_val1 + tmp_f64_val2;
+						fstatus3 = util_cvt_IEEE64_MCS64(tmp_f64_val3, &tmp64_val3.uval);
+						SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val3.uval);
+						SET_CC_N(ISVAL32_NEG(tmp32_val3));
+						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+						break;
+				}
 				break;
 
 			case  OP_FSMD_FSMQ_FSID_FSIQ:	//		0x3d
-				UNIMPLEMENTED_INSTRUCTION;
+				switch (instruction.parts.dest_reg & 0x3) {
+				case 0:		// fsmd
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_TRIPLE;
+					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 - tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
+					// TODO: implement triple register set...
+					// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 1:		// fsmq
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_QUAD;
+					fstatus1 = util_cvt_MCS64_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS64_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 - tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS64(tmp_f64_val3, &tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 2:		// fsid
+					// TODO: Implement get triple register
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
+					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 - tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
+					// TODO: Implement set triple register
+					// SET_DESTINATION_REGISTER_VALUE_TRIPPLE(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 3:		// fsiq
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
+					fstatus1 = util_cvt_MCS64_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS64_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 - tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS64(tmp_f64_val3, &tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				}
 				break;
 
 			case  OP_FMMD_FMMQ_FMID_FMIQ:	//      0x3e
-				UNIMPLEMENTED_INSTRUCTION;
+				switch (instruction.parts.dest_reg & 0x3) {
+				case 0:		// fmmd
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_TRIPLE;
+					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 * tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
+					// TODO: implement triple register set...
+					// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 1:		// fmmq
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_QUAD;
+					fstatus1 = util_cvt_MCS64_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS64_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 * tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS64(tmp_f64_val3, &tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 2:		// fmid
+					// TODO: Implement get triple register
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
+					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 * tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
+					// TODO: Implement set triple register
+					// SET_DESTINATION_REGISTER_VALUE_TRIPPLE(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 3:		// fsiq
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
+					fstatus1 = util_cvt_MCS64_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS64_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 * tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS64(tmp_f64_val3, &tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				}
 				break;
 
 			case  OP_FDMD_FDMQ_FDID_FDIQ:	//      0x3f
-				UNIMPLEMENTED_INSTRUCTION;
+				switch (instruction.parts.dest_reg & 0x3) {
+				case 0:		// fdmd
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_TRIPLE;
+					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 / tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
+					// TODO: implement triple register set...
+					// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 1:		// fdmq
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_QUAD;
+					fstatus1 = util_cvt_MCS64_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS64_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 / tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS64(tmp_f64_val3, &tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 2:		// fdid
+					// TODO: Implement get triple register
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
+					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 / tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
+					// TODO: Implement set triple register
+					// SET_DESTINATION_REGISTER_VALUE_TRIPPLE(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				case 3:		// fdiq
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
+					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
+					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
+					fstatus1 = util_cvt_MCS64_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
+					fstatus2 = util_cvt_MCS64_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
+					tmp_f64_val3 = tmp_f64_val1 / tmp_f64_val2;
+					fstatus3 = util_cvt_IEEE64_MCS64(tmp_f64_val3, &tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_QUAD(tmp64_val3.uval);
+					SET_CC_N(ISVAL32_NEG(tmp32_val3));
+					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
+					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
+					break;
+				}
 				break;
 
 #endif
