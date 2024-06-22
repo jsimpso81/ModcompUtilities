@@ -34,11 +34,13 @@
 //					util_cvt_MCS64_MCS32
 //					util_cvt_MCS64_MCS48
 //					util_cvt_MCS48_MCS64
+// 
+// Internal only routines:
 //
 // Notes:
 // TODO: Need to finish status checking
-// TODO: Need to finish modcomp number normalization before convert to IEEE
 // TODO: Need to classify IEEE values before attempting to convert to modcomp
+// TODO: See if values integers will fit into floating point and visa versa for setting correct status.
 //
 // ================================================================================================
 //	Revision history:
@@ -110,12 +112,13 @@ typedef union {
 	SIMJ_U32	all;
 } MOD_FLOAT32;
 
-#define MOD_FLT32_SIGN_MASK 0x80000000
+#define MOD_FLT32_SIGN_MASK  0x80000000
 #define MOD_FLT32_SIGN_SHIFT 31
-#define MOD_FLT32_EXP_MASK  0x7fc00000
-#define MOD_FLT32_EXP_SHIFT 22
-#define MOD_FLT32_EXP_BIAS  256
-#define MOD_FLT32_FRAC_MASK 0x003fffff
+#define MOD_FLT32_EXP_MASK   0x7fc00000
+#define MOD_FLT32_EXP_SHIFT  22
+#define MOD_FLT32_EXP_BIAS   256
+#define MOD_FLT32_FRAC_FIRST 0x00200000
+#define MOD_FLT32_FRAC_MASK  0x003fffff
 #define MOD_FLT32_FRAC_SHIFT 0
 
 // -------- NOT REALLY SUPPORTING 48 bit modcomp floating.  Convert between M64.
@@ -142,12 +145,13 @@ typedef union {
 	SIMJ_U64	all;
 } MOD_FLOAT64;
 
-#define MOD_FLT64_SIGN_MASK 0x8000000000000000
+#define MOD_FLT64_SIGN_MASK  0x8000000000000000
 #define MOD_FLT64_SIGN_SHIFT 63
-#define MOD_FLT64_EXP_MASK  0x7fc0000000000000
-#define MOD_FLT64_EXP_SHIFT 54
-#define MOD_FLT64_EXP_BIAS  256		// includes hidden bit
-#define MOD_FLT64_FRAC_MASK 0x003fffffffffffff
+#define MOD_FLT64_EXP_MASK   0x7fc0000000000000
+#define MOD_FLT64_EXP_SHIFT  54
+#define MOD_FLT64_EXP_BIAS   256		// includes hidden bit
+#define MOD_FLT64_FRAC_FIRST 0x0020000000000000
+#define MOD_FLT64_FRAC_MASK  0x003fffffffffffff
 #define MOD_FLT64_FRAC_SHIFT 0
 
 typedef union {
@@ -180,6 +184,8 @@ typedef union {
 #define IEEE_FLT64_FRAC_MASK   0x000fffffffffffff
 #define IEEE_FLT64_FRAC_SHIFT  0
 
+
+
 #define CLASSIFY_IEEE64( DVAL ) {\
 	numb_type = fpclassify(DVAL);\
 	switch (numb_type) {\
@@ -196,6 +202,11 @@ typedef union {
 		break;\
 	}\
 }
+
+// -------- local functions.
+// -------- exponenet and fraction must be pre-converted to be non-negative.
+static SIMJ_U32 util_cvt_normalize_MCS32(SIMJ_U64* mod_exp, SIMJ_U64* mod_frac);
+static SIMJ_U32 util_cvt_normalize_MCS64(SIMJ_U64* mod_exp, SIMJ_U64* mod_frac);
 
 
 // ================================================================================================
@@ -468,6 +479,7 @@ SIMJ_U32 util_cvt_MCS32_IEEE64(SIMJ_M32 m32_in, SIMJ_F64* f64_out) {
 	SIMJ_U64 MOD_exp = 0;
 	SIMJ_U64 IEEE_frac = 0;
 	SIMJ_U64 MOD_frac = 0;
+	SIMJ_U32 status1 = SIMJ_FLTCVT_GOOD;
 
 	inval.native = m32_in;
 
@@ -485,10 +497,12 @@ SIMJ_U32 util_cvt_MCS32_IEEE64(SIMJ_M32 m32_in, SIMJ_F64* f64_out) {
 			inval.all = ~inval.all;
 		}
 
-		// TODO: Need to normalize fraction !!!
-		// --------check to see if fraction is normalized....  If not, then normalize the value.
+		// --------separate parts of modcomp number
 		MOD_exp = (inval.all & MOD_FLT32_EXP_MASK) >> MOD_FLT32_EXP_SHIFT;
 		MOD_frac = inval.all & MOD_FLT32_FRAC_MASK;
+		// --------check to see if fraction is normalized....  If not, then normalize the value.
+		status1 = util_cvt_normalize_MCS32(&MOD_exp, &MOD_frac);
+
 
 		IEEE_sign = MOD_sign;
 		IEEE_exp = MOD_exp - MOD_FLT32_EXP_BIAS + IEEE_FLT64_EXP_BIAS - 1;
@@ -536,6 +550,7 @@ SIMJ_U32 util_cvt_MCS64_IEEE64(SIMJ_M64 m64_in, SIMJ_F64* f64_out) {
 	SIMJ_U64 MOD_exp = 0;
 	SIMJ_U64 IEEE_frac = 0;
 	SIMJ_U64 MOD_frac = 0;
+	SIMJ_U32 status1 = SIMJ_FLTCVT_GOOD;
 
 	inval.native = m64_in;
 
@@ -553,10 +568,11 @@ SIMJ_U32 util_cvt_MCS64_IEEE64(SIMJ_M64 m64_in, SIMJ_F64* f64_out) {
 			inval.all = ~inval.all;
 		}
 
-		// TODO: Need to normalize fraction !!!
-		// --------check to see if fraction is normalized....  If not, then normalize the value.
+		// --------separate parts of modcomp number
 		MOD_exp = (inval.all & MOD_FLT64_EXP_MASK) >> MOD_FLT64_EXP_SHIFT;
 		MOD_frac = inval.all & MOD_FLT64_FRAC_MASK;
+		// --------check to see if fraction is normalized....  If not, then normalize the value.
+		status1 = util_cvt_normalize_MCS64(&MOD_exp, &MOD_frac);
 
 		IEEE_sign = MOD_sign;
 		IEEE_exp = MOD_exp - MOD_FLT64_EXP_BIAS + IEEE_FLT64_EXP_BIAS - 1;
@@ -575,7 +591,7 @@ SIMJ_U32 util_cvt_MCS64_IEEE64(SIMJ_M64 m64_in, SIMJ_F64* f64_out) {
 
 	*f64_out = outval.native;
 
-	return SIMJ_FLTCVT_GOOD;
+	return ( status1 > SIMJ_FLTCVT_GOOD ? status1 : SIMJ_FLTCVT_GOOD );
 }
 
 // ================================================================================================
@@ -698,4 +714,82 @@ SIMJ_U32 util_cvt_IEEE64_MCS64(SIMJ_F64 f64_in, SIMJ_M64* m64_out) {
 	*m64_out = outval.native;
 
 	return SIMJ_FLTCVT_GOOD;
+}
+
+
+// ================================================================================================
+// -------- normalize modcomp float parts.
+// -------- exponenet and fraction must be pre-converted to be non-negative.
+static SIMJ_U32 util_cvt_normalize_MCS64(SIMJ_U64* mod_exp, SIMJ_U64* mod_frac) {
+
+	SIMJ_U64 local_exp = 0;
+	SIMJ_U64 local_frac = 0;
+
+	// -------- is it already normalized..
+	if ((*mod_frac & MOD_FLT64_FRAC_FIRST) != 0) {
+		return SIMJ_FLTCVT_GOOD;
+	}
+
+	// -------- see if it can be normalized (not zero..)
+	if ((*mod_frac & MOD_FLT64_FRAC_MASK) == 0) {
+		return SIMJ_FLTCVT_OTHER_ERR;		// Can't normalixe -- value is zero.
+	}
+	// -------- since fraction value is non-zero this should work!
+	else {
+		local_exp = *mod_exp;
+		local_frac = *mod_frac;
+
+		while (true) {		// this will finish since fraction is non zero.
+			if (local_exp == 0) {
+				return SIMJ_FLTCVT_OTHER_ERR;	// can't shift any more...
+			}
+			local_exp--;
+			local_frac <<= 1;
+			if ((local_frac & MOD_FLT64_FRAC_FIRST) != 0) {
+				*mod_exp = local_exp;
+				*mod_frac = local_frac;
+				break;
+			}
+		}
+	}
+	return  SIMJ_FLTCVT_GOOD;
+}
+
+
+// ================================================================================================
+// -------- normalize modcomp float parts.
+// -------- exponenet and fraction must be pre-converted to be non-negative.
+static SIMJ_U32 util_cvt_normalize_MCS32(SIMJ_U64* mod_exp, SIMJ_U64* mod_frac) {
+
+	SIMJ_U64 local_exp = 0;
+	SIMJ_U64 local_frac = 0;
+
+	// -------- is it already normalized..
+	if ((*mod_frac & MOD_FLT32_FRAC_FIRST) != 0) {
+		return SIMJ_FLTCVT_GOOD;
+	}
+
+	// -------- see if it can be normalized (not zero..)
+	if ((*mod_frac & MOD_FLT32_FRAC_MASK) == 0) {
+		return SIMJ_FLTCVT_OTHER_ERR;		// Can't normalixe -- value is zero.
+	}
+	// -------- since fraction value is non-zero this should work!
+	else {
+		local_exp = *mod_exp;
+		local_frac = *mod_frac;
+
+		while (true) {		// this will finish since fraction is non zero.
+			if (local_exp == 0) {
+				return SIMJ_FLTCVT_OTHER_ERR;	// can't shift any more...
+			}
+			local_exp--;
+			local_frac <<= 1;
+			if ((local_frac & MOD_FLT32_FRAC_FIRST) != 0) {
+				*mod_exp = local_exp;
+				*mod_frac = local_frac;
+				break;
+			}
+		}
+	}
+	return  SIMJ_FLTCVT_GOOD;
 }
