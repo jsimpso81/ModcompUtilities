@@ -457,7 +457,7 @@ void cpu_trigger_clock_interrupt() {
 		cpu_trigger_clock_int++;
 		// -------- Request ownership of the critical section.
 		EnterCriticalSection(&CritSectInterruptRequest);
-		cpu_interrupt_request |= (cpu_intr_clock); // &cpu_interrupt_enabled);
+		cpu_interrupt_request |= (cpu_intr_clock & cpu_interrupt_enabled);
 		// -------- Release ownership of the critical section.
 		LeaveCriticalSection(&CritSectInterruptRequest);
 	}
@@ -870,10 +870,22 @@ void cpu_classic_7860() {
 
 				// -------- All other interrupts
 				else {
+					// --------get instruction that caused issue..
+					tmp16_val1.uval = GET_MEMORY_VALUE_IM(program_counter);
 					program_counter = GET_MEMORY_VALUE_ABS(0x0021 + (new_int * 2));
 					tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
 					cpu_set_current_PSW(tmp_PSW);
-
+					if (new_int == 1) {
+						SET_CC_N(true);		// global
+					}
+					else if (new_int == 2) {
+						SET_CC_N(false);
+						SET_CC_Z(true);
+					}
+					else if (new_int == 4) {
+						SET_CC_Z(((tmp16_val1.uval & 0xff00) == 0x2300));  // rex
+						SET_CC_O(((tmp16_val1.uval & 0xff00) == 0xb300) || ((tmp16_val1.uval & 0xff0f) == 0xe805)); // exi, exr
+					}
 					// --------set that the interrupt is active!
 					cpu_interrupt_active |= bit[new_int];
 					cpu_interrupt_active_mask = mask[new_int];
@@ -901,6 +913,7 @@ void cpu_classic_7860() {
 			instruction.all = GET_MEMORY_VALUE_IMMEDIATE | GET_DESTINATION_REGISTER_VALUE;
 			program_counter++;		// it only makes sense to do this.  document doesn't mention this.
 		}
+
 
 		// -------- debug -- fill array of used instrutions
 		cpu_inst_used[instruction.parts.op_code]++;
@@ -1388,8 +1401,8 @@ void cpu_classic_7860() {
 				break;
 
 			case  OP_REX:			// 0x23  --  Request Executive Service
-				SET_CC_Z(true);		// It is a REX
-				SET_CC_O(false);	// It is not a EXR or EXI
+				// SET_CC_Z(true);		// It is a REX
+				// SET_CC_O(false);	// It is not a EXR or EXI
 				// -------- Request ownership of the critical section.
 				EnterCriticalSection(&CritSectInterruptRequest);
 				cpu_interrupt_request |= cpu_intr_UIT;
@@ -1583,6 +1596,14 @@ void cpu_classic_7860() {
 								// -------- Release ownership of the critical section.
 								LeaveCriticalSection(&CritSectInterruptRequest);
 							}
+							// TOD: FIX THIS - should not need to poke clock int when enabled.  Likely throttling issue.
+							// -------- Poke clock interrupt if enabled.
+							// else if ((tmp16_val1.uval & SIE_ALLOWED) == cpu_intr_clock) {
+							// 	EnterCriticalSection(&CritSectInterruptRequest);
+							// 	// -------- Release ownership of the critical section.
+							// 	cpu_interrupt_request |= cpu_intr_clock;
+							// 	LeaveCriticalSection(&CritSectInterruptRequest);
+							// }
 							SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 						}
 						else {
@@ -2062,14 +2083,13 @@ void cpu_classic_7860() {
 				case 0:				// fard, farq
 					switch (instruction.parts.dest_reg & 0x1) {
 					case 0:			// FARD  --  Floating Point Add Triple Register to Triple Register    
-						tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
-						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val1.uval = GET_SOURCE_REGISTER_VALUE_TRIPLE;
+						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 + tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// SET_DESTINATION_REGISTER_TRIPLE( tmp_f64_val3 ); 
-						// TODO: Set tripple result
+						SET_DESTINATION_REGISTER_VALUE_TRIPLE( tmp_f64_val3 ); 
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2107,14 +2127,13 @@ void cpu_classic_7860() {
 				case 0:				 
 					switch (instruction.parts.dest_reg & 0x1) {
 					case 0:			// FSRD
-						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
-						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_TRIPLE;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 - tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
-						// TODO: Set tripple result
+						SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2152,14 +2171,13 @@ void cpu_classic_7860() {
 				case 0:				// 
 					switch (instruction.parts.dest_reg & 0x1) {
 					case 0:			// FMRD
-						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
-						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_TRIPLE;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 * tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
-						// TODO: Set tripple result
+						SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2198,14 +2216,13 @@ void cpu_classic_7860() {
 				case 0:				// 
 					switch (instruction.parts.dest_reg & 0x1) {
 					case 0:			// FDRD
-						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
-						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_TRIPLE;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 / tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
-						// TODO: Set tripple result
+						SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp_f64_val3);
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2371,13 +2388,12 @@ void cpu_classic_7860() {
 				switch (instruction.parts.dest_reg & 0x3) {
 					case 0:		// famd
 						tmp64_val1.uval = GET_MEMORY_VALUE_DIRECT_TRIPLE;
-						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 + tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// TODO: implement triple register set...
-						// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
+						SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2399,14 +2415,12 @@ void cpu_classic_7860() {
 					case 2:		// faid
 						tmp16_val1.uval = GET_MEMORY_VALUE_IMMEDIATE;
 						tmp64_val1.uval = ((SIMJ_U64)tmp16_val1.uval << 48) & 0xffff000000000000;
-						// TODO: Implement get triple register
-						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+						tmp64_val2.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 						fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 						fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 						tmp_f64_val3 = tmp_f64_val1 + tmp_f64_val2;
 						fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-						// TODO: Implement set triple register
-						// SET_DESTINATION_REGISTER_VALUE_TRIPPLE(tmp64_val3.uval);
+						SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
 						SET_CC_N(ISVAL32_NEG(tmp32_val3));
 						SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 						SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2432,14 +2446,13 @@ void cpu_classic_7860() {
 			case  OP_FSMD_FSMQ_FSID_FSIQ:	//		0x3d
 				switch (instruction.parts.dest_reg & 0x3) {
 				case 0:		// fsmd
-					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_TRIPLE;
 					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 					tmp_f64_val3 = tmp_f64_val1 - tmp_f64_val2;
 					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-					// TODO: implement triple register set...
-					// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2460,15 +2473,14 @@ void cpu_classic_7860() {
 					break;
 				case 2:		// fsid
 					// TODO: Implement get triple register
-					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
 					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
 					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 					tmp_f64_val3 = tmp_f64_val1 - tmp_f64_val2;
 					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-					// TODO: Implement set triple register
-					// SET_DESTINATION_REGISTER_VALUE_TRIPPLE(tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2494,14 +2506,13 @@ void cpu_classic_7860() {
 			case  OP_FMMD_FMMQ_FMID_FMIQ:	//      0x3e
 				switch (instruction.parts.dest_reg & 0x3) {
 				case 0:		// fmmd
-					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_TRIPLE;
 					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 					tmp_f64_val3 = tmp_f64_val1 * tmp_f64_val2;
 					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-					// TODO: implement triple register set...
-					// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2521,16 +2532,14 @@ void cpu_classic_7860() {
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
 					break;
 				case 2:		// fmid
-					// TODO: Implement get triple register
-					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
 					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
 					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 					tmp_f64_val3 = tmp_f64_val1 * tmp_f64_val2;
 					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-					// TODO: Implement set triple register
-					// SET_DESTINATION_REGISTER_VALUE_TRIPPLE(tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2556,14 +2565,13 @@ void cpu_classic_7860() {
 			case  OP_FDMD_FDMQ_FDID_FDIQ:	//      0x3f
 				switch (instruction.parts.dest_reg & 0x3) {
 				case 0:		// fdmd
-					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 					tmp64_val2.uval = GET_MEMORY_VALUE_DIRECT_TRIPLE;
 					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 					tmp_f64_val3 = tmp_f64_val1 / tmp_f64_val2;
 					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-					// TODO: implement triple register set...
-					// SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -2583,16 +2591,14 @@ void cpu_classic_7860() {
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_TWO_WORD_INSTRUCT);
 					break;
 				case 2:		// fdid
-					// TODO: Implement get triple register
-					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD & 0xffffffffffff0000;
+					tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
 					tmp16_val2.uval = GET_MEMORY_VALUE_IMMEDIATE;
 					tmp64_val2.uval = ((SIMJ_U64)tmp16_val2.uval << 48) & 0xffff000000000000;
 					fstatus1 = util_cvt_MCS48_IEEE64(tmp64_val1.uval, &tmp_f64_val1);
 					fstatus2 = util_cvt_MCS48_IEEE64(tmp64_val2.uval, &tmp_f64_val2);
 					tmp_f64_val3 = tmp_f64_val1 / tmp_f64_val2;
 					fstatus3 = util_cvt_IEEE64_MCS48(tmp_f64_val3, &tmp64_val3.uval);
-					// TODO: Implement set triple register
-					// SET_DESTINATION_REGISTER_VALUE_TRIPPLE(tmp64_val3.uval);
+					SET_DESTINATION_REGISTER_VALUE_TRIPLE(tmp64_val3.uval);
 					SET_CC_N(ISVAL32_NEG(tmp32_val3));
 					SET_CC_Z(ISVAL32_ZERO(tmp32_val3));
 					SET_CC_C((fstatus1 != SIMJ_FLTCVT_GOOD) && (fstatus2 != SIMJ_FLTCVT_GOOD) && (fstatus3 != SIMJ_FLTCVT_GOOD));
@@ -3336,6 +3342,7 @@ void cpu_classic_7860() {
 				switch (instruction.parts.dest_reg & 0x0003) {
 
 					case 0:				//  STXT  --  Store Triple-Register into Memory Tripleword (Short-Indexed)      
+						// TODO: Use Triple macros
 						tmp16_val1.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
 						tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
 						tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest);
@@ -3347,7 +3354,8 @@ void cpu_classic_7860() {
 						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 						break;
 
-					case 1:				//  LDXT  --  Load Triple-Register from Memory Triple- word (Short-Indexed)     
+					case 1:				//  LDXT  --  Load Triple-Register from Memory Triple- word (Short-Indexed)
+						// TODO: Use triple macros.
 						tmp16_val1.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
 						tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
 						tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);
@@ -3362,6 +3370,7 @@ void cpu_classic_7860() {
 						break;
 
 					case 2:				//  STMT  --  Store Triple-Register into Memory Triple-Word       
+						// TODO: Use triple macros.
 						tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;
 						tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
 						tmp16_val2.uval = GET_REGISTER_VALUE(tmp_instr_dest);
@@ -3374,6 +3383,7 @@ void cpu_classic_7860() {
 						break;
 
 					case 3:				//  LDMT  --  Load Triple-Register from Memory Tripleword       
+						// TODO: Triple Macros
 						tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;
 						tmp_instr_dest =  GET_DESTINATION_REGISTER_NUMB & 0x000c;
 						tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);
@@ -3436,11 +3446,9 @@ void cpu_classic_7860() {
 						break;
 
 					case 2:			// --  CRRT  --  Compare Triple Register to Triple Register      
-						// TODO: Check method for tripple compare.
-						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_QUAD;
-						tmp64_val1.uval &= 0xffffffffffff0000;  // use only top 3 word
-						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_QUAD;
-						tmp64_val2.uval &= 0xffffffffffff0000;  // use only top 3 word
+						tmp64_val1.uval = GET_DESTINATION_REGISTER_VALUE_TRIPLE;
+						tmp64_val2.uval = GET_SOURCE_REGISTER_VALUE_TRIPLE;
+						// TODO: Check method for triple compare.
 						tmp64_val3.uval = tmp64_val1.uval - tmp64_val2.uval;
 						tmp64_val3.uval &= 0xffffffffffff0000;  // use only top 3 word
 						SET_CC_Z(ISVAL64_ZERO(tmp64_val3));
@@ -4474,71 +4482,157 @@ void cpu_classic_7860() {
 			break;
 
 		case  OP_PLM:			// 	        0xba
-			tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;					// (CSP) address of stack definition + 1
-			tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 1);	// highest address of stack
-			tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);		// current stack pointer.
-			tmp16_val4.uval = GET_MEMORY_VALUE_IMMEDIATE_2ND;			// contains NW, NR-1
-			tmp16_val5.uval = tmp16_val4.uval & 0x00ff;					// NW
+			tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;					// address of stack definition + 1
+			tmp16_val9.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval - 1);	// (LSA) lowest address of stack
+			tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval);		// (CSP) current stack pointer.
+			tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 1);	// (HSA) highest address of stack
+			tmp16_val4.uval = GET_MEMORY_VALUE_IMMEDIATE_2ND;			// contains NV, NR-1
+			tmp16_val5.uval = tmp16_val4.uval & 0x00ff;					// NV
+			tmp16_val6.uval = ((tmp16_val4.uval & 0xf00) >> 8) + 1;		// NR
+			//if (tmp16_val6.uval > tmp16_val5.uval) {
+			//	tmp16_val6.uval = tmp16_val5.uval;
+			//}
 
 			tmp16_val7.uval = tmp16_val2.uval - tmp16_val3.uval;		// number of words stored on stack.
 
+			// --------DEBUG
+			// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+			// fprintf(stderr, "\n %s inst: 0x%04x, stack addr: 0x%04x  \n", junkxx, instruction.all, tmp16_val1.uval);
+			// fprintf(stderr, "        NV numb vals:       0x%04x  \n", tmp16_val5.uval);
+			// fprintf(stderr, "        NR numb reg:        0x%04x  \n", tmp16_val6.uval);
+			// fprintf(stderr, "        LSA:     0x%04x\n", tmp16_val2.uval);
+			// fprintf(stderr, "        CSP:     0x%04x\n", tmp16_val3.uval);
+			// fprintf(stderr, "        HSA:     0x%04x\n", GET_MEMORY_VALUE_OM(tmp16_val1.uval + 1));
+			// fprintf(stderr, "        OV ADDR: 0x%04x\n", GET_MEMORY_VALUE_OM(tmp16_val1.uval + 2));
+			// fprintf(stderr, "        SAV R1:  0x%04x\n", GET_MEMORY_VALUE_OM(tmp16_val1.uval + 3));
+			// fprintf(stderr, "        left:    0x%04x\n", tmp16_val7.uval);
+			// disp_cur_reg(stderr);
+			// --------END DEBUG
+
+
 			// -------- stack underflow
-			if (tmp16_val5.uval > tmp16_val7.uval) {
+			//           NV > words left                              CSP < LSP
+			if ( (tmp16_val5.uval > tmp16_val7.uval ) || (tmp16_val3.uval < tmp16_val9.uval) ) {
 				SET_MEMORY_VALUE_OM(tmp16_val1.uval + 3, GET_REGISTER_VALUE(1));		// save r1
 				SET_REGISTER_VALUE(1, program_counter);									// set r1 to pc
+				// (CSP+NV) - HSA
+				tmp16_val8.uval = (tmp16_val3.uval + tmp16_val5.uval);
+				tmp16_val7.uval = tmp16_val8.uval - tmp16_val2.uval;	// CSP-NW for cc determination.
+				SET_CC_N(ISVAL16_NEG(tmp16_val7));
+				SET_CC_Z(ISVAL16_ZERO(tmp16_val7));
+				SET_CC_O_SUB(tmp16_val8, tmp16_val2, tmp16_val7);
+				SET_CC_C_SUB(tmp16_val8, tmp16_val2, tmp16_val7);
 				skip_interrupt_determination = true;		// next instruction not interruptable.
+				// --------DEBUG
+				// fprintf(stderr, "        *** UNDERFLOW ***  \n");
+				// fprintf(stderr, "        SAV R1:  0x%04x\n", GET_MEMORY_VALUE_OM(tmp16_val1.uval + 3));
+				// disp_cur_reg(stderr);
+				// --------END DEBUG
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_OM(tmp16_val1.uval + 2));		// jump to over/under flow routine
 			}
 			// -------all is good, process stack pull
 			else {
-				tmp16_val3.uval += tmp16_val5.uval;		// new bottom of stack pointer
 				tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
-				tmp16_val6.uval = ((tmp16_val4.uval & 0xf00) >> 8) + 1;		// NR
 				tmp16_val8.uval = 0;	// for determining if all are zero.
+				// --------if the number of registers is greater that the number of values
+				// --------set the register value to 0.
+				// --------NO -- PULLING BEYOND THE HIGH STACK ADDRESS IS EXPECTED.!!!
 				for (j = 0; j < tmp16_val6.uval; j++) {
-					tmp16_val9.uval = GET_MEMORY_VALUE_OM(tmp16_val3.uval + j);
+					// if (j > tmp16_val5.uval) {
+					// 	tmp16_val9.uval = 0;
+					// }
+					// else {
+						tmp16_val9.uval = GET_MEMORY_VALUE_OM(tmp16_val3.uval + j);
+					// }
 					if (j == 0) {
 						SET_CC_N(ISVAL16_NEG(tmp16_val9));
 					}
 					tmp16_val8.uval |= tmp16_val9.uval;
-					SET_REGISTER_VALUE((tmp_instr_dest + j) & 0x000f, tmp16_val9.uval);
+					SET_REGISTER_VALUE( (tmp_instr_dest + j) & 0x000f, tmp16_val9.uval);
 				}
+				tmp16_val3.uval += tmp16_val5.uval;		// new bottom of stack pointer
 				SET_MEMORY_VALUE_OM(tmp16_val1.uval, tmp16_val3.uval);	// store new stack pointer
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val8));
+				SET_CC_O(false);
+				SET_CC_C(false);
+				// --------DEBUG
+				// fprintf(stderr, "    NEW CSP:     0x%04x\n", tmp16_val3.uval);
+				// disp_cur_reg(stderr);
+				// --------END DEBUG
 				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_THREE_WORD_INSTRUCT);
 			}
 			break;
 
 		case  OP_PSM:			// 	        0xbb
-			tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;					// (CSP) address of stack definition + 1
-			tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval - 1);	// lowest address of stack
-			tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval );	// current stack pointer.
-			tmp16_val4.uval = GET_MEMORY_VALUE_IMMEDIATE_2ND;			// contains NW, NR-1
-			tmp16_val5.uval = tmp16_val4.uval & 0x00ff;					// NW
-
+			tmp16_val1.uval = GET_MEMORY_DIRECT_ADDR;					// address of stack definition + 1
+			tmp16_val2.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval - 1);	// (LSA) lowest address of stack
+			tmp16_val3.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval );	// (CSP) current stack pointer.
+			tmp16_val9.uval = GET_MEMORY_VALUE_OM(tmp16_val1.uval + 1);	// (HSA) highest address of stack
+			tmp16_val4.uval = GET_MEMORY_VALUE_IMMEDIATE_2ND;			// contains NV, NR-1
+			tmp16_val5.uval = tmp16_val4.uval & 0x00ff;					// NV  (oddly this field is 9 bits???)
+			tmp16_val6.uval = ((tmp16_val4.uval & 0xf00) >> 8) + 1;		// NR
+			//if (tmp16_val6.uval > tmp16_val5.uval) {
+			//	tmp16_val6.uval = tmp16_val5.uval;
+			//}
+			//                  CSP - LSA
 			tmp16_val7.uval = tmp16_val3.uval - tmp16_val2.uval;		// number of words left
 
+			// --------DEBUG
+			// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+			// fprintf(stderr, "\n %s inst: 0x%04x, stack addr: 0x%04x  \n", junkxx, instruction.all, tmp16_val1.uval );
+			// fprintf(stderr, "        NW numb words:      0x%04x  \n", tmp16_val5.uval);
+			// fprintf(stderr, "        NR numb reg:        0x%04x  \n", tmp16_val6.uval);
+			// fprintf(stderr, "        LSA:     0x%04x\n", tmp16_val2.uval);
+			// fprintf(stderr, "        CSP:     0x%04x\n", tmp16_val3.uval);
+			// fprintf(stderr, "        HSA:     0x%04x\n", GET_MEMORY_VALUE_OM(tmp16_val1.uval+1));
+			// fprintf(stderr, "        OV ADDR: 0x%04x\n", GET_MEMORY_VALUE_OM(tmp16_val1.uval+2));
+			// fprintf(stderr, "        SAV R1:  0x%04x\n", GET_MEMORY_VALUE_OM(tmp16_val1.uval+3));
+			// fprintf(stderr, "        left:    0x%04x\n", tmp16_val7.uval);
+			// disp_cur_reg(stderr);
+			// --------END DEBUG
+
+
 			// -------- stack overflow
-			if (tmp16_val5.uval > tmp16_val7.uval) {
+			//                 NV  >   words left                      CSP > HSA 
+			if ( ( tmp16_val5.uval > tmp16_val7.uval ) || (tmp16_val3.uval > tmp16_val9.uval) ) {
 				SET_MEMORY_VALUE_OM(tmp16_val1.uval + 3, GET_REGISTER_VALUE(1));		// save r1
 				SET_REGISTER_VALUE(1, program_counter );								// set r1 to pc
-				tmp16_val7.uval = tmp16_val3.uval - tmp16_val5.uval;					// CSP-NW for cc determination.
+				// (CSP-NV) - LSA
+				tmp16_val8.uval = (tmp16_val3.uval - tmp16_val5.uval);
+				tmp16_val7.uval = tmp16_val8.uval - tmp16_val2.uval;	// CSP-NW for cc determination.
 				SET_CC_N(ISVAL16_NEG(tmp16_val7));
 				SET_CC_Z(ISVAL16_ZERO(tmp16_val7));
-				SET_CC_O_SUB(tmp16_val3, tmp16_val5, tmp16_val7);
-				SET_CC_C_SUB(tmp16_val3, tmp16_val5, tmp16_val7);
+				SET_CC_O_SUB(tmp16_val8, tmp16_val2, tmp16_val7);
+				SET_CC_C_SUB(tmp16_val8, tmp16_val2, tmp16_val7);
 				skip_interrupt_determination = true;		// next instruction not interruptable.
+				// --------DEBUG
+				// fprintf(stderr, "        *** OVERFLOW ***  \n");
+				// fprintf(stderr, "        SAV R1:  0x%04x\n", GET_MEMORY_VALUE_OM(tmp16_val1.uval + 3));
+				// disp_cur_reg(stderr);
+				// --------END DEBUG
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_OM(tmp16_val1.uval + 2));		// jump to over/under flow routine
 			}
 			 // -------all is good, process stack push
 			else {
 				tmp16_val3.uval -= tmp16_val5.uval;		// new bottom of stack pointer
 				tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB;
-				tmp16_val6.uval = ((tmp16_val4.uval & 0xf00) >> 8) + 1;		// NR
+				// ------- This doesn't make sense but, if the number of registers is greater
+				// ------- than the number of words allocted and this violates the high stack
+				// ------- address, pushing the registers to memory CONTINUES.  WHY???
+				// ------- The diagnostic expects this.
 				for (j = 0; j < tmp16_val6.uval; j++) {
-					SET_MEMORY_VALUE_OM(tmp16_val3.uval + j, GET_REGISTER_VALUE((tmp_instr_dest + j) & 0x000f));
+					tmp16_val8.uval = GET_REGISTER_VALUE((tmp_instr_dest + j) & 0x000f);
+					//if (tmp16_val3.uval + j <= tmp16_val9.uval) {
+						SET_MEMORY_VALUE_OM(tmp16_val3.uval + j, tmp16_val8.uval);
+						// --------DEBUG
+						// fprintf(stderr, "    pushed mem addr: 0x%04x, val:  0x%04x\n", tmp16_val3.uval + j, tmp16_val8.uval);
+						// --------END DEBUG
+					//}
 				}
 				SET_MEMORY_VALUE_OM(tmp16_val1.uval, tmp16_val3.uval);	// store new stack pointer
+				// --------DEBUG
+				// fprintf(stderr, "    NEW CSP:     0x%04x\n", tmp16_val3.uval);
+				// --------END DEBUG
 				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_THREE_WORD_INSTRUCT);
 			}
 			break;
@@ -5698,6 +5792,7 @@ void cpu_classic_7860() {
 				if (TEST_VALID_TRIPLE_REGISTER(GET_DESTINATION_REGISTER_NUMB)) {
 					tmp_instr_dest = GET_DESTINATION_REGISTER_NUMB & 0x000c;
 					tmp16_val1.uval = GET_MEMORY_VALUE_IMMEDIATE;
+					// TODO: Use Triple macros
 					SET_REGISTER_VALUE(tmp_instr_dest, tmp16_val1.uval);
 					SET_REGISTER_VALUE(tmp_instr_dest + 1, 0);
 					SET_REGISTER_VALUE(tmp_instr_dest + 2, 0);

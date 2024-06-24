@@ -231,9 +231,10 @@ typedef struct {
 } DEVICE_NULL_DATA;
 
 // -------- return status for floating point conversion routines.
-#define SIMJ_FLTCVT_GOOD		1
-#define SIMJ_FLTCVT_OVERFLOW	2
-#define SIMJ_FLTCVT_OTHER_ERR	3
+#define SIMJ_FLTCVT_GOOD			1
+#define SIMJ_FLTCVT_OVERFLOW		2
+#define SIMJ_FLTCVT_ACCURACY_LOSS	3
+#define SIMJ_FLTCVT_OTHER_ERR		4
 
 // =====================================================================================================================
 // --------callable procedures.

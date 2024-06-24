@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-// -------- set com parameters -- for now 9600,8,N,1 - no hand shaking.
+// -------- set com parameters -- for now 19200,8,N,1 - hardware output hand shaking.
 int device_common_serial_set_params( HANDLE hCom, DWORD *last_error, bool USE_HDWR_OUTPUT_HANDSHAKE ) {
 
     DCB dcb = { 0 };
@@ -28,10 +28,11 @@ int device_common_serial_set_params( HANDLE hCom, DWORD *last_error, bool USE_HD
 
     // -------- Fill in some DCB values and set the com state: 
     // -------- 9600 bps, 8 data bits, no parity, and 1 stop bit.
-    dcb.BaudRate = CBR_9600;     //  baud rate
-    dcb.ByteSize = 8;             //  data size, xmit and rcv
-    dcb.Parity = NOPARITY;      //  parity bit
-    dcb.StopBits = ONESTOPBIT;    //  stop bit
+    // dcb.BaudRate = CBR_9600;     //  baud rate
+    dcb.BaudRate = CBR_19200;       //  baud rate
+    dcb.ByteSize = 8;               //  data size, xmit and rcv
+    dcb.Parity = NOPARITY;          //  parity bit
+    dcb.StopBits = ONESTOPBIT;      //  stop bit
 
     // --------this must be true -- windows only supports binery
     dcb.fBinary = true;

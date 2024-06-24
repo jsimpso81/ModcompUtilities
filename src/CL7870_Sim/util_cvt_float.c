@@ -67,40 +67,7 @@
 //						?? exp = 255, frac = 0		+/- INF depending on sign
 //						?? exp = 0, frac != 0		denormalized value =  (-1)^S x 2^(-126) x 0.fract
 //						?? others					value =  (-1)^S x 2^(E-127) x 1.fract
-//
-//
-//	
-// IEEE float32 format
-//			0 - sign bit
-//					only applies to the fraction
-//			1 - 8 - exponent
-//					unsigned biased binary number 0-255 (-128 to 127? ), bias is 127
-//			9 - 31 - fraction ( hidden bit)
 // 
-//				value interpretation
-//						exp = 255, frac != 0	NaN
-//						exp = 255, frac = 0		+/- INF depending on sign
-//						exp = 0, frac = 0		0  (+/- zero depending on sign)
-//						exp = 0, frac != 0		denormalized value =  (-1)^S x 2^(-126) x 0.fract
-//						others					value =  (-1)^S x 2^(E-127) x 1.fract
-// 
-// IEEE float64 format
-//			0 - sign bit
-//					only applies to the fraction
-//			1 - 11 - exponent
-//					unsigned biased binary number 0-2047 (-1024 to 1023? ), bias is 1023
-//			12 - 63 - fraction (with hidden bit)
-// 
-//				value interpretation
-//						exp = 2047, frac != 0	NaN
-//						exp = 2047, frac = 0	+/- INF depending on sign
-//						exp = 0, frac = 0		0  (+/- zero depending on sign)
-//						exp = 0, frac != 0		denormalized value =  (-1)^S x 2^(-1022) x 0.fract 
-//						others					value =  (-1)^S x 2^(E-1023) x 1.fract
-//
-// 
-// ================================================================================================
-
 // -------- BIT FIELDS IN C ARE **NOT** PORTABLE OR GUARANTEED TO BE WHERE YOU THINK..  DONT USE.
 typedef union {
 	// struct {
@@ -120,9 +87,25 @@ typedef union {
 #define MOD_FLT32_FRAC_FIRST 0x00200000
 #define MOD_FLT32_FRAC_MASK  0x003fffff
 #define MOD_FLT32_FRAC_SHIFT 0
-
+// 
+// ================================================================================================
+//
+// Modcomp float48 format
+//			0 - sign bit
+//					
+//			1 - 9 - exponent
+//					unsigned biased binary number 0-511 (-256 to 255 )
+//			10 - 47 - fraction (no hidden bit)
+// 
+//				value interpretation
+//						exp = 0, frac = 0		0  
+// TODO: finish modcomp format explanation.
+//						?? exp = 255, frac != 0	NaN
+//						?? exp = 255, frac = 0		+/- INF depending on sign
+//						?? exp = 0, frac != 0		denormalized value =  (-1)^S x 2^(-126) x 0.fract
+//						?? others					value =  (-1)^S x 2^(E-127) x 1.fract
+//
 // -------- NOT REALLY SUPPORTING 48 bit modcomp floating.  Convert between M64.
-
 typedef union {
 	// struct {
 	// 	SIMJ_U64 unued_fract : 16;
@@ -134,7 +117,24 @@ typedef union {
 	SIMJ_U64	all;
 } MOD_FLOAT48;
 
-
+// 
+// ================================================================================================
+//
+// Modcomp float64 format
+//			0 - sign bit
+//					
+//			1 - 9 - exponent
+//					unsigned biased binary number 0-511 (-256 to 255 )
+//			10 - 63 - fraction (no hidden bit)
+// 
+//				value interpretation
+//						exp = 0, frac = 0		0  
+// TODO: finish modcomp format explanation.
+//						?? exp = 255, frac != 0	NaN
+//						?? exp = 255, frac = 0		+/- INF depending on sign
+//						?? exp = 0, frac != 0		denormalized value =  (-1)^S x 2^(-126) x 0.fract
+//						?? others					value =  (-1)^S x 2^(E-127) x 1.fract
+//
 typedef union {
 	// struct {
 	// 	SIMJ_U64 fract : 54;
@@ -153,7 +153,24 @@ typedef union {
 #define MOD_FLT64_FRAC_FIRST 0x0020000000000000
 #define MOD_FLT64_FRAC_MASK  0x003fffffffffffff
 #define MOD_FLT64_FRAC_SHIFT 0
-
+// 
+// ================================================================================================
+//	
+// IEEE float32 format
+//			0 - sign bit
+//					only applies to the fraction
+//			1 - 8 - exponent
+//					unsigned biased binary number 0-255 (-128 to 127? ), bias is 127
+//			9 - 31 - fraction ( hidden bit)
+// 
+//				value interpretation
+//						exp = 255, frac != 0	NaN
+//						exp = 255, frac = 0		+/- INF depending on sign
+//						exp = 0, frac = 0		0  (+/- zero depending on sign)
+//						exp = 0, frac != 0		denormalized value =  (-1)^S x 2^(-126) x 0.fract
+//						others					value =  (-1)^S x 2^(E-127) x 1.fract
+// 
+//
 typedef union {
 	// struct {
 	// 	SIMJ_U32 fract : 20;
@@ -164,7 +181,23 @@ typedef union {
 	SIMJ_U32	all;
 } IEEE_FLOAT32;
 
-
+// 
+// ================================================================================================
+//
+// IEEE float64 format
+//			0 - sign bit
+//					only applies to the fraction
+//			1 - 11 - exponent
+//					unsigned biased binary number 0-2047 (-1024 to 1023? ), bias is 1023
+//			12 - 63 - fraction (with hidden bit)
+// 
+//				value interpretation
+//						exp = 2047, frac != 0	NaN
+//						exp = 2047, frac = 0	+/- INF depending on sign
+//						exp = 0, frac = 0		0  (+/- zero depending on sign)
+//						exp = 0, frac != 0		denormalized value =  (-1)^S x 2^(-1022) x 0.fract 
+//						others					value =  (-1)^S x 2^(E-1023) x 1.fract
+//
 typedef union {
 	// struct {
 	// 	SIMJ_U64 fract : 52;
@@ -184,21 +217,22 @@ typedef union {
 #define IEEE_FLT64_FRAC_MASK   0x000fffffffffffff
 #define IEEE_FLT64_FRAC_SHIFT  0
 
+// ================================================================================================
 
 
-#define CLASSIFY_IEEE64( DVAL ) {\
+#define CLASSIFY_IEEE64( STAT, DVAL ) {\
 	numb_type = fpclassify(DVAL);\
 	switch (numb_type) {\
 		case FP_NORMAL:\
 		case FP_ZERO:\
-			status = SIMJ_FLTCVT_GOOD;\
+			STAT = SIMJ_FLTCVT_GOOD;\
 			break;\
 		case FP_NAN:\
 		case FP_INFINITE:\
-			status = SIMJ_FLTCVT_OVERFLOW;\
+			STAT = SIMJ_FLTCVT_OVERFLOW;\
 			break;\
 		case FP_SUBNORMAL:\
-			status = SIMJ_FLTCVT_OTHER_ERR;\
+			STAT = SIMJ_FLTCVT_OTHER_ERR;\
 		break;\
 	}\
 }
@@ -217,9 +251,11 @@ SIMJ_U32 util_cvt_S32_IEEE64(SIMJ_S32 s32_in, SIMJ_F64* f64_out) {
 	int numb_type;
 	SIMJ_U32 status = SIMJ_FLTCVT_OTHER_ERR;
 
+	// -------- fraction has more than 32 bits so no loss of value 
+
 	temp = s32_in;	// -------- Let C do the conversion...
 
-	CLASSIFY_IEEE64( temp );
+	CLASSIFY_IEEE64( status, temp );
 
 	*f64_out = temp;
 
@@ -238,7 +274,7 @@ SIMJ_U32 util_cvt_S64_IEEE64(SIMJ_S64 s64_in, SIMJ_F64* f64_out) {
 
 	temp = s64_in;	// -------- Let C do the conversion...   There could be loss of value !!!
 
-	CLASSIFY_IEEE64(temp);
+	CLASSIFY_IEEE64(status,temp);
 
 	*f64_out = temp;
 
@@ -252,18 +288,33 @@ SIMJ_U32 util_cvt_S32_MCS32(SIMJ_S32 s32_in, SIMJ_M32* m32_out) {
 	SIMJ_F64 temp;
 	int numb_type;
 	SIMJ_U32 status = SIMJ_FLTCVT_OTHER_ERR;
+	SIMJ_U32 status2 = SIMJ_FLTCVT_OTHER_ERR;
 	SIMJ_U32 status1 = SIMJ_FLTCVT_OTHER_ERR;
 	SIMJ_M32 temp_m32;
+	VAL32   excess_in;
+
+	// --------modcomp 32 bit floating point has 22 bits of fraction
+	excess_in.sval = s32_in;
+	excess_in.uval &= 0xffc00000;
+	if ( (excess_in.uval != 0) || (excess_in.uval != 0xffc00000) ) {
+		status2 = SIMJ_FLTCVT_ACCURACY_LOSS;
+	}
+	else {
+		status2 = SIMJ_FLTCVT_GOOD;
+	}
 
 	temp = s32_in;	// -------- Let C do the conversion to IEEE64...
 
-	CLASSIFY_IEEE64(temp);
+	CLASSIFY_IEEE64(status,temp);
 
 	status1 = util_cvt_IEEE64_MCS32(temp, &temp_m32);
 
 	*m32_out = temp_m32;
 
-	return (status > status1 ? status : status1);
+	status = (status1 > status ? status1 : status);
+	status = (status2 > status ? status2 : status);
+
+	return status;
 }
 
 // ================================================================================================
@@ -276,8 +327,10 @@ SIMJ_U32 util_cvt_S32_MCS64(SIMJ_S32 s32_in, SIMJ_M64* m64_out) {
 	SIMJ_U32 status1 = SIMJ_FLTCVT_OTHER_ERR;
 	SIMJ_M64 temp_m64;
 
+	// --------plenty of space for 32 bit value with no loss.
+
 	temp = s32_in;	// -------- Let C do the conversion...
-	CLASSIFY_IEEE64(temp);
+	CLASSIFY_IEEE64(status, temp);
 
 	status1 = util_cvt_IEEE64_MCS64(temp, &temp_m64);
 
@@ -294,16 +347,31 @@ SIMJ_U32 util_cvt_S64_MCS64(SIMJ_S64 s64_in, SIMJ_M64* m64_out) {
 	int numb_type;
 	SIMJ_U32 status = SIMJ_FLTCVT_OTHER_ERR;
 	SIMJ_U32 status1 = SIMJ_FLTCVT_OTHER_ERR;
+	SIMJ_U32 status2 = SIMJ_FLTCVT_OTHER_ERR;
 	SIMJ_M64 temp_m64;
+	VAL64   excess_in;
+
+	// --------modcomp 64 bit floating point has 54 bits of fraction  (note that IEEE only has 53 bits of fraction)
+	excess_in.sval = s64_in;
+	excess_in.uval &= 0xffc0000000000000;
+	if ((excess_in.uval != 0) || (excess_in.uval != 0xffc00000)) {
+		status2 = SIMJ_FLTCVT_ACCURACY_LOSS;
+	}
+	else {
+		status2 = SIMJ_FLTCVT_GOOD;
+	}
 
 	temp = s64_in;	// -------- Let C do the conversion...  Could be loss of value!!
-	CLASSIFY_IEEE64(temp);
+	CLASSIFY_IEEE64(status, temp);
 
 	status1 = util_cvt_IEEE64_MCS64(temp, &temp_m64);
 
 	*m64_out = temp_m64;
 
-	return (status > status1 ? status : status1);
+	status = (status1 > status ? status1 : status);
+	status = (status2 > status ? status2 : status);
+
+	return status;
 }
 
 // ================================================================================================
@@ -780,6 +848,7 @@ static SIMJ_U32 util_cvt_normalize_MCS32(SIMJ_U64* mod_exp, SIMJ_U64* mod_frac) 
 
 		while (true) {		// this will finish since fraction is non zero.
 			if (local_exp == 0) {
+				fprintf(stderr, " **** WARNING **** Could not normalize modcomp value exp %lld, frac %lld \n", *mod_exp, *mod_frac);
 				return SIMJ_FLTCVT_OTHER_ERR;	// can't shift any more...
 			}
 			local_exp--;
