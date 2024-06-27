@@ -165,6 +165,15 @@
     <ClCompile Include="util_cvt_float.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="disp_instruction_trace.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util_hires_spin_wait.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disp_virtual_map.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NO_modcomp_sim_procedures.h">
@@ -200,7 +209,7 @@
     <ClInclude Include="cpu_macro_register_access.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cpu_register_memory_macros.h">
+    <ClInclude Include="cpu_instruction_memory_macros.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cpu_cond_code_macros.h">

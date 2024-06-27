@@ -52,6 +52,7 @@ void user_cmd_print_help() {
 	printf("      show inst - show instruction (opcode) use counts\n");
 	printf("      show int - show interrupts\n");
 	printf("      show key - show front panel key status\n");
+	printf("      show map <map numb> - show hardware virtual memory map\n");
 	printf("      show mem <start> <end> - show memory\n");
 	printf("      show pc - show program counter\n");
 	printf("      show power - show power on status\n");
@@ -59,6 +60,7 @@ void user_cmd_print_help() {
 	printf("      show reg - show current register value\n");
 	printf("      show run - show current cpu run state\n");
 	printf("      show switches - show console switches\n");
+	printf("      show trace - show instruction trace\n");
 	printf("      show verbose - show verbose debug mode\n");
 	printf("\n");
 	printf("      step <instruction count> - execute a single instruction\n");

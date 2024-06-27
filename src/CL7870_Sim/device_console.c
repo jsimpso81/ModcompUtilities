@@ -243,7 +243,9 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 				// TODO: Console calculate correct write timeout for different baud rates.
 				while (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 500) {
 					if (device_common_buffer_get(&device_data->out_buff, &loc_write_data[bytes_to_write])) {
-						printf("%c", loc_write_data[bytes_to_write]);
+						// --------DEBUG
+						fprintf(stderr,"%c", loc_write_data[bytes_to_write]);
+						// --------END DEBUG
 						bytes_to_write++;
 					}
 				}

@@ -195,6 +195,11 @@ void process_user_commands(FILE* cmd_src) {
 							disp_devices(stdout);
 						}
 
+						//--------instruction trace
+						else if (strcmp(cmd_data->cmd_line_parsed[1], "trace") == 0) {
+							disp_instruction_trace(stdout);
+						}
+
 						//--------key
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "key") == 0) {
 							printf(" Front panel key is : %s\n", ( gbl_fp_keylocked ? "Locked" : "Unlocked" ));
@@ -224,6 +229,23 @@ void process_user_commands(FILE* cmd_src) {
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "reg") == 0) {
 							disp_cur_reg(stdout);
 						}
+
+
+						//--------virtual map
+						else if (strcmp(cmd_data->cmd_line_parsed[1], "map") == 0) {
+							SIMJ_U32 parm_parse = 0;
+							SIMJ_U16 map = 0;
+							if (cmd_count_found >= 3) {
+								if (sscanf_s(cmd_data->cmd_line_parsed[2], "%li", &parm_parse) == 1) {
+									map = parm_parse;
+								}
+								else {
+									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[2]);
+								}
+							}
+							disp_virtual_map(stdout, map);
+						}
+
 
 						//--------mem
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "mem") == 0) {

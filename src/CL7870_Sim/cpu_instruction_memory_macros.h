@@ -70,15 +70,24 @@
 // -------- direct memory access
 #define GET_MEMORY_VALUE_ABS( A ) (gbl_mem[(A)])
 
-#define GET_MEMORY_VALUE_IM( A ) (GET_MEMORY_VALUE_ABS( (SIMJ_U16)(A)))
+#define GET_ABS_MEMORY_ADDR_IM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_instruction_map].entry[(A >> 8) & 0x00ff].parts.mem_page << 8 | (SIMJ_U32)(A & 0x00ff)) : A )
+#define GET_ABS_MEMORY_ADDR_OM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_operand_map].entry[(A >> 8) & 0x00ff].parts.mem_page << 8 | (SIMJ_U32)(A & 0x00ff)) : A )
+
+#define GET_MEMORY_VALUE_IM_VIRT( A ) (gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( A >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( A & 0x00ff ) ] )
+
+#define GET_MEMORY_VALUE_OM_VIRT( A ) (gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( A >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( A & 0x00ff ) ] )
+
+#define GET_MEMORY_VALUE_IM( A ) ( ( cpu_virtual_mode ? GET_MEMORY_VALUE_IM_VIRT( (SIMJ_U16)(A)) : GET_MEMORY_VALUE_ABS( (SIMJ_U16)(A)) ) )
 			
-#define GET_MEMORY_VALUE_OM( A ) (GET_MEMORY_VALUE_ABS( (SIMJ_U16)(A)))
+#define GET_MEMORY_VALUE_OM( A )  ( ( cpu_virtual_mode ? GET_MEMORY_VALUE_OM_VIRT( (SIMJ_U16)(A)) : GET_MEMORY_VALUE_ABS( (SIMJ_U16)(A)) ) )
+
+
 
 #define SET_MEMORY_VALUE_ABS( A, VAL ) (gbl_mem[(A)] = (VAL))
 
-#define SET_MEMORY_VALUE_IM_VIRT( A, VAL ) (gbl_mem[(A)] = (VAL))
+#define SET_MEMORY_VALUE_IM_VIRT( A, VAL ) (gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( A >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( A & 0x00ff ) ] = (VAL))
 
-#define SET_MEMORY_VALUE_OM_VIRT( A, VAL ) (gbl_mem[(A)] = (VAL))
+#define SET_MEMORY_VALUE_OM_VIRT( A, VAL ) (gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( A >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( A & 0x00ff ) ] = (VAL))
 
 #define SET_MEMORY_VALUE_IM( A, VAL ) ( cpu_virtual_mode ? SET_MEMORY_VALUE_IM_VIRT( (SIMJ_U16)(A), VAL ) : SET_MEMORY_VALUE_ABS( (SIMJ_U16)(A), VAL ))
 

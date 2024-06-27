@@ -17,6 +17,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 	switch (loc_inst.parts.op_code) {
 
 		// --------special cases.
+
 		//	OP_AUG01
 		case  OP_AUG01:			// 0x01	
 			switch (loc_inst.parts.dest_reg) {
@@ -104,7 +105,64 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_RMPS_RMWS
+
+
+		case  OP_LXR:			// 0x02
+#if SIMJ_SIM_CPU == 7830
+			switch (loc_inst.parts.dest_reg & 0x9) {
+
+			case 0:		// LXR  -- Load Extended Memory Control Register
+#endif
+				strcpy_s(op_buffer, buf_size, "LXR");
+#if SIMJ_SIM_CPU == 7830
+				break;
+
+			case 1:		// SPR - Set Protect (IF)  (disable non-virtual protection emulation)  7830 only
+				strcpy_s(op_buffer, buf_size, "SPR");
+				break;
+
+			case 8:		// SGP -- Set Global Protect (Set global protect boundary)  7830 only
+				strcpy_s(op_buffer, buf_size, "SGP");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "----");
+				break;
+			}
+#endif
+			break;
+
+
+			//	OP_RMPS_RMWS
+		case  OP_RMPS_RMWS:	    // 0x03 -         
+#if SIMJ_SIM_CPU == 7830
+			if (loc_inst.parts.dest_reg == 0) {			// SLP -- Set Lower Protect Value
+				strcpy_s(op_buffer, buf_size, "SLP");
+			}
+			else if (loc_inst.parts.src_reg & 0x0001) {	//  RMWS -- Read Memory Word Status
+#else
+			if (loc_inst.parts.src_reg & 0x0001) {		//  RMWS -- Read Memory Word Status
+#endif
+				strcpy_s(op_buffer, buf_size, "RMWS");
+			}
+			else {											// RMPS -- Read Memory Plane Status
+				strcpy_s(op_buffer, buf_size, "RMPS");
+			}
+			break;
+
+		case  OP_WMS:			// 0x04 --  Write Memory Status
+#if SIMJ_SIM_CPU == 7830
+			if (loc_inst.parts.dest_reg == 0) {			// SUP -- Set Upper Protect Value
+				strcpy_s(op_buffer, buf_size, "SUP");
+			}
+			else {											// WMS -- Write Memory Status
+#endif
+				strcpy_s(op_buffer, buf_size, "WMS");
+#if SIMJ_SIM_CPU == 7830
+			}
+#endif
+			break;
+
 		//	OP_AUG0E
 		case  OP_AUG0E:			// 0x0e
 			switch (loc_inst.parts.src_reg) {
@@ -196,10 +254,93 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 		//	OP_SIA_SIE_SIR
+		case  OP_SIA_SIE_SIR:		// 0x26
+			switch (loc_inst.parts.dest_reg) {
+
+				// SIA  --  Set interrupt Active         
+			case 0:
+				strcpy_s(op_buffer, buf_size, "SIA");
+				break;
+
+				// SIE  --  Set interrupt Enable         
+			case 4:
+				strcpy_s(op_buffer, buf_size, "SIE");
+				break;
+
+				// SIR  --  Set interrupt Request         
+			case 8:
+				strcpy_s(op_buffer, buf_size, "SIR");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
+
+
 		//	OP_RIA_RIE_RIR
+		case  OP_RIA_RIE_RIR:		//  0x27
+			switch (loc_inst.parts.dest_reg) {
+
+				// RIA  --  Reset interrupt Active         
+			case 0:
+				strcpy_s(op_buffer, buf_size, "RIA");
+				break;
+
+				// RIE  --  Reset interrupt Enable         
+			case 4:
+				strcpy_s(op_buffer, buf_size, "RIE");
+				break;
+
+				// RIR  --  Reset interrupt Request         
+			case 8:
+				strcpy_s(op_buffer, buf_size, "RIR");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
+
+
+
 		//	OP_RLD_RLQ
+		case  OP_RLD_RLQ:			// 0x28
+			switch (loc_inst.parts.dest_reg & 0x0001) {
+
+			case 0:		// RLD  --  Shift Right Logical Double-Register
+				strcpy_s(op_buffer, buf_size, "RLD");
+				break;
+
+			case 1:		// RLQ  --  Shift Right Logical Quadruple-Register        
+				strcpy_s(op_buffer, buf_size, "RLQ");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
 
 		//	OP_RAD_RAQ
+		case  OP_RAD_RAQ:		// 0x2a 
+			switch (loc_inst.parts.dest_reg & 0x0001) {
+
+			case 0:		// RAD -- right arithmetic shift double
+				strcpy_s(op_buffer, buf_size, "RAD");
+				break;
+
+			case 1:		// RAQ  --  Shift Right Arithmetic Quadruple-Register             
+				strcpy_s(op_buffer, buf_size, "RAQ");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
 
 		//	OP_LLD_LLQ
 
@@ -224,6 +365,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 		//	OP_ESD_ESS
 		//	OP_TRRQ_LDXD
 		//	OP_CRXD_STXD
+ 
 		//	OP_AUG8F
 		case  OP_AUG8F:			//         0x8f
 			switch (loc_inst.parts.dest_reg) {
@@ -292,6 +434,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 		//	OP_DVRD_DVMD
 
 		//	OP_HHI_HNH
+
 		//	OP_AUGA7
 
 
@@ -392,11 +535,15 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 		//	OP_ADRD_ADMD
+
 		//	OP_SURD_SUMD
+
 		//	OP_AUGCA
 
 		//	OP_TRRD_LDMD
+
 		//	OP_CLM_STMD_CLMD
+
 		//	OP_CRRD_CRMD
 
 		case  OP_BRU_BLM:			
@@ -501,8 +648,11 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 		//	OP_SUI_CRI
+
 		//	OP_ETI_TETI
+
 		//	OP_ORI_TORI
+
 		//	OP_XOI_TXOI
 
 		//	OP_LDI_LDF_LDFD_FDFQ
@@ -531,6 +681,16 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 		//	OP_HOP_BLT
+		case  OP_HOP_BLT:		//         0xf7
+			// BLT  --  Branch and Link (Indexed Through-Table)       
+			if (loc_inst.all & 0x0080) {
+				strcpy_s(op_buffer, buf_size, "BLT");
+			}
+			// HOP  --  Hop Unconditionally          
+			else {
+				strcpy_s(op_buffer, buf_size, "HOP");
+			}
+			break;
 
 		case OP_BRX_BLX:
 			// BRX  --  Branch (Short-Indexed) Unconditionally         

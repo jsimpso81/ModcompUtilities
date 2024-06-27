@@ -136,7 +136,9 @@
     <ClCompile Include="cpu_do_run.c" />
     <ClCompile Include="cpu_do_step.c" />
     <ClCompile Include="device_common_capture_console.c" />
+    <ClCompile Include="disp_instruction_trace.c" />
     <ClCompile Include="disp_interrupts.c" />
+    <ClCompile Include="disp_virtual_map.c" />
     <ClCompile Include="memory_plane_status.c" />
     <ClCompile Include="rtclock_start_thread.c" />
     <ClCompile Include="cpu_classic_7860.c" />
@@ -180,6 +182,7 @@
     <ClCompile Include="util_cvt_float.c" />
     <ClCompile Include="util_get_opcode_disp.c" />
     <ClCompile Include="device_common_start_thread.c" />
+    <ClCompile Include="util_hires_spin_wait.c" />
     <ClCompile Include="util_is_same_stream.c" />
   </ItemGroup>
   <ItemGroup>
@@ -188,7 +191,7 @@
     <ClInclude Include="device_null_sal_new.h" />
     <ClInclude Include="NO_cpu_register_macros.h" />
     <ClInclude Include="cpu_macro_register_access.h" />
-    <ClInclude Include="cpu_register_memory_macros.h" />
+    <ClInclude Include="cpu_instruction_memory_macros.h" />
     <ClInclude Include="device_null_initial_boot_block.h" />
     <ClInclude Include="device_null_sal.h" />
     <ClInclude Include="device_null_salprep.h" />

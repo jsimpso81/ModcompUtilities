@@ -34,8 +34,8 @@
 
 // =====================================================================================================================
 // --------define simulation customizations ---- later these can be moved to the build routines
-#define SIMJ_SIM_CPU 7830		// values are "7860" "7830" "II15"
-#define SIMJ_SIM_HAS_EAU true	// values are true, false
+#define SIMJ_SIM_CPU 7830		// values are "7860" "7830" "II15" "3285"
+#define SIMJ_SIM_HAS_EAU false	// values are true, false
 #define SIMJ_SIM_CPU_1MEGMAX	// force memory to be one meg max.
 
 // =====================================================================================================================
@@ -146,16 +146,16 @@ typedef enum {
 typedef union {
 	struct {
 		SIMJ_U16 mem_page : 13;
-		bool shared : 1;
-		MEM_ACC_RIGHTS : 2;
+		SIMJ_U8 shared : 1;
+		SIMJ_U8 acc : 2;
 	} parts;
 	SIMJ_U16 all;
-}  MEM_MAP_BITS;
+}  MEM_MAP_WORD;
 
 // -------- a complete memory map
-// typedef struct {
-//	MEM_MAP_BITS[256];
-// } MEM_MAP;
+typedef struct {
+	MEM_MAP_WORD entry[256];
+} MEM_MAP;
 // ==================================================
 
 // -------- instruction parts
@@ -246,6 +246,8 @@ void cpu_do_run();
 void cpu_do_step(SIMJ_U16 step_count);
 SIMJ_U16 cpu_get_program_counter();
 PSW cpu_get_current_PSW();
+void cpu_get_instruction_trace(SIMJ_U16* inx, SIMJ_U32 trace[1024]);
+void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map);
 SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index);
 bool cpu_get_power_on();
 void cpu_set_register_value(SIMJ_U16 reg_index, SIMJ_U16 reg_value);
@@ -330,10 +332,13 @@ void disp_interrupts(FILE* io_unit);
 void disp_pc(FILE* io_unit, SIMJ_U16 loc_pc);
 void disp_psw(FILE* io_unit, PSW loc_psw);
 void disp_instruction_use(FILE* io_unit);
+void disp_instruction_trace(FILE* io_unit);
+void disp_virtual_map(FILE* io_unit, SIMJ_U16 map);
 
 // -------- util
 void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size);
 bool util_is_same_stream(FILE* one, FILE* two);
+void util_high_res_spin_wait(SIMJ_U16 wait_time_100ns);
 
 // -------- util floating point conversions
 // -------- convert 32 bit signed integer to IEEE 64 bit float
