@@ -39,7 +39,6 @@
 				cpu_cond_code_c = (COND_C); \
 				}
 
-// TODO: finish SET_CC_CHAR macro  -- lower case alpha?
 #define SET_CC_CHAR( VAL ) {\
 				if ( (( VAL ) & 0x00ff ) == 0x28 ) { \
 					SET_CC_N( true ); \
@@ -148,35 +147,29 @@
 		SET_CC_O( ( (VAL1.uval & 0x8000000000000000) != (SUBTRAHEND.uval & 0x8000000000000000)) && ((SUBTRAHEND.uval & 0x8000000000000000) == (RES.uval & 0x8000000000000000)));\
 		}
 
-// TODO: Not sure this is correct.
 #define SET_CC_C_ADD( VAL1, VAL2, RES ) {\
 		SET_CC_C( ( ( ISVAL16_NEG(VAL1) || ISVAL16_NEG(VAL2) ) && !ISVAL16_NEG(RES) ) || ( ISVAL16_NEG(VAL1) && ISVAL16_NEG(VAL2) ) );\
 		}
 // was SET_CC_C(!ISVAL16_NEG(VAL1) && !ISVAL16_NEG(VAL2) && ISVAL16_NEG(RES)); \
 
 
-// TODO: Not sure this is correct.
 #define SET_CC_C_ADD_DOUBLE( VAL1, VAL2, RES ) {\
 		SET_CC_C( ( ( ISVAL32_NEG(VAL1) || ISVAL32_NEG(VAL2) ) && !ISVAL32_NEG(RES) ) || ( ISVAL32_NEG(VAL1) && ISVAL32_NEG(VAL2) ) );\
 		}
 
-// TODO: Not sure this is correct.
 #define SET_CC_C_ADD_QUAD( VAL1, VAL2, RES ) {\
 		SET_CC_C( ( ( ISVAL64_NEG(VAL1) || ISVAL64_NEG(VAL2) ) && !ISVAL64_NEG(RES) ) || ( ISVAL64_NEG(VAL1) && ISVAL64_NEG(VAL2) ) );\
 		}
 
-// TODO: Not sure this is correct.
 #define SET_CC_C_SUB( VAL1, VAL2, RES ) {\
 		SET_CC_C( ( ( ISVAL16_NEG(VAL1) || !ISVAL16_NEG(VAL2) ) && !ISVAL16_NEG(RES) ) || ( ISVAL16_NEG(VAL1) && !ISVAL16_NEG(VAL2) ) );\
 		}
 // was SET_CC_C(!ISVAL16_NEG(VAL1) && ISVAL16_NEG(VAL2) && ISVAL16_NEG(RES)); \
 
-// TODO: Not sure this is correct.
 #define SET_CC_C_SUB_DOUBLE( VAL1, VAL2, RES ) {\
 		SET_CC_C( ( ( ISVAL32_NEG(VAL1) || !ISVAL32_NEG(VAL2) ) && !ISVAL32_NEG(RES) ) || ( ISVAL32_NEG(VAL1) && !ISVAL32_NEG(VAL2) ) );\
 		}
 
-// TODO: Not sure this is correct.
 #define SET_CC_C_SUB_QUAD( VAL1, VAL2, RES ) {\
 		SET_CC_C( ( ( ISVAL64_NEG(VAL1) || !ISVAL64_NEG(VAL2) ) && !ISVAL64_NEG(RES) ) || ( ISVAL64_NEG(VAL1) && !ISVAL64_NEG(VAL2) ) );\
 		}

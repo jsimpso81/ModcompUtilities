@@ -1,11 +1,55 @@
-// =====================================================================================================================
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			cpu_classic_7860.c
+//
+//	Description:	THis module contains the CPU instruction set processing.  This
+//                  can be compiled to simulate Classic 7860, 7830, II/15 cpus, with or
+//                  without EAU floating point instructions.
+//
+//	Externally accessible routines:
+//					void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map)
+//					void cpu_get_instruction_trace(SIMJ_U16* inx, SIMJ_U32 trace[1024])
+//					void cpu_init_data()
+//					void cpu_stop_data()
+//					void cpu_set_power_on()
+//					void cpu_master_clear()
+//					bool cpu_get_power_on()
+//					void cpu_get_interrupt(SIMJ_U16* act, SIMJ_U16* req, SIMJ_U16* ena,
+//									SIMJ_U32* di_req, SIMJ_U32* di_prc, SIMJ_U32* si_req, SIMJ_U32* si_prc )
+//					void cpu_request_DI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr)
+//					void cpu_request_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr)
+//					SIMJ_U32 cpu_get_instruction_count()
+//					SIMJ_U16 cpu_get_clock_trigger_count()
+//					void cpu_trigger_console_interrupt()
+//					void cpu_trigger_clock_interrupt()
+//					void cpu_set_register_value(SIMJ_U16 reg_index, SIMJ_U16 reg_value)
+//					SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index)
+//					void cpu_set_program_counter(SIMJ_U16 pc)
+//					SIMJ_U16 cpu_get_program_counter()
+//					PSW cpu_get_current_PSW()
+//					SIMJ_U16 cpu_read_internal_register(SIMJ_U16 front_panel_address)
+//					void cpu_classic_7860()
+//                  
 // 
-//  cpu_classic_7870.c
+//	Internal only routines:
+//					inline SIMJ_U16 cpu_get_next_DI_request()
+//					inline SIMJ_U16 cpu_get_next_SI_request()
+//					inline void cpu_switch_register_blocks(SIMJ_U8 new_reg_block)
+//					inline void cpu_set_current_PSW(PSW new_psw)
+//					inline SIMJ_U16 cpu_find_bit(SIMJ_U16 bit_value)
+//					SIMJ_U16 cpu_convert_to_front_panel_address(SIMJ_U16 cpu_internal_reg_addr)
+// 
+// Notes:			
+//					Thir module also contains static variables used by routines in this module.
 //
-//		Copyright 2023, 2024  James A. Simpson.  
-//
-//
-// =====================================================================================================================
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
 
 #include "simj_base.h"
 
@@ -339,9 +383,12 @@ void cpu_master_clear() {
 	cpu_extended_memory_ctrl_reg = 0;
 
 	// --------send ICB to all devices.
-	// TODO: Does MC send ICB to all devices?
+	// TODO: Does MC send ICB to all devices?  For now it does.
 	for (j = 0; j < 64; j++) {
 		if (iop_device_buffer[j] != NULL) {
+			if (iop_output_cmd_proc[j] != NULL) {
+				(*iop_output_cmd_proc[j])(j, 0x4400);		// terminate with ICB
+			}
 		}
 	}
 
@@ -866,6 +913,8 @@ void cpu_classic_7860() {
 	SIMJ_F64 tmp_f64_val2 = 0.0;
 	SIMJ_F64 tmp_f64_val3 = 0.0;
 
+	LARGE_INTEGER StartingTime = { .QuadPart = 0 };
+
 // -------- DEBUG
 	char junkxx[200] = { 0 };
 // -------- END DEUBG
@@ -888,6 +937,7 @@ void cpu_classic_7860() {
 					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_UIT;\
 					LeaveCriticalSection(&CritSectInterruptRequest);\
+					goto end_instruction;\
 					}
 
 // TODO: Set CC for UIT
@@ -898,6 +948,7 @@ void cpu_classic_7860() {
 					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_UIT;\
 					LeaveCriticalSection(&CritSectInterruptRequest);\
+					goto end_instruction;\
 					}
 
 #define PRIV_INSTR_TRAP {\
@@ -905,6 +956,7 @@ void cpu_classic_7860() {
 					EnterCriticalSection(&CritSectInterruptRequest);\
 					cpu_interrupt_request |= cpu_intr_sys_protect;\
 					LeaveCriticalSection(&CritSectInterruptRequest);\
+					goto end_instruction;\
 					}
 
 //#define BAD_SHORT_DISPLACED_ADDR_TRAP {\
@@ -919,6 +971,7 @@ void cpu_classic_7860() {
 //					EnterCriticalSection(&CritSectInterruptRequest);\
 //					cpu_interrupt_request |= cpu_intr_sys_protect;\
 //					LeaveCriticalSection(&CritSectInterruptRequest);\
+//					goto end_instruction;\
 //					}
 
 
@@ -974,7 +1027,10 @@ void cpu_classic_7860() {
 	// --------execute instructions while running or single stepping.
 	while (gbl_fp_runlight | gbl_fp_single_step) {
 
-		// --------- this is a kludge for REG 0
+		// -------- get starting time for wait.
+		StartingTime = util_high_res_spin_wait_get_start();
+
+		// -------- this is a kludge for REG 0
 		saved_reg_0 = GET_REGISTER_VALUE(0);
 
 		// -------- check for new interrupts
@@ -1271,6 +1327,7 @@ void cpu_classic_7860() {
 					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;			// VP (starting offset in map
 					tmp32_val5.uval = 0xffffff00 | ((tmp32_val1.uval >> 16) & 0x000000ff);	// neg length
 					tmp32_val5.sval *= -1;											// positive length
+					// TODO: Make instruction abortable and restartable
 					for (j = 0; j < tmp32_val5.sval; j++) {
 						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val4.uval + j].all = 0;
 					}
@@ -1289,6 +1346,7 @@ void cpu_classic_7860() {
 					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;			// VP (starting offset in map
 					tmp32_val5.uval = 0xffffff00 | ((tmp32_val1.uval >> 16) & 0x000000ff);	// neg length
 					tmp32_val5.sval *= -1;											// positive length
+					// TODO: Make instruction abortable and restartable
 					for (j = 0; j < tmp32_val5.sval; j++) {
 						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val4.uval + j].all = 0;
 					}
@@ -1316,6 +1374,7 @@ void cpu_classic_7860() {
 					fprintf(stderr, "       start offset: 0x%08x \n", tmp32_val4.uval);
 					fprintf(stderr, "       length:       0x%08x \n", tmp32_val5.uval);
 					// --------END DEBUG
+					// TODO: Make instruction abortable and restartable
 					for (j = 0; j < tmp32_val5.sval; j++) {
 						tmp32_val6.uval = tmp32_val4.uval + j;
 						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val6.uval].all = GET_MEMORY_VALUE_ABS(tmp32_val3.uval + tmp32_val6.uval);
@@ -1344,6 +1403,7 @@ void cpu_classic_7860() {
 					fprintf(stderr, "       start offset: 0x%08x \n", tmp32_val4.uval);
 					fprintf(stderr, "       length:       0x%08x \n", tmp32_val5.uval);
 					// --------END DEBUG
+					// TODO: Make instruction abortable and restartable
 					for (j = 0; j < tmp32_val5.sval; j++) {
 						tmp32_val6.uval = tmp32_val4.uval + j;
 						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val6.uval].all = GET_MEMORY_VALUE_ABS(tmp32_val3.uval + tmp32_val6.uval);
@@ -1448,11 +1508,22 @@ void cpu_classic_7860() {
 				UNIMPLEMENTED_INSTRUCTION;
 			}
 			else {											// RMPS -- Read Memory Plane Status
-				tmp16_val1.uval = GET_REGISTER_VALUE(instruction.parts.src_reg & 0x000e);
-				tmp16_val2.uval = GET_REGISTER_VALUE(instruction.parts.src_reg | 0x0001);
-				tmp16_val3.uval = memory_plane_RMPS(tmp16_val1.uval, tmp16_val2.uval);
-				SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
-				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				if (IS_PRIV_MODE) {
+					tmp16_val4.uval = GET_SOURCE_REGISTER_NUMB & 0x000e;
+					tmp16_val1.uval = GET_REGISTER_VALUE(tmp16_val4.uval);
+					tmp16_val2.uval = GET_REGISTER_VALUE(tmp16_val4.uval+1);
+					tmp16_val3.uval = memory_plane_RMPS(tmp16_val1.uval, tmp16_val2.uval);
+					SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
+					// --------DEBUG
+					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+					fprintf(stderr, " % s inst : 0x%04x  reg: 0x%04x, reg or 1: 0x%04x , mem status: 0x%04x \n",
+						junkxx, instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp16_val3.uval);
+					// --------END DEBUG
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 			}
 			break;
 
@@ -1465,44 +1536,66 @@ void cpu_classic_7860() {
 			}
 			else {											// WMS -- Write Memory Status
 #endif
-				UNIMPLEMENTED_INSTRUCTION;
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;				// TODO: implement this.
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 #if SIMJ_SIM_CPU == 7830
 			}
 #endif
 			break;
 
 		case  OP_DMPI:			// 0x05  --  Initialize Direct Memory Processor
-			// TODO: This doesn't do anything it just prints some information and keeps going.
-			tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-			fprintf(stderr, " pc: 0x%04x  DMPI: 0x%04x  Reg Value: 0x%08x\n", program_counter, instruction.all, tmp32_val1.uval);
-			SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+			if (IS_PRIV_MODE) {
+				// TODO: This doesn't do anything it just prints some information and keeps going.
+				tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
+				// --------DEBUG
+				fprintf(stderr, " pc: 0x%04x  DMPI: 0x%04x  Reg Value: 0x%08x\n", program_counter, instruction.all, tmp32_val1.uval);
+				// --------END DEBUG
+				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+			}
+			else {
+				PRIV_INSTR_TRAP;
+			}
 			break;
 
 		case  OP_MMRB:			// 0x06  --  Move Memory File to RegisterBlock Section of Context
-			// -------- get dest register value - holding register block value.
-			tmp16_val1.uval = (GET_DESTINATION_REGISTER_VALUE >> 8) & 0x000f;
-			// -------- get memory address in src register value
-			tmp16_val2.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
-			// -------- copy mem (x) style to reg 1-15 in particular block
-			// TODO: Make register block copy more efficient.
-			for (j = 1; j < 16; j++) {
-				cpu_register_blocks[tmp16_val1.uval].reg16[j] = GET_MEMORY_VALUE_OM(tmp16_val2.uval + j - 1);
+			if (IS_PRIV_MODE) {
+				// -------- get dest register value - holding register block value.
+				tmp16_val1.uval = (GET_DESTINATION_REGISTER_VALUE >> 8) & 0x000f;
+				// -------- get memory address in src register value
+				tmp16_val2.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
+				// -------- copy mem (x) style to reg 1-15 in particular block
+				// TODO: Make register block copy more efficient.
+				for (j = 1; j < 16; j++) {
+					cpu_register_blocks[tmp16_val1.uval].reg16[j] = GET_MEMORY_VALUE_OM(tmp16_val2.uval + j - 1);
+				}
+				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 			}
-			SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+			else {
+				PRIV_INSTR_TRAP;
+			}
 			break;
 
 		case  OP_MRBM:			// 0x07  --  Move Register-Block Section of Context File to Memory
-			// TODO: Current registers may not match current register block.
-			// -------- get dest register value - holding register block value.
-			tmp16_val1.uval = (GET_DESTINATION_REGISTER_VALUE >> 8) & 0x000f;
-			// -------- get memory address in src register value
-			tmp16_val2.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
-			// -------- copy reg 1-15 block to mem (x) style
-			// -------- TODO: Make register block copy more efficient.
-			for (j = 1; j < 16; j++) {
-				SET_MEMORY_VALUE_OM(tmp16_val2.uval + j - 1, cpu_register_blocks[tmp16_val1.uval].reg16[j]);
+			if (IS_PRIV_MODE) {
+				// TODO: Current registers may not match current register block.
+				// -------- get dest register value - holding register block value.
+				tmp16_val1.uval = (GET_DESTINATION_REGISTER_VALUE >> 8) & 0x000f;
+				// -------- get memory address in src register value
+				tmp16_val2.uval = GET_MEMORY_ADDR_SHORT_INDEXED;
+				// -------- copy reg 1-15 block to mem (x) style
+				// -------- TODO: Make register block copy more efficient.
+				for (j = 1; j < 16; j++) {
+					SET_MEMORY_VALUE_OM(tmp16_val2.uval + j - 1, cpu_register_blocks[tmp16_val1.uval].reg16[j]);
+				}
+				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 			}
-			SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+			else {
+				PRIV_INSTR_TRAP;
+			}
 			break;
 
 		case  OP_MBR:			// 0x08 -- Move byte right register to register
@@ -1608,24 +1701,51 @@ void cpu_classic_7860() {
 
 				// -------- 7	MBVV  -- Move Virtual Block to Virtual Block       
 			case 7:
-				UNIMPLEMENTED_INSTRUCTION;
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 				break;
 
 				// -------- 8	MBVE  -- Move Block from Virtual to Extended Memory     
 			case 8:
 #if SIMJ_SIM_CPU == 7830
-				UNIMPLEMENTED_INSTRUCTION;
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
+				break;
 #else
-				UNIMPLEMENTED_INSTRUCTION;
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
+				break;
 #endif
 				break;
 
 				// -------- 9	MBEV  -- Move Block from Extended to Virtual Memory     
 			case 9:
 #if SIMJ_SIM_CPU == 7830
-				UNIMPLEMENTED_INSTRUCTION;
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 #else
-				UNIMPLEMENTED_INSTRUCTION;
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;
+			}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 #endif
 				break;
 
@@ -1691,25 +1811,45 @@ void cpu_classic_7860() {
 			// front panel format
 			// [ 0 0 0 0 ] [ MAP, IOP, MBC, CTXT] [ EAU, CPU] [ GRF ] 
 			case 12:
-				tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
-				tmp16_val2.uval = cpu_read_internal_register(cpu_convert_to_front_panel_address(tmp16_val1.uval));
-				SET_REGISTER_VALUE(instruction.parts.dest_reg | 0x01, tmp16_val2.uval);
-				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				if (IS_PRIV_MODE) {
+					tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
+					tmp16_val2.uval = cpu_read_internal_register(cpu_convert_to_front_panel_address(tmp16_val1.uval));
+					SET_REGISTER_VALUE(instruction.parts.dest_reg | 0x01, tmp16_val2.uval);
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 				break;
 
 				// -------- D	WIR  -- Write Internal Register         
 			case 13:
-				UNIMPLEMENTED_INSTRUCTION;
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 				break;
 
 				// -------- E	BRM  -- Branch to Microroutine Immediate        
 			case 14:
-				UNIMPLEMENTED_INSTRUCTION;
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 				break;
 
 				// -------- F	BRMI  -- Branch to Microroutine Immediate        
 			case 15:
-				UNIMPLEMENTED_INSTRUCTION; // TODO: THis is actually a two word instruction.
+				if (IS_PRIV_MODE) {
+					UNIMPLEMENTED_INSTRUCTION;
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 				break;
 
 			default:
@@ -1813,10 +1953,10 @@ void cpu_classic_7860() {
 			case  OP_CAR:			// 0x24  --  CAR  --  Clear Active and Return        
 				if (IS_PRIV_MODE) {
 					// --------DEBUG
-					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-					fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n", 
-						program_counter, junkxx, instruction.all, 
-						cpu_interrupt_active, cpu_interrupt_request);
+					// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+					// fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n", 
+					// 	program_counter, junkxx, instruction.all, 
+					// 	cpu_interrupt_active, cpu_interrupt_request);
 					// --------END DEBUG
 					// --------find highest active interrupt
 					// TODO: Use cpu_interrupt_active_current instead of search.
@@ -1875,15 +2015,15 @@ void cpu_classic_7860() {
 							cpu_set_current_PSW(tmp_PSW);
 						}
 						// --------DEBUG
-						fprintf(stderr, "      nothing was active\n" );
+						// fprintf(stderr, "      nothing was active\n" );
 						// --------END DEBUG
 					}
 					// -------- allow one instruction to execute before the next interrupt.
 					skip_interrupt_determination = true;
 					// --------DEBUG
-					fprintf(stderr, "     new pc 0x%04x, new active: 0x%04x, request: 0x%04x\n",
-						program_counter, cpu_interrupt_active, cpu_interrupt_request);
-					disp_psw(stderr, cpu_get_current_PSW());
+					// fprintf(stderr, "     new pc 0x%04x, new active: 0x%04x, request: 0x%04x\n",
+					// 	program_counter, cpu_interrupt_active, cpu_interrupt_request);
+					// disp_psw(stderr, cpu_get_current_PSW());
 					// --------END DEBUG
 				}
 			
@@ -1896,10 +2036,10 @@ void cpu_classic_7860() {
 			case  OP_CIR:			// 0x25  --  CIR  --  Clear interrupt and Return        
 				if (IS_PRIV_MODE) {
 					// --------DEBUG
-					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-					fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n",
-						program_counter, junkxx, instruction.all,
-						cpu_interrupt_active, cpu_interrupt_request);
+					// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+					// fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n",
+					// 	program_counter, junkxx, instruction.all,
+					// 	cpu_interrupt_active, cpu_interrupt_request);
 					// --------END DEBUG
 					// TODO: Use cpu_interrupt_active_current variable.
 					// --------find highest active interrupt
@@ -1970,15 +2110,15 @@ void cpu_classic_7860() {
 							cpu_set_current_PSW(tmp_PSW);
 						}
 						// --------DEBUG
-						fprintf(stderr, "      nothing was active\n");
+						// fprintf(stderr, "      nothing was active\n");
 						// --------END DEBUG
 					}
 					// -------- allow one instruction to execute before the next interrupt.
 					skip_interrupt_determination = true;
 					// --------DEBUG
-					fprintf(stderr, "     new pc 0x%04x, new active: 0x%04x, request: 0x%04x\n",
-						program_counter, cpu_interrupt_active, cpu_interrupt_request);
-					disp_psw(stderr, cpu_get_current_PSW());
+					// fprintf(stderr, "     new pc 0x%04x, new active: 0x%04x, request: 0x%04x\n",
+					// 	program_counter, cpu_interrupt_active, cpu_interrupt_request);
+					// disp_psw(stderr, cpu_get_current_PSW());
 					// --------END DEBUG
 				}
 				// --------not priviledged.
@@ -2004,8 +2144,8 @@ void cpu_classic_7860() {
 								cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 							}
 							// --------DEBUG
-							util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-							fprintf(stderr, " % s inst : 0x%04x  level: %02d active: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_active);
+							// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+							// fprintf(stderr, " % s inst : 0x%04x  level: %02d active: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_active);
 							// --------END DEBUG
 							SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 						}
@@ -2049,8 +2189,8 @@ void cpu_classic_7860() {
 							// 	LeaveCriticalSection(&CritSectInterruptRequest);
 							// }
 							// --------DEBUG
-							util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-							fprintf(stderr, " % s inst : 0x%04x  level: %02d enable: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_enabled);
+							// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+							// fprintf(stderr, " % s inst : 0x%04x  level: %02d enable: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_enabled);
 							// --------END DEBUG
 							SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 						}
@@ -2068,8 +2208,8 @@ void cpu_classic_7860() {
 							// -------- Release ownership of the critical section.
 							LeaveCriticalSection(&CritSectInterruptRequest);
 							// --------DEBUG
-							util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-							fprintf(stderr, " % s inst : 0x%04x  level: %02d request: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_request);
+							// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+							// fprintf(stderr, " % s inst : 0x%04x  level: %02d request: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_request);
 							// --------END DEBUG
 							SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 						}
@@ -2100,8 +2240,8 @@ void cpu_classic_7860() {
 								cpu_interrupt_active_mask = mask[cpu_find_bit(cpu_interrupt_active)];
 							}
 							// --------DEBUG
-							util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-							fprintf(stderr, " % s inst : 0x%04x  level: %02d active: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_active);
+							// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+							// fprintf(stderr, " % s inst : 0x%04x  level: %02d active: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_active);
 							// --------END DEBUG
 							SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 						}
@@ -2160,8 +2300,8 @@ void cpu_classic_7860() {
 							// -------- Release ownership of the critical section.
 							LeaveCriticalSection(&CritSectInterruptRequest);
 							// --------DEBUG
-							util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-							fprintf(stderr, " % s inst : 0x%04x  level: %02d request: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_request);
+							// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+							// fprintf(stderr, " % s inst : 0x%04x  level: %02d request: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_request);
 							// --------END DEBUG
 							SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 						}
@@ -5205,104 +5345,185 @@ void cpu_classic_7860() {
 		case  OP_LDAM_LDVM:		//        0xbe
 			switch (instruction.parts.src_reg & 0x0001) {
 			case 0:			// LDAM
-				tmp16_val1.uval = GET_REGISTER_VALUE(instruction.parts.src_reg);
-				tmp16_val2.uval = GET_REGISTER_VALUE(instruction.parts.src_reg + 1);
-				tmp32_val1.sval = tmp16_val1.sval;		// get Rx displacement and sign extend.
-				tmp32_val2.uval = (tmp16_val2.uval & 0x1fff);	// base address page
-				tmp32_val2.uval <<= 8;
-				tmp32_val3.sval = tmp32_val1.sval + tmp32_val2.sval;	// calc address
-				// TODO: update
+				if (IS_PRIV_MODE) {
+					tmp16_val1.uval = GET_REGISTER_VALUE(instruction.parts.src_reg);
+					tmp16_val2.uval = GET_REGISTER_VALUE(instruction.parts.src_reg + 1);
+					tmp32_val1.sval = tmp16_val1.sval;				// get Rx displacement and sign extend.
+					tmp32_val2.uval = (tmp16_val2.uval & 0x1fff);	// base address page
+					tmp32_val2.uval <<= 8;
+					tmp32_val3.sval = tmp32_val1.sval + tmp32_val2.sval;	// calc address
+					// TODO: update
 #ifdef SIMJ_SIM_CPU_1MEGMAX 
-				// kludge to force max found memory to be 1 meg word
-				if (tmp32_val3.uval >= 0x100000) {
-					tmp16_val3.uval = 0;
-					// fprintf(stderr, " LDAM above 0x10 0000\n");
+					// kludge to force max found memory to be 1 meg word
+					if (tmp32_val3.uval >= 0x100000) {
+						tmp16_val3.uval = 0;
+						// fprintf(stderr, " LDAM above 0x10 0000\n");
+					}
+					else {
+						tmp16_val3.uval = GET_MEMORY_VALUE_ABS(tmp32_val3.uval);
+					}
+#else
+					tmp16_val3.uval = GET_MEMORY_VALUE_ABS(tmp32_val3.uval);
+#endif
+					// --------DEBUG
+					fprintf(stderr, " LDAM 0x%04x, R: 0x%04x, Rv1: 0x%04x, addr: 0x%08x, value: : 0x%04x\n",
+						instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp32_val3.uval, tmp16_val3.uval);
+					// --------END DEUBG
+					SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
+					SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+					SET_CC_N(ISVAL16_NEG(tmp16_val3));
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+					break;
 				}
 				else {
-					tmp16_val3.uval = GET_MEMORY_VALUE_ABS(tmp32_val3.uval);
+					PRIV_INSTR_TRAP;
 				}
-#else
-				tmp16_val3.uval = GET_MEMORY_VALUE_ABS(tmp32_val3.uval);
-#endif
-				// fprintf(stderr, " LDAM 0x%04x, R: 0x%04x, Rv1: 0x%04x, addr: 0x%08x, value: : 0x%04x\n",
-				// 	instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp32_val3.uval, tmp16_val3.uval);
-				SET_DESTINATION_REGISTER_VALUE( tmp16_val3.uval );
-				SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
-				SET_CC_N(ISVAL16_NEG(tmp16_val3));
-				// TODO: Set CC based on access rights.
-				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
-				break;
 			case 1:			// LDVM
-				// -------- get double source register value.
-				tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-				// -------- break apart into MIAP - map memory page, VP - word in map, PW - word in page
-				// -------- MIAP absolute address
-				tmp32_val2.uval = (SIMJ_U32)((tmp32_val1.uval & 0x00001fff) << 8);
-				// -------- VP
-				tmp32_val3.uval = (SIMJ_U32)((tmp32_val1.uval >> 16) & 0x000000ff);
-				// -------- PW
-				tmp32_val4.uval = (SIMJ_U32)((tmp32_val1.uval >> 24) & 0x000000ff);
-				// -------- Read page map entry.
-				// TODO: make macro deal with absolute wrap around.
-				tmp16_val5.uval = GET_MEMORY_VALUE_ABS((tmp32_val2.uval + tmp32_val3.uval) & 0x001fffff);
-				// -------- check access rights.
-				// TODO: Deal with access rights.
-				// -------- create absolute memory address.
-				// -------- ABS Address
-				tmp32_val6.uval = (SIMJ_U32)(((tmp16_val5.uval & 0x1fff) << 8) | tmp32_val4.uval);
-				// -------- read memory value
-				tmp16_val7.uval = GET_MEMORY_VALUE_ABS(tmp32_val6.uval);
-				// -------- destination register to memory
-				SET_DESTINATION_REGISTER_VALUE(tmp16_val7.uval);
-				SET_CC_N(ISVAL16_NEG(tmp16_val7));
-				SET_CC_Z(ISVAL16_ZERO(tmp16_val7));
-				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				if (IS_PRIV_MODE) {
+					// -------- get double source register value.
+					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+					// -------- break apart into MIAP - map memory page, VP - word in map, PW - word in page
+					// -------- MIAP absolute address
+					tmp32_val2.uval = (SIMJ_U32)((tmp32_val1.uval & 0x00001fff) << 8);
+					// -------- VP
+					tmp32_val3.uval = (SIMJ_U32)((tmp32_val1.uval >> 24) & 0x000000ff);
+					// -------- PW
+					tmp32_val4.uval = (SIMJ_U32)((tmp32_val1.uval >> 16) & 0x000000ff);
+					// -------- Read page map entry.
+					// TODO: make macro deal with absolute wrap around.
+					tmp16_val5.uval = GET_MEMORY_VALUE_ABS( (tmp32_val2.uval + tmp32_val3.uval) & 0x001fffff);
+					// -------- check access rights.
+					tmp16_val8.uval = (tmp16_val5.uval >> 14) & 0x0003;
+					// --------DEBUG
+					fprintf(stderr, " LDVM 0x%04x, R: 0x%08x, miap: 0x%08x, vp: 0x%08x, pw: 0x%08x, page entry: 0x%04x \n",
+						instruction.all, tmp32_val1.uval, tmp32_val2.uval, tmp32_val3.uval, tmp32_val4.uval, tmp16_val5.uval);
+					// --------END DEUBG
+					//if (tmp16_val8.uval == 0) {			// no access.
+					//	SET_CC_N(false);
+					//	SET_CC_Z(false);
+					//	SET_CC_O(true);
+					//	SET_CC_C(true);
+					//	// --------DEBUG
+					//	fprintf(stderr, "          no access \n");
+					//	// --------END DEUBG
+					//}
+					//else {								// any read access.
+						// -------- create absolute memory address.
+						// -------- ABS Address
+						tmp32_val6.uval = (SIMJ_U32)( ((SIMJ_U32)(tmp16_val5.uval & 0x1fff) << 8) | tmp32_val4.uval);
+						// -------- read memory value
+						tmp16_val7.uval = GET_MEMORY_VALUE_ABS(tmp32_val6.uval);
+						// -------- destination register to memory
+						SET_DESTINATION_REGISTER_VALUE(tmp16_val7.uval);
+						SET_CC_N(ISVAL16_NEG(tmp16_val7));
+						SET_CC_Z(ISVAL16_ZERO(tmp16_val7));
+						if (tmp16_val8.uval == 0) {			// no access.
+							SET_CC_O(true);
+							SET_CC_C(true);
+						}
+						else if (tmp16_val8.uval != 3) {
+							SET_CC_O(false);
+							SET_CC_C(true);
+						}
+						else {
+							SET_CC_O(false);
+							SET_CC_C(false);
+						}
+						// --------DEBUG
+						fprintf(stderr, "          abs addr: 0x%08x, value: 0x%04x \n", tmp32_val6.uval, tmp16_val7.uval);
+						// --------END DEUBG
+					//}
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 				break;
 			}
 			break;
 
 		case  OP_STAM_STVM:		//        0xbf
 			switch (instruction.parts.src_reg & 0x0001) {
-				case 0:			// STAM  --  Store Register into (Actual) Memory       
-					tmp16_val1.uval = GET_REGISTER_VALUE(instruction.parts.src_reg);
-					tmp16_val2.uval = GET_REGISTER_VALUE(instruction.parts.src_reg+1);
-					tmp32_val1.sval = tmp16_val1.sval;		// get Rx displacement and sign extend.
-					tmp32_val2.uval = ( tmp16_val2.uval & 0x1fff );
-					tmp32_val2.uval <<= 8;
-					tmp32_val3.sval = tmp32_val1.sval + tmp32_val2.sval;	// calc address
-					tmp16_val3.uval = GET_DESTINATION_REGISTER_VALUE;
-					SET_MEMORY_VALUE_ABS(tmp32_val3.sval, tmp16_val3.uval);
-					// fprintf(stderr, " STAM 0x%04x, R: 0x%04x, Rv1: 0x%04x, addr: 0x%08x, value: : 0x%04x\n",
-					// 	instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp32_val3.uval, tmp16_val3.uval);
-					// TODO: Check to see if CC should be set.  NO
-					// SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
-					// SET_CC_N(ISVAL16_NEG(tmp16_val3));
-					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				case 0:			// STAM  --  Store Register into (Actual) Memory
+					if (IS_PRIV_MODE) {
+						tmp16_val1.uval = GET_REGISTER_VALUE(instruction.parts.src_reg);
+						tmp16_val2.uval = GET_REGISTER_VALUE(instruction.parts.src_reg + 1);
+						tmp32_val1.sval = tmp16_val1.sval;		// get Rx displacement and sign extend.
+						tmp32_val2.uval = (tmp16_val2.uval & 0x1fff);
+						tmp32_val2.uval <<= 8;
+						tmp32_val3.sval = tmp32_val1.sval + tmp32_val2.sval;	// calc address
+						tmp16_val3.uval = GET_DESTINATION_REGISTER_VALUE;
+						SET_MEMORY_VALUE_ABS(tmp32_val3.uval, tmp16_val3.uval);
+						// --------DEBUG
+						fprintf(stderr, " STAM 0x%04x, R: 0x%04x, Rv1: 0x%04x, addr: 0x%08x, value: : 0x%04x\n",
+							instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp32_val3.uval, tmp16_val3.uval);
+						// --------END DEUBG
+						// TODO: Check to see if CC should be set.  NO
+						// SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
+						// SET_CC_N(ISVAL16_NEG(tmp16_val3));
+						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+					}
+					else {
+						PRIV_INSTR_TRAP;
+					}
 					break;
 				case 1:		// STVM  --  Store Register into Memory (Via Map Image)     
-					// -------- get double source register value.
-					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-					// -------- break apart into MIAP - map memory page, VP - word in map, PW - word in page
-					// -------- MIAP absolute address
-					tmp32_val2.uval = (SIMJ_U32)((tmp32_val1.uval & 0x00001fff)  << 8);
-					// -------- VP
-					tmp32_val3.uval = (SIMJ_U32)((tmp32_val1.uval >> 16) & 0x000000ff);
-					// -------- PW
-					tmp32_val4.uval = (SIMJ_U32)((tmp32_val1.uval >> 24) & 0x000000ff);
-					// -------- Read page map entry.
-					// TODO: make macro deal with absolute wrap around.
-					tmp16_val5.uval = GET_MEMORY_VALUE_ABS(  (tmp32_val2.uval+ tmp32_val3.uval) & 0x001fffff );
-					// -------- check access rights.
-					// TODO: Deal with access rights.
-					// TODO: Set CC based on access rights.
-					// -------- create absolute memory address.
-					// -------- ABS Address
-					tmp32_val6.uval =  (SIMJ_U32)( ((tmp16_val5.uval & 0x1fff) << 8) | tmp32_val4.uval);
-					// -------- read destination register
-					tmp16_val7.uval = GET_DESTINATION_REGISTER_VALUE;
-					// -------- destination register to memory
-					SET_MEMORY_VALUE_ABS(tmp32_val6.uval,tmp16_val7.uval);
-					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+					if (IS_PRIV_MODE) {
+						// -------- get double source register value.
+						tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
+						// -------- break apart into MIAP - map memory page, VP - word in map, PW - word in page
+						// -------- MIAP absolute address
+						tmp32_val2.uval = (SIMJ_U32)((tmp32_val1.uval & 0x00001fff) << 8);
+						// -------- VP
+						tmp32_val3.uval = (SIMJ_U32)((tmp32_val1.uval >> 24) & 0x000000ff);
+						// -------- PW
+						tmp32_val4.uval = (SIMJ_U32)((tmp32_val1.uval >> 16) & 0x000000ff);
+						// -------- Read page map entry.
+						// TODO: make macro deal with absolute wrap around.
+						tmp16_val5.uval = GET_MEMORY_VALUE_ABS((tmp32_val2.uval + tmp32_val3.uval) & 0x001fffff);
+						// --------DEBUG
+						fprintf(stderr, " STVM 0x%04x, R: 0x%08x, miap: 0x%08x, vp: 0x%08x, pw: 0x%08x, page entry: 0x%04x \n",
+							instruction.all, tmp32_val1.uval, tmp32_val2.uval, tmp32_val3.uval, tmp32_val4.uval, tmp16_val5.uval);
+						// --------END DEUBG
+							// -------- check access rights.
+						tmp16_val8.uval = (tmp16_val5.uval >> 14) & 0x0003;
+						if (tmp16_val8.uval == 0) {
+							SET_CC_N(false);
+							SET_CC_Z(false);
+							SET_CC_O(true);
+							SET_CC_C(true);
+							// --------DEBUG
+							fprintf(stderr, "          no access \n");
+							// --------END DEUBG
+						}
+						else if (tmp16_val8.uval != 3) {
+							SET_CC_N(false);
+							SET_CC_Z(false);
+							SET_CC_O(false);
+							SET_CC_C(true);
+							// --------DEBUG
+							fprintf(stderr, "          no write access \n");
+							// --------END DEUBG
+						}
+						else {
+							// -------- create absolute memory address.
+							// -------- ABS Address
+							tmp32_val6.uval = (SIMJ_U32)(((SIMJ_U32)(tmp16_val5.uval & 0x1fff) << 8) | tmp32_val4.uval);
+							// -------- read destination register
+							tmp16_val7.uval = GET_DESTINATION_REGISTER_VALUE;
+							// -------- destination register to memory
+							SET_MEMORY_VALUE_ABS(tmp32_val6.uval, tmp16_val7.uval);
+							SET_CC_O(false);
+							SET_CC_C(false);
+							// --------DEBUG
+							fprintf(stderr, "          abs addr: 0x%08x, value: 0x%04x \n", tmp32_val6.uval, tmp16_val7.uval);
+							// --------END DEUBG
+						}
+						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+					}
+					else {
+						PRIV_INSTR_TRAP;
+					}
 					break;
 			}
 			break;
@@ -5790,7 +6011,6 @@ void cpu_classic_7860() {
 		case  OP_ORXM:			// 	        0xda  --  OR Register to Memory (Short-Indexed)       
 			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE | GET_MEMORY_VALUE_SHORT_INDEXED;
 			SET_MEMORY_VALUE_SHORT_INDEXED(tmp16_val1.uval);
-			// TODO: Set CC
 			SET_CC_N(ISVAL16_NEG(tmp16_val1));
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val1));
 			SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
@@ -6469,7 +6689,6 @@ void cpu_classic_7860() {
 			// BLT  --  Branch and Link (Indexed Through-Table)       
 			if (instruction.all & 0x0080) {
 				SET_REGISTER_VALUE(8, PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
-				// TODO: check the address calculation
 				SET_NEXT_PROGRAM_COUNTER(GET_MEMORY_VALUE_OM((SIMJ_U16)(GET_REGISTER_VALUE(2)+GET_HOP_OFFSET)));
 			}
 			// HOP  --  Hop Unconditionally          
@@ -6488,7 +6707,6 @@ void cpu_classic_7860() {
 			SET_CC_O_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_CC_C_ADD(tmp16_val1, tmp16_val2, tmp16_val3);
 			SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
-			// TODO: Set cc
 			break;
 
 		case  OP_SUX:			// 	        0xf9  --  Subtract Memory (Short-Indexed) from Register       
@@ -6514,7 +6732,6 @@ void cpu_classic_7860() {
 		case  OP_ORX:			// 	        0xfb  --  OR Memory (Short-Indexed) to Register       
 			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE | GET_MEMORY_VALUE_SHORT_INDEXED;
 			SET_DESTINATION_REGISTER_VALUE(tmp16_val1.uval);
-			// TODO: Set CC
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val1));
 			SET_CC_N(ISVAL16_NEG(tmp16_val1));
 			SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
@@ -6561,13 +6778,16 @@ void cpu_classic_7860() {
 
 		}
 
+	// -------- label to goto when instruction fault occurs
+	end_instruction:
+
 		// --------increment instruction count.
 		cpu_instruction_count++;
 
-		// --------for diagnostics add a little wait.
+		// --------throttle cpu execution to try and match 7860  
 		// TODO: make wait optional.
 		// TODO: add wait time for each instruction.
-		util_high_res_spin_wait(2);		// 200 ns
+		util_high_res_spin_wait_finish(2, StartingTime);		// 200 ns
 
 		// --------extended addressing state machine processing
 		switch ( use_extended_addressing_mode ) {

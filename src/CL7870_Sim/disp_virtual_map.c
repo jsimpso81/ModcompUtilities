@@ -16,6 +16,11 @@ void disp_virtual_map(FILE* io_unit, SIMJ_U16 map ) {
 
 	MEM_MAP loc_map;
 
+	if (map > 7) {
+		fprintf(io_unit, " *** ERROR *** Map number not in range 0 - 7.  Map number: %d\n", map);
+		return;
+	}
+
 	// -------- get memory map data.
 	cpu_get_virtual_map(map, &loc_map);
 

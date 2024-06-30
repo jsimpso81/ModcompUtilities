@@ -1,4 +1,24 @@
-// CL7870_Sim.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			CL7870_Sim.c
+//
+//	Description:	Main program for Modcomp Classic computer simulator.   This program
+//                  can be compiled to simulate Classic 7860, 7830, II/15 cpus, with or
+//                  without EAU floating point instructions.
+//
+//	Externally accessible routines:
+//                  int main(int argc, char* argv[]);
+// 
+// Notes:			
+//
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
 //
 
 #define SIMJ_MAIN true

@@ -339,6 +339,8 @@ void disp_virtual_map(FILE* io_unit, SIMJ_U16 map);
 void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size);
 bool util_is_same_stream(FILE* one, FILE* two);
 void util_high_res_spin_wait(SIMJ_U16 wait_time_100ns);
+LARGE_INTEGER util_high_res_spin_wait_get_start();
+void util_high_res_spin_wait_finish(SIMJ_U16 wait_time_100ns, LARGE_INTEGER StartingTime);
 
 // -------- util floating point conversions
 // -------- convert 32 bit signed integer to IEEE 64 bit float

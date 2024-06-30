@@ -1,3 +1,27 @@
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			cpu_start_thread.c
+//
+//	Description:	Manages the CPU thread.
+//
+//	Externally accessible routines:
+//					void cpu_start_thread()
+//					void cpu_stop_thread()
+// 
+//	Internal only routines:
+//					DWORD WINAPI cpu_thread_proc(LPVOID lpParam)
+// 
+// Notes:			
+//
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
+
 #include "simj_base.h"
 
 #include <stdio.h>

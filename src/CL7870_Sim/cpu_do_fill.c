@@ -1,3 +1,24 @@
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			cpu_do_fill.c
+//
+//	Description:	Perform the CPU FILL operation.
+//
+//	Externally accessible routines:
+//					void cpu_do_fill(SIMJ_U16 new_switch_value)
+// 
+//	Internal only routines:
+// 
+// Notes:			
+//
+// ================================================================================================
+//	Revision history:
+//		6/20/2024	JAS		Added header
+// ================================================================================================
 
 #include "simj_base.h"
 
