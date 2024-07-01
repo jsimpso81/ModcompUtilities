@@ -1,0 +1,58 @@
+protection trap condition codes
+
+	n z o c
+
+	0 0 0 0
+	0 0 0 1
+	0 0 1 0
+
+	0 x x x		system stall alarm (ambiguous!!)
+	
+	0 1 x x		priv instuction trap
+
+	1 0 0 0		virt mode instruction read violation
+	1 0 0 1		virt mode instruction write violation
+	1 0 1 0		virt mode operand read violation
+	1 0 1 1		virt mode operand write violation
+
+	1 1 0 0		extended mode instruction read violation
+	1 1 0 1		extended mode instruction write violation
+	1 1 1 0		extended mode operand read violation
+	1 1 1 1		extended mode operand write violation
+	
+
+unimplemented instruction trap
+
+	n z o c
+	x 0 0 x		not rex, not exr/exi
+	x 0 1 x		not reg, exr/exi
+	x 1 0 x		rex, not exr/exi
+	x 1 1 x		rex, exi/exr
+
+
+powerfail auto/restart trap condition codes
+
+	n z o c
+	0 0 0 x		external user, power recovering, DC power change
+	0 0 1 x		external user, power recovering, AC power change
+	0 1 0 x		external user, power failing, DC power change
+	0 1 1 x		external user, power failing, AC power change
+
+	1 0 0 x		local, power recovering, DC power change
+	1 0 1 x		local, power recovering, AC power change
+	1 1 0 x		local, power failing, DC power change
+	1 1 1 x		local, power failing, AC power change
+
+
+memory parity trap condition codes
+
+	n z o c
+	0 x 0 0		global - pc points to next instruction, err in inst but not opcode
+	0 x 0 1		"", error in opcode
+	0 x 1 0		"", err in operand
+	0 x 1 1		"", undefined
+
+	0 x 0 0		instruction abort, pc points to aborted instruction, err in inst but not opcode
+	0 x 0 1		"", error in opcode
+	0 x 1 0		"", err in operand
+	0 x 1 1		"", undefined

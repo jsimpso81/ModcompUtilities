@@ -84,6 +84,14 @@
 // -- 64 bit Modcomp float storage
 #define SIMJ_M64 SIMJ_U64
 
+
+// -------- Resource 
+#define DEFINE_RESOURCE( NAME )  CRITICAL_SECTION NAME
+#define INIT_RESOURCE( NAME ) InitializeCriticalSectionAndSpinCount(&NAME, 0x00000400);
+#define DELETE_RESOURCE( NAME ) DeleteCriticalSection(&NAME)
+#define TAKE_RESOURCE( NAME ) 	EnterCriticalSection(&NAME)
+#define GIVE_RESOURCE( NAME )  LeaveCriticalSection(&NAME)
+
 #else
 #error SIMJ  simj_base.h - Runtime platform not defined.   Compile aborted.
 #endif
@@ -220,7 +228,7 @@ typedef struct {
 #include "generic_device_variables.h"
 	volatile HANDLE com_handle;
 	volatile bool break_detect_enabled;
-	CRITICAL_SECTION CritSectStatusUpdate;
+	DEFINE_RESOURCE( ResourceStatusUpdate );
 } DEVICE_CONSOLE_DATA;
 
 
@@ -260,6 +268,8 @@ void cpu_stop_thread();
 void cpu_stop_data();
 void cpu_trigger_clock_interrupt();
 void cpu_trigger_console_interrupt();
+void cpu_trigger_memory_parity_interrupt(SIMJ_U16 parity_interrupt_type);
+void cpu_trigger_power_interrupt(SIMJ_U16 power_interrupt_type);
 SIMJ_U16 cpu_get_clock_trigger_count();
 SIMJ_U32 cpu_get_instruction_count();
 SIMJ_U16 cpu_read_internal_register(SIMJ_U16 int_reg_addr);

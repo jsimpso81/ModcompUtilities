@@ -1,0 +1,25 @@
+LXR		02	0000	R
+
+SPR		02	0xx1	F
+
+SGP		02	1000	Rs
+
+
+
+RMPS		03	Rd	Rx 0
+
+RMWS		03	Rd	Rx 1
+
+SLP		03	0	Rs
+
+
+
+
+SUP		04	0	Rs
+
+WMS		04	RS	Rx 0
+
+
+
+
+	

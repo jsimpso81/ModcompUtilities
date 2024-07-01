@@ -1,4 +1,4 @@
-// -------- CONSOLE DEVICE -- VIA COMM PORT
+g// -------- CONSOLE DEVICE -- VIA COMM PORT
 
 #include "simj_base.h"
 
@@ -52,12 +52,12 @@ void  device_console_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 	// --------if writing and buffer isn't empty
 	if (databuffer->write_in_progress && !device_common_buffer_isempty(&databuffer->out_buff)) {
 
-		// -------- Request ownership of the critical section.
-		EnterCriticalSection(&databuffer->CritSectStatusUpdate);
+		// -------- Request ownership of the resource.
+		TAKE_RESOURCE( databuffer->ResourceStatusUpdate );
 		// -------set data not ready.
 		databuffer->ctrl_status |= status_data_not_ready;
-		// -------- Release ownership of the critical section.
-		LeaveCriticalSection(&databuffer->CritSectStatusUpdate);
+		// -------- Release ownership of the resource.
+		GIVE_RESOURCE( databuffer->ResourceStatusUpdate );
 	}
 
 	// --------wake up comm thread.
@@ -99,11 +99,11 @@ SIMJ_U16  device_console_input_data(SIMJ_U16 device_address) {
 
 	// --------If buffer is empty,, set data_not_ready flag in status word.
 	if (databuffer->read_in_progress && device_common_buffer_isempty(&databuffer->in_buff)) {
-		// -------- Request ownership of the critical section.
-		EnterCriticalSection(&databuffer->CritSectStatusUpdate);
+		// -------- Request ownership of the resource.
+		TAKE_RESOURCE( databuffer->ResourceStatusUpdate );
 		databuffer->ctrl_status |= status_data_not_ready;
-		// -------- Release ownership of the critical section.
-		LeaveCriticalSection(&databuffer->CritSectStatusUpdate);
+		// -------- Release ownership of the resource.
+		GIVE_RESOURCE( databuffer->ResourceStatusUpdate );
 	}
 
 	// fprintf(stderr," device_console input data -- called - 0x%04x, index %d, new: %s \n", ourvalue, databuffer->in_buff.last_byte_read_index, (new_data ? "New  " : "Empty"));
@@ -127,8 +127,8 @@ SIMJ_U16  device_console_input_status(SIMJ_U16 device_address) {
 	// --------allow other threads to run
 	// SwitchToThread();
 
-	// -------- Request ownership of the critical section.
-	EnterCriticalSection(&databuffer->CritSectStatusUpdate);
+	// -------- Request ownership of the resource.
+	TAKE_RESOURCE( databuffer->ResourceStatusUpdate );
 
 	// --------get current control status and return to user.
 	loc_status = databuffer->ctrl_status;
@@ -158,8 +158,8 @@ SIMJ_U16  device_console_input_status(SIMJ_U16 device_address) {
 	if (loc_status1 != loc_status) {
 		databuffer->ctrl_status = loc_status;
 	}
-	// -------- Release ownership of the critical section.
-	LeaveCriticalSection(&databuffer->CritSectStatusUpdate);
+	// -------- Release ownership of the resource.
+	GIVE_RESOURCE( databuffer->ResourceStatusUpdate );
 
 	// printf("\n device_console input status -- called - 0x%04x\n", loc_status);
 
@@ -255,15 +255,15 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 						&bytes_written, NULL);
 					// fprintf(stderr, " Console bytes write requested %d, written %d.  Device Addr %d\n", bytes_to_write, bytes_written, loc_device_addr);
 
-					// -------- Request ownership of the critical section.
-					EnterCriticalSection(&device_data->CritSectStatusUpdate);
+					// -------- Request ownership of the resource.
+					TAKE_RESOURCE( device_data->ResourceStatusUpdate );
 
 					// --------signal buffer not full -- ready for more.
 					if (device_data->write_in_progress) {
 						device_data->ctrl_status &= (~status_data_not_ready);
 					}
-					// -------- Release ownership of the critical section.
-					LeaveCriticalSection(&device_data->CritSectStatusUpdate);
+					// -------- Release ownership of the resource.
+					GIVE_RESOURCE( device_data->ResourceStatusUpdate );
 
 					// --------initiate DI to get more
 					if (device_data->write_in_progress && device_data->DI_enabled) {
@@ -271,15 +271,15 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 					}
 				}
 
-				// -------- Request ownership of the critical section.
-				EnterCriticalSection(&device_data->CritSectStatusUpdate);
+				// -------- Request ownership of the resource.
+				TAKE_RESOURCE( device_data->ResourceStatusUpdate );
 
 				// --------signal buffer not full -- ready for more. -- JUST IN CASE.
 				if (device_data->write_in_progress && device_common_buffer_isempty(&device_data->out_buff)) {
 					device_data->ctrl_status &= (~status_data_not_ready);
 				}
-				// -------- Release ownership of the critical section.
-				LeaveCriticalSection(&device_data->CritSectStatusUpdate);
+				// -------- Release ownership of the resource.
+				GIVE_RESOURCE( device_data->ResourceStatusUpdate );
 
 				//}
 
@@ -302,14 +302,14 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 							}
 						}
 
-						// -------- Request ownership of the critical section.
-						EnterCriticalSection(&device_data->CritSectStatusUpdate);
+						// -------- Request ownership of the resource.
+						TAKE_RESOURCE( device_data->ResourceStatusUpdate );
 
 						// --------signal data ready.
 						device_data->ctrl_status &= (~status_data_not_ready);
 
-						// -------- Release ownership of the critical section.
-						LeaveCriticalSection(&device_data->CritSectStatusUpdate);
+						// -------- Release ownership of the resource.
+						GIVE_RESOURCE( device_data->ResourceStatusUpdate );
 
 						// --------initiate DI so they can process this byte.
 						if (device_data->DI_enabled) {
@@ -546,9 +546,9 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 	if ( loc_com_device != NULL )
 		device_common_serial_close(loc_com_device, &last_error);
 
-	// --------initialize the critical section for interrupt requests.
-	// Initialize the critical section one time only.
-	DeleteCriticalSection(&device_data->CritSectStatusUpdate);
+	// --------initialize the resource for updating status.
+	// Initialize the resource one time only.
+	DELETE_RESOURCE( device_data->ResourceStatusUpdate );
 
 	// --------unset global values and deallocate memory
 	device_common_remove(loc_device_addr);
@@ -597,9 +597,9 @@ void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, S
 		device_common_buffer_init(&device_data->in_buff);
 		device_common_buffer_init(&device_data->out_buff);
 
-		// --------initialize the critical section for interrupt requests.
-		// Initialize the critical section one time only.
-		status = InitializeCriticalSectionAndSpinCount(&device_data->CritSectStatusUpdate, 0x00000400);
+		// --------initialize the resource for updating status.
+		// Initialize the resource one time only.
+		status = INIT_RESOURCE( device_data->ResourceStatusUpdate );
 		if (!status) {
 			printf(" *** ERROR *** Console device could not create status update locking mechanism.\n");
 		}
@@ -638,8 +638,8 @@ void device_console_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* devic
 	// --------get the type of command.
 	cmd_type = loc_cmd & cmd_mask;
 
-	// -------- Request ownership of the critical section.
-	EnterCriticalSection(&device_data->CritSectStatusUpdate);
+	// -------- Request ownership of the resource.
+	TAKE_RESOURCE( device_data->ResourceStatusUpdate );
 
 	// --------get internal status to work on...
 	loc_status = device_data->ctrl_status;
@@ -894,8 +894,8 @@ void device_console_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* devic
 		device_data->ctrl_status = loc_status;
 
 
-		// -------- Release ownership of the critical section.
-		LeaveCriticalSection(&device_data->CritSectStatusUpdate);
+		// -------- Release ownership of the resource.
+		GIVE_RESOURCE( device_data->ResourceStatusUpdate );
 
 		if ( msg_term_icb)
 			fprintf(stderr, " Device console - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);

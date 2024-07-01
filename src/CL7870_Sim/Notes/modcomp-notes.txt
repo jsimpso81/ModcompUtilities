@@ -1,0 +1,12 @@
+ocrmypdf --deskew --clean --oversample 1200
+
+
+
+
+Diagnostics
+OPT #8020
+
+CSW $0140
+
+
+
