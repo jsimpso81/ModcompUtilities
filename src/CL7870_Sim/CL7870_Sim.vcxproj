@@ -189,7 +189,6 @@
     <ClInclude Include="cpu_cond_code_macros.h" />
     <ClInclude Include="deivce_null_salprep_OLD.h" />
     <ClInclude Include="device_null_sal_new.h" />
-    <ClInclude Include="NO_cpu_register_macros.h" />
     <ClInclude Include="cpu_macro_register_access.h" />
     <ClInclude Include="cpu_instruction_memory_macros.h" />
     <ClInclude Include="device_null_initial_boot_block.h" />
@@ -198,10 +197,7 @@
     <ClInclude Include="generic_device_variables.h" />
     <ClInclude Include="modcomp_opcodes.h" />
     <ClInclude Include="modcomp_opcode_string.h" />
-    <ClInclude Include="NO_modcomp_sim_external_globals.h" />
     <ClInclude Include="modcomp_sim_globals.h" />
-    <ClInclude Include="NO_modcomp_sim_procedures.h" />
-    <ClInclude Include="NO_modcomp_sim_types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
