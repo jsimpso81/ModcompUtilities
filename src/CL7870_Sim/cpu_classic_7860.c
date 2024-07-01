@@ -1086,7 +1086,7 @@ void cpu_classic_7860() {
 
 
 
-#define GET_HOP_OFFSET ( ( instruction.all & 0x0040 ) ? (instruction.all & 0x007f) | 0xff80 : instruction.all & 0x007f )
+#define GET_HOP_OFFSET ( ( instruction.all & 0x0040 ) ? (SIMJ_U16)((instruction.all & 0x007f) | 0xff80) : (SIMJ_U16)(instruction.all & 0x007f) )
 
 
 #define GET_NEXT_PROGRAM_COUNTER_HOP  ( (SIMJ_U16)(program_counter + GET_HOP_OFFSET) )
@@ -4093,8 +4093,8 @@ void cpu_classic_7860() {
 					SET_NEXT_PROGRAM_COUNTER(tmp_new_prog_count);
 				}
 				else {
-					GET_MEMORY_VALUE_IM(tmp_new_prog_count, PROGRAM_COUNTER_FOUR_WORD_INSTRUCT);
-					SET_NEXT_PROGRAM_COUNTER(tmp_new_prog_count);
+					// GET_MEMORY_VALUE_IM(tmp_new_prog_count, PROGRAM_COUNTER_FOUR_WORD_INSTRUCT);
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_FOUR_WORD_INSTRUCT);
 				}
 				break;
 
@@ -6136,7 +6136,7 @@ void cpu_classic_7860() {
 			// else {
 			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
 			GET_MEMORY_VALUE_SHORT_DISPLACED(tmp16_val2.uval);
-			tmp16_val3.uval = tmp16_val1.uval & tmp16_val3.uval;
+			tmp16_val3.uval = tmp16_val1.uval & tmp16_val2.uval;
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
 			GET_MEMORY_VALUE_IMMEDIATE(tmp_new_prog_count);
@@ -6327,7 +6327,7 @@ void cpu_classic_7860() {
 		case  OP_XOM:			// 	        0xe4  --  Exclusive OR Memory to Register       
 			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
 			GET_MEMORY_VALUE_DIRECT(tmp16_val2.uval);
-			tmp16_val1.uval = tmp16_val1.uval ^ tmp16_val2.uval;
+			tmp16_val3.uval = tmp16_val1.uval ^ tmp16_val2.uval;
 			SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));
@@ -6467,7 +6467,7 @@ void cpu_classic_7860() {
 			case 7:
 				if ( ISREGNUM_DOUBLE(GET_DESTINATION_REGISTER_NUMB) ) {
 					tmp32_val1.uval = GET_DESTINATION_REGISTER_VALUE_DOUBLE;
-					GET_MEMORY_VALUE_IMMEDIATE(tmp16_val2.uval );
+					GET_MEMORY_VALUE_IMMEDIATE( tmp16_val2.uval );
 					tmp32_val2.sval = tmp16_val2.sval;
 					if (tmp32_val2.sval != 0) {
 						tmp32_val3.sval = tmp32_val1.sval / tmp32_val2.sval;	// quotient
@@ -6869,7 +6869,7 @@ void cpu_classic_7860() {
 			// else {
 			tmp16_val1.uval = GET_DESTINATION_REGISTER_VALUE;
 			GET_MEMORY_VALUE_SHORT_DISPLACED(tmp16_val2.uval);
-			tmp16_val3.uval = tmp16_val1.uval ^ tmp16_val3.uval;
+			tmp16_val3.uval = tmp16_val1.uval ^ tmp16_val2.uval;
 			SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
 			SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
 			SET_CC_N(ISVAL16_NEG(tmp16_val3));

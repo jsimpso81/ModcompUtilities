@@ -1,4 +1,4 @@
-g// -------- CONSOLE DEVICE -- VIA COMM PORT
+// -------- CONSOLE DEVICE -- VIA COMM PORT
 
 #include "simj_base.h"
 
