@@ -86,18 +86,18 @@
 // 11   3	read write execute
 
 #define VIRT_MEM_CHECK_ACCESS_READ( VIRT_ADDR, MAP ) {\
-					if ( ( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].parts.acc ) == 0 ) {\
-						MEM_ACCESS_TRAP; \
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) == MEM_MAP_WORD_ACC_NONE ) {\
+						MEM_ACCESS_TRAP_NO_READ; \
 					}\
 					}
 #define VIRT_MEM_CHECK_ACCESS_EXEC( VIRT_ADDR, MAP ) {\
-					if ( ( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8) & 0x00ff ].parts.acc ) >= 2) {\
-						MEM_ACCESS_TRAP; \
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK  ) < MEM_MAP_WORD_ACC_EXEC) {\
+						MEM_ACCESS_TRAP_NO_EXEC; \
 					}\
 					}
 #define VIRT_MEM_CHECK_ACCESS_WRITE( VIRT_ADDR, MAP ) {\
-					if ( ( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].parts.acc ) != 3) {\
-						MEM_ACCESS_TRAP; \
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) != MEM_MAP_WORD_ACC_WRITE) {\
+						MEM_ACCESS_TRAP_NO_WRITE; \
 					}\
 					}
 

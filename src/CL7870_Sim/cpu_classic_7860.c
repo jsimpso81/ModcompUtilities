@@ -1059,12 +1059,30 @@ void cpu_classic_7860() {
 
 // TODO: Set system protect trap condition codes.
 #define MEM_ACCESS_TRAP {\
-					fprintf(stderr, "\n mem access trap inst: 0x%04x @ 0x%04x\n",instruction.all, program_counter);\
 					TAKE_RESOURCE( ResourceInterruptRequest );\
 					cpu_interrupt_request |= cpu_intr_sys_protect;\
 					GIVE_RESOURCE( ResourceInterruptRequest );\
 					goto end_instruction;\
 					}
+
+// TODO: Set system protect trap condition codes.
+#define MEM_ACCESS_TRAP_NO_READ {\
+					fprintf(stderr, "\n mem access trap - no read - inst: 0x%04x @ 0x%04x, acc:  0x%04x\n",instruction.all, program_counter, cpu_mem_last_access_rights);\
+					MEM_ACCESS_TRAP;\
+					}
+
+// TODO: Set system protect trap condition codes.
+#define MEM_ACCESS_TRAP_NO_EXEC {\
+					fprintf(stderr, "\n mem access trap - no execute - inst: 0x%04x @ 0x%04x, acc:  0x%04x\n",instruction.all, program_counter, cpu_mem_last_access_rights);\
+					MEM_ACCESS_TRAP;\
+					}
+
+// TODO: Set system protect trap condition codes.
+#define MEM_ACCESS_TRAP_NO_WRITE {\
+					fprintf(stderr, "\n mem access trap - no write - inst: 0x%04x @ 0x%04x, acc:  0x%04x\n",instruction.all, program_counter, cpu_mem_last_access_rights);\
+					MEM_ACCESS_TRAP;\
+					}
+
 
 
 // TODO: Set system protect trap condition codes.
@@ -5523,8 +5541,8 @@ void cpu_classic_7860() {
 					tmp16_val3.uval = GET_MEMORY_VALUE_ABS(tmp32_val3.uval);
 #endif
 					// --------DEBUG
-					fprintf(stderr, " LDAM 0x%04x, R: 0x%04x, Rv1: 0x%04x, addr: 0x%08x, value: : 0x%04x\n",
-						instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp32_val3.uval, tmp16_val3.uval);
+					// fprintf(stderr, " LDAM 0x%04x, R: 0x%04x, Rv1: 0x%04x, addr: 0x%08x, value: : 0x%04x\n",
+					// 	instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp32_val3.uval, tmp16_val3.uval);
 					// --------END DEUBG
 					SET_DESTINATION_REGISTER_VALUE(tmp16_val3.uval);
 					SET_CC_Z(ISVAL16_ZERO(tmp16_val3));
@@ -5612,8 +5630,8 @@ void cpu_classic_7860() {
 						tmp16_val3.uval = GET_DESTINATION_REGISTER_VALUE;
 						SET_MEMORY_VALUE_ABS(tmp32_val3.uval, tmp16_val3.uval);
 						// --------DEBUG
-						fprintf(stderr, " STAM 0x%04x, R: 0x%04x, Rv1: 0x%04x, addr: 0x%08x, value: : 0x%04x\n",
-							instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp32_val3.uval, tmp16_val3.uval);
+						// fprintf(stderr, " STAM 0x%04x, R: 0x%04x, Rv1: 0x%04x, addr: 0x%08x, value: : 0x%04x\n",
+						// 	instruction.all, tmp16_val1.uval, tmp16_val2.uval, tmp32_val3.uval, tmp16_val3.uval);
 						// --------END DEUBG
 						// TODO: Check to see if CC should be set.  NO
 						// SET_CC_Z(ISVAL16_ZERO(tmp16_val3));

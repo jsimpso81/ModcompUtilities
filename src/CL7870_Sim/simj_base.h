@@ -143,14 +143,15 @@ typedef union {
 // ==================================================
 // -------- MEMORY MAPS ARE A WORK IN PROCESS.
 // -------- memory map access rights
-typedef enum {
-	no_access = 0,
-	read_only = 1,
-	read_execute = 2,
-	read_exec_write = 3
-} MEM_ACC_RIGHTS;
+//typedef enum {
+//	no_access = 0,
+//	read_only = 1,
+//	read_execute = 2,
+//	read_exec_write = 3
+//} MEM_ACC_RIGHTS;
 
 // --------Mem map entry
+// --------NOTE ACC and probably SHARED don't work.
 typedef union {
 	struct {
 		SIMJ_U16 mem_page : 13;
@@ -159,6 +160,18 @@ typedef union {
 	} parts;
 	SIMJ_U16 all;
 }  MEM_MAP_WORD;
+
+#define MEM_MAP_WORD_PAGE_MASK		(SIMJ_U16)0x1fff
+#define MEM_MAP_WORD_SHARED_MASK	(SIMJ_U16)0x2000
+#define MEM_MAP_WORD_ACC_MASK		(SIMJ_U16)0xc000
+
+#define MEM_MAP_WORD_SHARED_SHIFT	13
+#define MEM_MAP_WORD_ACC_SHIFT		14
+
+#define MEM_MAP_WORD_ACC_NONE		(SIMJ_U16)0x0000
+#define MEM_MAP_WORD_ACC_READ		(SIMJ_U16)0x4000
+#define MEM_MAP_WORD_ACC_EXEC		(SIMJ_U16)0x8000
+#define MEM_MAP_WORD_ACC_WRITE		(SIMJ_U16)0xC000
 
 // -------- a complete memory map
 typedef struct {
