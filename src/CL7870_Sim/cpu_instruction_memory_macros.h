@@ -86,27 +86,27 @@
 // 11   3	read write execute
 
 #define VIRT_MEM_CHECK_ACCESS_READ( VIRT_ADDR, MAP ) {\
-					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) == MEM_MAP_WORD_ACC_NONE ) {\
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) == MEM_MAP_WORD_ACC_NONE ) {\
 						MEM_ACCESS_TRAP_NO_READ; \
 					}\
 					}
 #define VIRT_MEM_CHECK_ACCESS_EXEC( VIRT_ADDR, MAP ) {\
-					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK  ) < MEM_MAP_WORD_ACC_EXEC) {\
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK  ) < MEM_MAP_WORD_ACC_EXEC) {\
 						MEM_ACCESS_TRAP_NO_EXEC; \
 					}\
 					}
 #define VIRT_MEM_CHECK_ACCESS_WRITE( VIRT_ADDR, MAP ) {\
-					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[MAP].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) != MEM_MAP_WORD_ACC_WRITE) {\
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) != MEM_MAP_WORD_ACC_WRITE) {\
 						MEM_ACCESS_TRAP_NO_WRITE; \
 					}\
 					}
 
-#define GET_ABS_MEMORY_ADDR_IM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_instruction_map].entry[(A >> 8) & 0x00ff].parts.mem_page << 8 | (SIMJ_U32)(A & 0x00ff)) : A )
-#define GET_ABS_MEMORY_ADDR_OM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_operand_map].entry[(A >> 8) & 0x00ff].parts.mem_page << 8 | (SIMJ_U32)(A & 0x00ff)) : A )
+#define GET_ABS_MEMORY_ADDR_IM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_instruction_map].entry[((A) >> 8) & 0x00ff].parts.mem_page << 8 | (SIMJ_U32)((A) & 0x00ff)) : (A) )
+#define GET_ABS_MEMORY_ADDR_OM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_operand_map].entry[((A) >> 8) & 0x00ff].parts.mem_page << 8 | (SIMJ_U32)((A) & 0x00ff)) : (A) )
 
 
-#define GET_MEMORY_VALUE_IM_VIRT( A ) ( gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( A >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( A & 0x00ff ) ] )
-#define GET_MEMORY_VALUE_OM_VIRT( A ) ( gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( A >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( A & 0x00ff ) ] )
+#define GET_MEMORY_VALUE_IM_VIRT( A ) ( gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] )
+#define GET_MEMORY_VALUE_OM_VIRT( A ) ( gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] )
 
 #define GET_MEMORY_VALUE_IM( OUTVAL, A ) {\
 					if ( cpu_virtual_mode ) {\
@@ -129,11 +129,11 @@
 
 
 #define SET_MEMORY_VALUE_IM_VIRT( A, VAL ) {\
-			gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( A >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( A & 0x00ff ) ] = (VAL);\
+			gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] = (VAL);\
 			}
 
 #define SET_MEMORY_VALUE_OM_VIRT( A, VAL ) {\
-			 gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( A >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( A & 0x00ff ) ] = (VAL);\
+			 gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] = (VAL);\
 			}
 
 //#define SET_MEMORY_VALUE_IM( A, VAL ) ( cpu_virtual_mode ? SET_MEMORY_VALUE_IM_VIRT( (SIMJ_U16)(A), VAL ) : SET_MEMORY_VALUE_ABS( (SIMJ_U16)(A), VAL ))
@@ -214,7 +214,7 @@
 					}\
 					else {\
 						GET_MEMORY_VALUE_IMMEDIATE( OUT_PART_DIRECT_ADDR );\
-						OUT_PART_DIRECT_ADDR = (SIMJ_U16)((SIMJ_U16)OUT_PART_DIRECT_ADDR + (SIMJ_U16)(GET_REGISTER_VALUE(instruction.all & 0x0007))); \
+						OUT_PART_DIRECT_ADDR = (SIMJ_U16)((SIMJ_U16)(OUT_PART_DIRECT_ADDR) + (SIMJ_U16)(GET_REGISTER_VALUE(instruction.all & 0x0007))); \
 					}\
 					}
 

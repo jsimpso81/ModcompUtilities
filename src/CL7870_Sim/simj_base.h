@@ -267,7 +267,8 @@ void cpu_do_run();
 void cpu_do_step(SIMJ_U16 step_count);
 SIMJ_U16 cpu_get_program_counter();
 PSW cpu_get_current_PSW();
-void cpu_get_instruction_trace(SIMJ_U16* inx, SIMJ_U32 trace[1024]);
+void cpu_get_instruction_trace(SIMJ_U16* inx, SIMJ_U32 trace[1024],
+	SIMJ_U32 trace_w1[1024], SIMJ_U32 trace_w2[1024], SIMJ_U32 trace_w3[1024], SIMJ_U32 trace_w4[1024]);
 void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map);
 SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index);
 bool cpu_get_power_on();

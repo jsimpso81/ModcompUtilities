@@ -1,3 +1,27 @@
+// ================================================================================================
+//
+//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//
+// ================================================================================================
+//
+//	Module:			XXXX.c
+//
+//	Description:	Routines to xxxxxxx.
+//
+//	Externally accessible routines:
+//					XXXXXXX
+// 
+// Internal only routines:
+//					XXXXXXX
+//
+// Notes:
+//		XXXXXX
+// 
+// ================================================================================================
+//	Revision history:
+//		6/28/2024	JAS		Added new header
+// ================================================================================================
+
 #include "simj_base.h"
 
 #include <stdio.h>
@@ -18,7 +42,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 
 		// --------special cases.
 
-		//	OP_AUG01
+		// -------- OP_AUG01
 		case  OP_AUG01:			// 0x01	
 			switch (loc_inst.parts.dest_reg) {
 
@@ -106,7 +130,6 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 
-
 		case  OP_LXR:			// 0x02
 #if SIMJ_SIM_CPU == 7830
 			switch (loc_inst.parts.dest_reg & 0x9) {
@@ -133,7 +156,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 
-			//	OP_RMPS_RMWS
+			// -------- OP_RMPS_RMWS
 		case  OP_RMPS_RMWS:	    // 0x03 -         
 #if SIMJ_SIM_CPU == 7830
 			if (loc_inst.parts.dest_reg == 0) {			// SLP -- Set Lower Protect Value
@@ -163,7 +186,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 #endif
 			break;
 
-		//	OP_AUG0E
+		// -------- OP_AUG0E
 		case  OP_AUG0E:			// 0x0e
 			switch (loc_inst.parts.src_reg) {
 
@@ -253,7 +276,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_SIA_SIE_SIR
+		// -------- OP_SIA_SIE_SIR
 		case  OP_SIA_SIE_SIR:		// 0x26
 			switch (loc_inst.parts.dest_reg) {
 
@@ -279,7 +302,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 
-		//	OP_RIA_RIE_RIR
+		// -------- OP_RIA_RIE_RIR
 		case  OP_RIA_RIE_RIR:		//  0x27
 			switch (loc_inst.parts.dest_reg) {
 
@@ -306,7 +329,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 
 
 
-		//	OP_RLD_RLQ
+		// -------- OP_RLD_RLQ
 		case  OP_RLD_RLQ:			// 0x28
 			switch (loc_inst.parts.dest_reg & 0x0001) {
 
@@ -324,7 +347,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_RAD_RAQ
+		// -------- OP_RAD_RAQ
 		case  OP_RAD_RAQ:		// 0x2a 
 			switch (loc_inst.parts.dest_reg & 0x0001) {
 
@@ -342,31 +365,273 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_LLD_LLQ
+		// -------- OP_LLD_LLQ
+		case  OP_LLD_LLQ:		//            0x2c
+			switch (loc_inst.parts.dest_reg & 0x0001) {
 
-		//	OP_LAD_LAQ
+			case 0:		// LLD  --  Shift Left Logical Double-Register        
+				strcpy_s(op_buffer, buf_size, "LLD");
+				break;
 
-		//	OP_FAR_CDIF
+			case 1:		// LLQ  --  Shift Left Logical Quadruple-Register        
+				strcpy_s(op_buffer, buf_size, "LLQ");
+				break;
 
-		//	OP_FARD_FARQ_CFDI
-		//	OP_FSRD_FSRQ_CQFF
-		//	OP_FMRD_FMRQ_CDFI
-		//	OP_FDRD_FDRQ_CQFI
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
 
-		//	OP_FAMD_FAMQ_FAID_FAIQ
-		//	OP_FSMD_FSMQ_FSID_FSIQ
-		//	OP_FMMD_FMMQ_FMID_FMIQ
-		//	OP_FDMD_FDMQ_FDID_FDIQ
+		// -------- OP_LAD_LAQ
+		case  OP_LAD_LAQ:		//            0x2e
+			switch (loc_inst.parts.dest_reg & 0x0001) {
 
-		//	OP_LDXT_STXT_DMT_STMT
+			case 0:		// LAD - left arithmetic shift double
+				strcpy_s(op_buffer, buf_size, "LAD");
+				break;
 
-		//	OP_IRRD_TTRD
-		//	OP_CRRT_CRRQ_TTRQ
-		//	OP_ESD_ESS
-		//	OP_TRRQ_LDXD
-		//	OP_CRXD_STXD
+			case 1:		// LAQ  --  Shift Left Arithmetic Quadruple-Register        
+				strcpy_s(op_buffer, buf_size, "LAQ");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
+
+		// -------- OP_FAR_CDIF
+		case  OP_FAR_CDIF:		// 0x30
+			switch (loc_inst.parts.src_reg & 0x1) {
+				case 0:		// FAR  --  Floating Point Add Double-Register to Double Register     
+					strcpy_s(op_buffer, buf_size, "FAR");
+					break;
+				case 1:		// CDIF  --  Convert Double-Register Integer to Floating Point   
+					strcpy_s(op_buffer, buf_size, "CDIF");
+					break;
+			}
+			break;
+
+		// -------- OP_FARD_FARQ_CFDI
+		case  OP_FARD_FARQ_CFDI:	//          0x34
+			switch (loc_inst.parts.src_reg & 0x01) {
+			case 0:				// fard, farq
+				switch (loc_inst.parts.dest_reg & 0x1) {
+				case 0:			// FARD  --  Floating Point Add Triple Register to Triple Register    
+					strcpy_s(op_buffer, buf_size, "FARD");
+					break;
+				case 1:			// FARQ  --  Floating Point Add Quad Register to Quad Register    
+					strcpy_s(op_buffer, buf_size, "FARQ");
+					break;
+				}
+				break;
+			case 1:				// CFDI  --  Convert Floating Point to Double-Register Integer      
+				strcpy_s(op_buffer, buf_size, "CFDI");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FSRD_FSRQ_CQFF
+		case  OP_FSRD_FSRQ_CQFF:	//           0x35
+			switch (loc_inst.parts.src_reg & 0x01) {
+			case 0:
+				switch (loc_inst.parts.dest_reg & 0x1) {
+				case 0:			// FSRD
+					strcpy_s(op_buffer, buf_size, "FSRD");
+					break;
+				case 1:			// FSRQ
+					strcpy_s(op_buffer, buf_size, "FSRQ");
+					break;
+				}
+				break;
+			case 1:				//  CQFF  --  Convert Quad-Register Floating Point to Floating Point     
+				strcpy_s(op_buffer, buf_size, "CQFF");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FMRD_FMRQ_CDFI
+		case  OP_FMRD_FMRQ_CDFI:	//           0x36
+			switch (loc_inst.parts.src_reg & 0x01) {
+			case 0:				// 
+				switch (loc_inst.parts.dest_reg & 0x1) {
+				case 0:			// FMRD
+					strcpy_s(op_buffer, buf_size, "FMRD");
+					break;
+				case 1:			// FMRQ
+					strcpy_s(op_buffer, buf_size, "FMRQ");
+					break;
+				}
+				break;
+			case 1:				// CDFI  --  Convert Double Precision Floating Point Operand to Double Integer   
+				strcpy_s(op_buffer, buf_size, "CDFI");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FDRD_FDRQ_CQFI
+		case  OP_FDRD_FDRQ_CQFI:	//           0x37
+			switch (loc_inst.parts.src_reg & 0x01) {
+			case 0:				// 
+				switch (loc_inst.parts.dest_reg & 0x1) {
+				case 0:			// FDRD
+					strcpy_s(op_buffer, buf_size, "FDRD");
+					break;
+				case 1:			// FDRQ
+					strcpy_s(op_buffer, buf_size, "FDRQ");
+					break;
+				}
+				break;
+			case 1:				// CQFI  --  Convert Quad Precision Floating Point Operand to Double Integer   
+				strcpy_s(op_buffer, buf_size, "CQFI");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FAM_FAI
+		case  OP_FAM_FAI:	//		            0x38
+			switch (loc_inst.parts.dest_reg & 0x1) {
+			case 0:		// fam
+				strcpy_s(op_buffer, buf_size, "FAM");
+				break;
+			case 1:		// fai
+				strcpy_s(op_buffer, buf_size, "FAI");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FSM_FSI
+		case  OP_FSM_FSI:	//		            0x39
+			switch (loc_inst.parts.dest_reg & 0x1) {
+			case 0:		// FSM
+				strcpy_s(op_buffer, buf_size, "FSM");
+				break;
+			case 1:		// FSI
+				strcpy_s(op_buffer, buf_size, "FSI");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FMM_FMI
+		case  OP_FMM_FMI:	//		            0x3a
+			switch (loc_inst.parts.dest_reg & 0x1) {
+			case 0:		// fmm
+				strcpy_s(op_buffer, buf_size, "FMM");
+				break;
+			case 1:		// fmi
+				strcpy_s(op_buffer, buf_size, "FMI");
+				break;
+			}
+			break;
+
+		// -------- OP_FDM_FDI
+		case  OP_FDM_FDI:	//		0x3b
+			switch (loc_inst.parts.dest_reg & 0x1) {
+			case 0:		// fmm
+				strcpy_s(op_buffer, buf_size, "FDM");
+				break;
+			case 1:		// fdi
+				strcpy_s(op_buffer, buf_size, "FDI");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FAMD_FAMQ_FAID_FAIQ
+		case  OP_FAMD_FAMQ_FAID_FAIQ:	//      0x3c
+			switch (loc_inst.parts.dest_reg & 0x3) {
+			case 0:		// famd
+				strcpy_s(op_buffer, buf_size, "FAMD");
+				break;
+			case 1:		// famq
+				strcpy_s(op_buffer, buf_size, "FAMQ");
+				break;
+			case 2:		// faid
+				strcpy_s(op_buffer, buf_size, "FAID");
+				break;
+			case 3:		// faiq
+				strcpy_s(op_buffer, buf_size, "FAIQ");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FSMD_FSMQ_FSID_FSIQ
+		case  OP_FSMD_FSMQ_FSID_FSIQ:	//		0x3d
+			switch (loc_inst.parts.dest_reg & 0x3) {
+			case 0:		// fsmd
+				strcpy_s(op_buffer, buf_size, "FSMD");
+				break;
+			case 1:		// fsmq
+				strcpy_s(op_buffer, buf_size, "FSMQ");
+				break;
+			case 2:		// fsid
+				strcpy_s(op_buffer, buf_size, "FSID");
+				break;
+			case 3:		// fsiq
+				strcpy_s(op_buffer, buf_size, "FSIQ");
+				break;
+			}
+			break;
+
+
+		// -------- OP_FMMD_FMMQ_FMID_FMIQ
+		case  OP_FMMD_FMMQ_FMID_FMIQ:	//      0x3e
+			switch (loc_inst.parts.dest_reg & 0x3) {
+			case 0:		// fmmd
+				strcpy_s(op_buffer, buf_size, "FMMD");
+				break;
+			case 1:		// fmmq
+				strcpy_s(op_buffer, buf_size, "FMMQ");
+				break;
+			case 2:		// fmid
+				strcpy_s(op_buffer, buf_size, "FMID");
+				break;
+			case 3:		// fsiq
+				strcpy_s(op_buffer, buf_size, "FMIQ");
+				break;
+			}
+			break;
+
+		// -------- OP_FDMD_FDMQ_FDID_FDIQ
+		case  OP_FDMD_FDMQ_FDID_FDIQ:	//      0x3f
+			switch (loc_inst.parts.dest_reg & 0x3) {
+			case 0:		// fdmd
+				strcpy_s(op_buffer, buf_size, "FDMD");
+				break;
+			case 1:		// fdmq
+				strcpy_s(op_buffer, buf_size, "FDMQ");
+				break;
+			case 2:		// fdid
+				strcpy_s(op_buffer, buf_size, "FDID");
+				break;
+			case 3:		// fdiq
+				strcpy_s(op_buffer, buf_size, "FDIQ");
+				break;
+			}
+			break;
+
+
+		// -------- OP_LDXT_STXT_DMT_STMT
+
+		// -------- OP_IRRD_TTRD
+
+		// -------- OP_CRRT_CRRQ_TTRQ
+
+		// -------- OP_ESD_ESS
+
+		// -------- OP_TRRQ_LDXD
+
+		// -------- OP_CRXD_STXD
  
-		//	OP_AUG8F
+		// -------- OP_AUG8F
 		case  OP_AUG8F:			//         0x8f
 			switch (loc_inst.parts.dest_reg) {
 				case 0:		// --  BXNS	Branch (Short-Indexed) on Condition Code N Set     
@@ -417,7 +682,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 				}
 				break;
 
-		//	OP_MPRD_MPMD
+		// -------- OP_MPRD_MPMD
 		case  OP_MPRD_MPMD:		//        0xa2 --
 			switch (loc_inst.parts.dest_reg & 0x1) {
 			case 0:				//  --  MPRD  --  Multiply Double-Register by Double- Register
@@ -431,14 +696,63 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 
-		//	OP_DVRD_DVMD
+		// -------- OP_DVRD_DVMD
 
-		//	OP_HHI_HNH
+		// -------- OP_HHI_HNH
 
-		//	OP_AUGA7
+		// -------- OP_AUGA7
+		case  OP_AUGA7:			//         0xa7
+			switch (loc_inst.parts.dest_reg) {
+			case 0:		// --  BLNS	Branch and Link on Condition Code N Set
+				strcpy_s(op_buffer, buf_size, "BLNS");
+				break;
+			case 1:		// --  BLZS	Branch and Link on Condition Code Z Set    
+				strcpy_s(op_buffer, buf_size, "BLZS");
+				break;
+			case 2:		// --  BLOS	Branch and Link on Condition Code O Set    
+				strcpy_s(op_buffer, buf_size, "BLOS");
+				break;
+			case 3:		// --  BLCS	Branch and Link on Condition Code C Set    
+				strcpy_s(op_buffer, buf_size, "BLCS");
+				break;
+			case 4:		// --  BLLS	Branch and Link on Less Than Condition     
+				strcpy_s(op_buffer, buf_size, "BLLS");
+				break;
+			case 5:		// --  BLLE	Branch and Link on Less Than or Equal Condition   
+				strcpy_s(op_buffer, buf_size, "BLLE");
+				break;
+			case 6:		// --  BLHI	Branch and Link on Magnitude Higher Condition     
+				strcpy_s(op_buffer, buf_size, "BLHI");
+				break;
+			case 8:		// --  BLNR	Branch and Link on Condition Code N Reset    
+				strcpy_s(op_buffer, buf_size, "BLNR");
+				break;
+			case 9:		// --  BLZR	Branch and Link on Condition Code Z Reset    
+				strcpy_s(op_buffer, buf_size, "BLZR");
+				break;
+			case 10:		// --  BLOR	Branch and Link on Condition Code O Reset    
+				strcpy_s(op_buffer, buf_size, "BLOR");
+				break;
+			case 11:		// --  BLCR	Branch and Link on Condition Code C Reset    
+				strcpy_s(op_buffer, buf_size, "BLCR");
+				break;
+			case 12:		// --  BLGE	Branch and Link on Greater Than or Equal Condition   
+				strcpy_s(op_buffer, buf_size, "BLGE");
+				break;
+			case 13:		// --  BLGT	Branch and Link on Greater Than Condition     
+				strcpy_s(op_buffer, buf_size, "BLGT");
+				break;
+			case 14:		// --  BLNH	Branch and Link on Magnitude Not Higher Condition    
+				strcpy_s(op_buffer, buf_size, "BLNH");
+				break;
+			default:
+				strcpy_s(op_buffer, buf_size, "----");
+				break;
+			}
+			break;
 
 
-		//	OP_HNS_HNR
+		// -------- OP_HNS_HNR
 		case  OP_HNS_HNR:			//         0xa8
 			// HNR  --  Hop on Condition Code N Reset      
 			if (loc_inst.all & 0x0080) {
@@ -450,7 +764,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_HZS_HZR
+		// -------- OP_HZS_HZR
 		case  OP_HZS_HZR:			//         0xa9
 			// HZR  --  Hop on Condition Code Z Reset      
 			if (loc_inst.all & 0x0080) {
@@ -462,7 +776,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_HOS_HOR
+		// -------- OP_HOS_HOR
 		case  OP_HOS_HOR:			//         0xaa
 			// HOR  --  Hop on Condition Code O Reset      
 			if (loc_inst.all & 0x0080) {
@@ -474,7 +788,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_HCS_HCR
+		// -------- OP_HCS_HCR
 		case  OP_HCS_HCR:			//         0xab
 			// HCR  --  Hop on Condition Code C Reset      
 			if (loc_inst.all & 0x0080) {
@@ -486,7 +800,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_HLS_HGE
+		// -------- OP_HLS_HGE
 		case  OP_HLS_HGE:			//         0xac
 			//       HGE	Hop oh Greater than or Equal Condition     
 			if (loc_inst.all & 0x0080) {
@@ -498,7 +812,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_HLE_HGT
+		// -------- OP_HLE_HGT
 		case  OP_HLE_HGT:			//         0xad
 			//       HGT	Hop on Greater Than Condition       
 			if (loc_inst.all & 0x0080) {
@@ -511,7 +825,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 
-		//	OP_LDAM_LDVM
+		// -------- OP_LDAM_LDVM
 		case  OP_LDAM_LDVM:		//        0xbe
 			switch (loc_inst.parts.src_reg & 0x0001) {
 				case 0:			// LDAM
@@ -522,7 +836,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_STAM_STVM
+		// -------- OP_STAM_STVM
 		case  OP_STAM_STVM:		//        0xbf
 			switch (loc_inst.parts.src_reg & 0x0001) {
 			case 0:			// STAM
@@ -534,18 +848,19 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_ADRD_ADMD
+		// -------- OP_ADRD_ADMD
 
-		//	OP_SURD_SUMD
+		// -------- OP_SURD_SUMD
 
-		//	OP_AUGCA
+		// -------- OP_AUGCA
 
-		//	OP_TRRD_LDMD
+		// -------- OP_TRRD_LDMD
 
-		//	OP_CLM_STMD_CLMD
+		// -------- OP_CLM_STMD_CLMD
 
-		//	OP_CRRD_CRMD
+		// -------- OP_CRRD_CRMD
 
+		// -------- OP_BRU_BLM
 		case  OP_BRU_BLM:			
 			// BLM  --  Branch and Link 
 			if (loc_inst.parts.dest_reg != 0) {
@@ -557,7 +872,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_AUGE8
+		// -------- OP_AUGE8
 		case  OP_AUGE8:			//         0xe8
 			switch (loc_inst.parts.src_reg) {
 
@@ -647,15 +962,15 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_SUI_CRI
+		// -------- OP_SUI_CRI
 
-		//	OP_ETI_TETI
+		// -------- OP_ETI_TETI
 
-		//	OP_ORI_TORI
+		// -------- OP_ORI_TORI
 
-		//	OP_XOI_TXOI
+		// -------- OP_XOI_TXOI
 
-		//	OP_LDI_LDF_LDFD_FDFQ
+		// -------- OP_LDI_LDF_LDFD_FDFQ
 		case  OP_LDI_LDF_LDFD_FDFQ:    //    0xed
 			switch (loc_inst.parts.src_reg) {
 				case 0:	// -------- LDI   load immediate
@@ -680,7 +995,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
-		//	OP_HOP_BLT
+		// -------- OP_HOP_BLT
 		case  OP_HOP_BLT:		//         0xf7
 			// BLT  --  Branch and Link (Indexed Through-Table)       
 			if (loc_inst.all & 0x0080) {
@@ -692,6 +1007,7 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			}
 			break;
 
+		// -------- OP_BRX_BLX
 		case OP_BRX_BLX:
 			// BRX  --  Branch (Short-Indexed) Unconditionally         
 			if (loc_inst.parts.dest_reg == 0) {

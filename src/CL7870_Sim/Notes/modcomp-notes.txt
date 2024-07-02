@@ -1,12 +1,10 @@
 ocrmypdf --deskew --clean --oversample 1200
 
-
-
-
 Diagnostics
-OPT #8020
+OPT=#8020
+
+split map
+OPT=#C020
 
 CSW $0140
-
-
 

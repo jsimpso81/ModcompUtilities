@@ -14,7 +14,8 @@
 //					void cpu_trigger_power_interrupt(SIMJ_U16 power_interrupt_type)
 //					void cpu_trigger_memory_parity_interrupt(SIMJ_U16 parity_interrupt_type)
 //					void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map)
-//					void cpu_get_instruction_trace(SIMJ_U16* inx, SIMJ_U32 trace[1024])
+//					void cpu_get_instruction_trace( SIMJ_U16 *inx, SIMJ_U32 trace[1024], 
+//							SIMJ_U32 trace_w1[1024], SIMJ_U32 trace_w2[1024], SIMJ_U32 trace_w3[1024], SIMJ_U32 trace_w4[1024])
 //					void cpu_init_data()
 //					void cpu_stop_data()
 //					void cpu_set_power_on()
@@ -219,6 +220,10 @@ static bool cpu_power_on = false;
 DEFINE_RESOURCE( ResourceInstructionTrace );
 
 static SIMJ_U32		instruction_trace[1024] = { 0 };	// list of ABS memory addresses containing instructions.
+static SIMJ_U32		instruction_trace_w1[1024] = { 0 };	// list of ABS memory addresses containing instructions.
+static SIMJ_U32		instruction_trace_w2[1024] = { 0 };	// list of ABS memory addresses containing instructions.
+static SIMJ_U32		instruction_trace_w3[1024] = { 0 };	// list of ABS memory addresses containing instructions.
+static SIMJ_U32		instruction_trace_w4[1024] = { 0 };	// list of ABS memory addresses containing instructions.
 static SIMJ_U16		instruction_trace_index = 0;		// next index into instruction trace list 
 
 #if SIMJ_SIM_CPU == 7830
@@ -315,7 +320,8 @@ void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map) {
 
 // ===========================================================================================================
 // --------public
-void cpu_get_instruction_trace( SIMJ_U16 *inx, SIMJ_U32 trace[1024]) {
+void cpu_get_instruction_trace( SIMJ_U16 *inx, SIMJ_U32 trace[1024], 
+				SIMJ_U32 trace_w1[1024], SIMJ_U32 trace_w2[1024], SIMJ_U32 trace_w3[1024], SIMJ_U32 trace_w4[1024]) {
 	
 	int j = 0;
 
@@ -323,6 +329,10 @@ void cpu_get_instruction_trace( SIMJ_U16 *inx, SIMJ_U32 trace[1024]) {
 
 	for (j = 0; j < 1024; j++) {
 		trace[j] = instruction_trace[j];
+		trace_w1[j] = instruction_trace_w1[j];
+		trace_w2[j] = instruction_trace_w2[j];
+		trace_w3[j] = instruction_trace_w3[j];
+		trace_w4[j] = instruction_trace_w4[j];
 	}
 	*inx = instruction_trace_index;
 	GIVE_RESOURCE( ResourceInstructionTrace );
@@ -1305,7 +1315,12 @@ void cpu_classic_7860() {
 
 		// -------- add to instruction trace.
 		TAKE_RESOURCE( ResourceInstructionTrace );
-		instruction_trace[instruction_trace_index++] = GET_ABS_MEMORY_ADDR_IM(program_counter);
+		instruction_trace[instruction_trace_index] = GET_ABS_MEMORY_ADDR_IM(program_counter);
+		instruction_trace_w1[instruction_trace_index] = GET_ABS_MEMORY_ADDR_IM(program_counter+1);
+		instruction_trace_w2[instruction_trace_index] = GET_ABS_MEMORY_ADDR_IM(program_counter+2);
+		instruction_trace_w3[instruction_trace_index] = GET_ABS_MEMORY_ADDR_IM(program_counter+3);
+		instruction_trace_w4[instruction_trace_index] = GET_ABS_MEMORY_ADDR_IM(program_counter+4);
+		instruction_trace_index++;
 		instruction_trace_index &= 0x03ff;		// 0 -  1023
 		GIVE_RESOURCE( ResourceInstructionTrace );
 
@@ -1627,9 +1642,14 @@ void cpu_classic_7860() {
 		case  OP_RMPS_RMWS:	    // 0x03 -         
 #if SIMJ_SIM_CPU == 7830
 			if (instruction.parts.dest_reg == 0) {			// SLP -- Set Lower Protect Value
-				cpu_nonvirt_prot_enabled = true;
-				cpu_nonvirt_prot_lowprot_reg = GET_SOURCE_REGISTER_VALUE & 0xff80;
-				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				if (IS_PRIV_MODE) {
+					cpu_nonvirt_prot_enabled = true;
+					cpu_nonvirt_prot_lowprot_reg = GET_SOURCE_REGISTER_VALUE & 0xff80;
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 			}
 			else if (instruction.parts.src_reg & 0x0001) {	//  RMWS -- Read Memory Word Status
 #else
@@ -1660,9 +1680,14 @@ void cpu_classic_7860() {
 		case  OP_WMS:			// 0x04 --  Write Memory Status
 #if SIMJ_SIM_CPU == 7830
 			if (instruction.parts.dest_reg == 0) {			// SUP -- Set Upper Protect Value
-				cpu_nonvirt_prot_enabled = true;
-				cpu_nonvirt_prot_upprot_reg = GET_SOURCE_REGISTER_VALUE & 0xff80;
-				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				if (IS_PRIV_MODE) {
+					cpu_nonvirt_prot_enabled = true;
+					cpu_nonvirt_prot_upprot_reg = GET_SOURCE_REGISTER_VALUE & 0xff80;
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				}
+				else {
+					PRIV_INSTR_TRAP;
+				}
 			}
 			else {											// WMS -- Write Memory Status
 #endif
@@ -2083,10 +2108,10 @@ void cpu_classic_7860() {
 			case  OP_CAR:			// 0x24  --  CAR  --  Clear Active and Return        
 				if (IS_PRIV_MODE) {
 					// --------DEBUG
-					// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-					// fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n", 
-					// 	program_counter, junkxx, instruction.all, 
-					// 	cpu_interrupt_active, cpu_interrupt_request);
+					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+					fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n", 
+						program_counter, junkxx, instruction.all, 
+						cpu_interrupt_active, cpu_interrupt_request);
 					// --------END DEBUG
 					// --------find highest active interrupt
 					// TODO: Use cpu_interrupt_active_current instead of search.
@@ -2097,6 +2122,9 @@ void cpu_classic_7860() {
 							break;
 						}
 					}
+					// --------DEBUG
+					fprintf(stderr, "        active = %d\n", new_int);
+					// --------END DEBUG
 					// --------get return process_status_double_word from dedicated memory location or register
 					if (new_int < 16) {
 						// --------set return new PSW and PC
@@ -2106,12 +2134,18 @@ void cpu_classic_7860() {
 							program_counter = GET_MEMORY_VALUE_ABS(0x20 + (new_int * 2));
 							tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x41 + (new_int * 2));
 							cpu_set_current_PSW(tmp_PSW);
+							// --------DEBUG
+							fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							// --------END DEBUG
 						}
 						// -------- get return pc and psw from register.
 						else {
 							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
 							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
 							cpu_set_current_PSW(tmp_PSW);
+							// --------DEBUG
+							fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							// --------END DEBUG
 						}
 						// --------clear active for that interrupt
 						cpu_interrupt_active &= bitnot[new_int];
@@ -2127,6 +2161,9 @@ void cpu_classic_7860() {
 							cpu_interrupt_active_mask = mask[new_int];
 							cpu_interrupt_active_current = new_int;
 						}
+						// --------DEBUG
+						fprintf(stderr, "        new active: 0x%04x\n", cpu_interrupt_active);
+						// --------END DEBUG
 					}
 					// -------- If no interrupt is active when the CIR instruction is executed, the dedicated locations O and 1 are used to restore the PSD if register Rs = 0.
 					// -------- Assume this applies to CAR too.
@@ -2138,19 +2175,25 @@ void cpu_classic_7860() {
 							program_counter = GET_MEMORY_VALUE_ABS(0);
 							tmp_PSW.all = GET_MEMORY_VALUE_ABS(1);
 							cpu_set_current_PSW(tmp_PSW);
+							// --------DEBUG
+							fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							// --------END DEBUG
 						}
 						else {
 							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
 							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
 							cpu_set_current_PSW(tmp_PSW);
+							// --------DEBUG
+							fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							// --------END DEBUG
 						}
 						// --------DEBUG
-						// fprintf(stderr, "      nothing was active\n" );
+						fprintf(stderr, "      nothing was active!!!\n" );
 						// --------END DEBUG
 					}
 					// -------- allow one instruction to execute before the next interrupt.
 					skip_interrupt_determination = true;
-					// --------DEBUG
+					// --------DEBUG  -- DPULICATE MESSAGES
 					// fprintf(stderr, "     new pc 0x%04x, new active: 0x%04x, request: 0x%04x\n",
 					// 	program_counter, cpu_interrupt_active, cpu_interrupt_request);
 					// disp_psw(stderr, cpu_get_current_PSW());
@@ -2166,10 +2209,10 @@ void cpu_classic_7860() {
 			case  OP_CIR:			// 0x25  --  CIR  --  Clear interrupt and Return        
 				if (IS_PRIV_MODE) {
 					// --------DEBUG
-					// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-					// fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n",
-					// 	program_counter, junkxx, instruction.all,
-					// 	cpu_interrupt_active, cpu_interrupt_request);
+					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+					fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n",
+						program_counter, junkxx, instruction.all,
+						cpu_interrupt_active, cpu_interrupt_request);
 					// --------END DEBUG
 					// TODO: Use cpu_interrupt_active_current variable.
 					// --------find highest active interrupt
@@ -2180,6 +2223,9 @@ void cpu_classic_7860() {
 							break;
 						}
 					}
+					// --------DEBUG
+					fprintf(stderr, "        active = %d\n", new_int);
+					// --------END DEBUG
 					// --------get return process_status_double_word from dedicated memory location or register
 					if (new_int < 16) {
 						// --------set return new PSW and PC
@@ -2188,12 +2234,18 @@ void cpu_classic_7860() {
 							program_counter = GET_MEMORY_VALUE_ABS(0x20 + (new_int * 2));
 							tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x41 + (new_int * 2));
 							cpu_set_current_PSW(tmp_PSW);
+							// --------DEBUG
+							fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							// --------END DEBUG
 						}
 						// -------- get return pc and psw from register.
 						else {
 							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
 							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
 							cpu_set_current_PSW(tmp_PSW);
+							// --------DEBUG
+							fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							// --------END DEBUG
 						}
 						// --------clear active for that interrupt
 						cpu_interrupt_active &= bitnot[new_int];
@@ -2223,6 +2275,9 @@ void cpu_classic_7860() {
 							cpu_interrupt_active_mask = mask[new_int];
 							cpu_interrupt_active_current = new_int;
 						}
+						// --------DEBUG
+						fprintf(stderr, "        new active: 0x%04x  request:  0x%04x\n", cpu_interrupt_active, cpu_interrupt_request);
+						// --------END DEBUG
 					}
 					// -------- If no interrupt is active when the CIR instruction is executed, the dedicated locations O and 1 are used to restore the PSD if register Rs = 0.
 					// -------- TODO: check to make certain that 0 - PC and 1 - PSW (it only makes sense)
@@ -2233,19 +2288,26 @@ void cpu_classic_7860() {
 							program_counter = GET_MEMORY_VALUE_ABS(0);
 							tmp_PSW.all = GET_MEMORY_VALUE_ABS(1);
 							cpu_set_current_PSW(tmp_PSW);
+							// --------DEBUG
+							fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							// --------END DEBUG
 						}
 						else {
 							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
 							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
 							cpu_set_current_PSW(tmp_PSW);
+							// --------DEBUG
+							fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							// --------END DEBUG
 						}
 						// --------DEBUG
-						// fprintf(stderr, "      nothing was active\n");
+						fprintf(stderr, "        new active: 0x%04x  request:  0x%04x\n", cpu_interrupt_active, cpu_interrupt_request);
+						fprintf(stderr, "        nothing was active branch\n");
 						// --------END DEBUG
 					}
 					// -------- allow one instruction to execute before the next interrupt.
 					skip_interrupt_determination = true;
-					// --------DEBUG
+					// --------DEBUG --- DUPLICATE MESSAGES - DONT NEED.
 					// fprintf(stderr, "     new pc 0x%04x, new active: 0x%04x, request: 0x%04x\n",
 					// 	program_counter, cpu_interrupt_active, cpu_interrupt_request);
 					// disp_psw(stderr, cpu_get_current_PSW());
@@ -2402,8 +2464,8 @@ void cpu_classic_7860() {
 							// 	GIVE_RESOURCE( ResourceInterruptRequest );
 							// }
 							// --------DEBUG
-							util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-							fprintf(stderr, " % s inst : 0x%04x  level: %02d enabled: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_enabled);
+							// util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+							// fprintf(stderr, " % s inst : 0x%04x  level: %02d enabled: 0x%04x\n", junkxx, instruction.all, GET_SOURCE_REGISTER_NUMB, cpu_interrupt_enabled);
 							// --------END DEBUG
 							SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 						}
@@ -5036,13 +5098,10 @@ void cpu_classic_7860() {
 				SET_DESTINATION_REGISTER_VALUE(tmp16_val5.uval);
 				SET_CC_CHAR(tmp16_val5.uval);
 				if (gbl_verbose_debug) {
-#ifdef SHIT
-					fprintf(stderr, " Load byte pc: 0x%04x  inst: 0x%04x - from mem addr 0x%04x, valu 0x%04x, rx 0x%04x, rx+1 0x%04x\n",
-						program_counter, instruction.all, tmp16_val3.uval, tmp16_val2.uval, tmp16_val1.uval, tmp16_val5.uval);
-#else
+					// fprintf(stderr, " Load byte pc: 0x%04x  inst: 0x%04x - from mem addr 0x%04x, valu 0x%04x, rx 0x%04x, rx+1 0x%04x\n",
+					// 	program_counter, instruction.all, tmp16_val3.uval, tmp16_val2.uval, tmp16_val1.uval, tmp16_val5.uval);
 					fprintf(stderr, " LBX pc: 0x%04x  inst: 0x%04x, calc addr: 0x%04x, value: 0x%04x, base addr: 0x%04x, off: 0x%04x\n",
 						program_counter, instruction.all, tmp16_val3.uval, tmp16_val4.uval, tmp16_val1.uval, tmp16_val2.uval);
-#endif
 				}
 				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 			}
@@ -5082,13 +5141,10 @@ void cpu_classic_7860() {
 				}
 				SET_MEMORY_VALUE_OM(tmp16_val3.uval, tmp16_val5.uval);
 				if (gbl_verbose_debug)
-#ifdef SHIT
-					fprintf(stderr, " Set byte pc: 04%04x  inst: 04%04x - in mem addr 0x%04x, valu 0x%04x, rx 0x%04x, rx+1 0x%04x\n",
-						program_counter, instruction.all, tmp16_val3.uval, tmp16_val2.uval, tmp16_val1.uval, tmp16_val5.uval);
-#else
+					// fprintf(stderr, " Set byte pc: 04%04x  inst: 04%04x - in mem addr 0x%04x, valu 0x%04x, rx 0x%04x, rx+1 0x%04x\n",
+					// 	program_counter, instruction.all, tmp16_val3.uval, tmp16_val2.uval, tmp16_val1.uval, tmp16_val5.uval);
 					fprintf(stderr, " SBX pc: 0x%04x  inst: 0x%04x, calc addr: 0x%04x, value: 0x%04x, base addr: 0x%04x, off: 0x%04x\n",
 						program_counter, instruction.all, tmp16_val3.uval, tmp16_val5.uval, tmp16_val1.uval, tmp16_val2.uval);
-#endif
 				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 			}
 			break;
