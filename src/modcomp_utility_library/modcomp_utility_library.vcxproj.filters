@@ -26,7 +26,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="read_sector_lba.c">
+    <ClCompile Include="read_raw_disk_sector_lba.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="to_can_code.c">
@@ -44,7 +44,7 @@
     <ClCompile Include="get_can_index.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="read_disk_image_sector_lba.c">
+    <ClCompile Include="read_modcomp_emul_disk_sector_lba.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bswap16.c">
@@ -53,10 +53,10 @@
     <ClCompile Include="USL_Dump_Directory.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="extract_partition.c">
+    <ClCompile Include="extract_modcomp_emul_disk_partition.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Dump_File.c">
+    <ClCompile Include="Dump_raw_disk_file.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="USL_Directory_Print_Initial_Entry.c">
@@ -74,7 +74,7 @@
     <ClCompile Include="USL_Directory_Print_File_Entry.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dump_sector.c">
+    <ClCompile Include="dump_raw_disk_sector.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="USL_Extract_All_Files.c">
@@ -89,13 +89,37 @@
     <ClCompile Include="TapeImg_ReadNextRecord.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TapeImg_DumpRecords.c">
+    <ClCompile Include="TapeImg_dump_records.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dump_sector_as_byte_variable.c">
+    <ClCompile Include="dump_raw_disk_sector_as_byte_variable.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dump_file_as_byte_variable.c">
+    <ClCompile Include="dump_raw_disk_file_as_byte_variable.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="read_884x_disk_sector_lba.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="extract_sic_8840_disk_partition.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="write_modcomp_emul_disk_sector_lba.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="write_884x_disk_sector_lba.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="update_modcomp_disk_emul_disk_partition.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="update_sic_884x_disk_partition.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="extract_raw_disk_partition.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="geom_calc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

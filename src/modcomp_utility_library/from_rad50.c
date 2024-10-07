@@ -34,3 +34,44 @@
 //     OUT1 = INX(XX + 1)
 //     RETURN
 //     END
+
+
+#include <stdio.h>
+#include <string.h>
+
+#include "modcomp_utility_library.h"
+
+// --------option TRUE for file name, FALSE for ascii strings and such.   Affects how
+// --------the three values between letters and numbers are intepretted.
+unsigned int from_rad50(unsigned int rad50_value, unsigned char* result_string, bool option) {
+
+	const unsigned char* rad50_file =  " ABCDEFGHIJKLMNOPQRSTUVWXYZ$%*0123456789";
+	const unsigned char* rad50_ascii = " ABCDEFGHIJKLMNOPQRSTUVWXYZ$.%0123456789";
+
+	unsigned int c1 = 0;
+	unsigned int c2 = 0;
+	unsigned int c3 = 0;
+	unsigned int tmp = 0;
+
+	tmp = rad50_value;
+	c3 = tmp % 40;
+	tmp /= 40;
+	c2 = tmp % 40;
+	tmp /= 40;
+	c1 = tmp % 40;
+
+	if (option) {
+		result_string[0] = rad50_file[c1];
+		result_string[1] = rad50_file[c2];
+		result_string[2] = rad50_file[c3];
+	}
+	else {
+		result_string[0] = rad50_ascii[c1];
+		result_string[1] = rad50_ascii[c2];
+		result_string[2] = rad50_ascii[c3];
+	}
+	result_string[3] = 0;
+
+	return 1;
+
+}

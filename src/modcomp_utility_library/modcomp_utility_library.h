@@ -3,13 +3,24 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define sector_bytes (size_t)256
-#define disk_img_sector (size_t)258
+#define RAW_SECTOR_BYTES (size_t)256
+#define MODCOMP_EMUL_DISK_IMG_SECTORY_BYTES (size_t)258
+
+#define SIC_8840_IMG_SECTOR_BYTES RAW_SECTOR_BYTES
+#define SIC_8840_IMG_START_OFFSET_BYTES (size_t)0x4000
+#define SIC_8840_SEC_PER_TRK (__int64)24
+
+// #define disk_884x_start_sector (__int64)32
+// #define disk_884x_sect_size (__int64)(256+4)
 
 typedef struct {
-    unsigned __int16     lba;
-    unsigned __int16     sectbuffer[128];
-} DISC_IMG_SECTOR;
+    unsigned __int16     flags;     // ------- could include EOF indicator = 1, otherwise 0
+    unsigned __int16     rawsectbuffer[RAW_SECTOR_BYTES/2];
+} MODCOMP_EMUL_DISC_SECTOR;
+
+typedef struct {
+    unsigned __int8     sectbuffer[SIC_8840_IMG_SECTOR_BYTES];
+} SIC_884x_DISC_SECTOR;
 
 typedef union {
     struct {
@@ -95,18 +106,40 @@ typedef struct {
 
 /* -------- function prototypes */
 unsigned __int16  bswap16(unsigned __int16 a);
-void dump_file(char* filename, bool swap_bytes);
-void dump_file_as_byte_variable(char* filename, bool swap_bytes, int start_sector, int end_sector);
-void dump_sector(unsigned __int16* sector_buffer);
-void dump_sector_as_byte_variable(unsigned __int16 sector_buffer[]);
-void extract_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count);
-unsigned char* from_can_code(unsigned int can_value, unsigned char* result_string);
+
+void dump_raw_disk_file(char* filename, bool swap_bytes);
+void dump_raw_disk_file_as_byte_variable(char* filename, bool swap_bytes, int start_sector, int end_sector);
+
+void dump_raw_disk_sector(unsigned __int16* sector_buffer);
+void dump_raw_disk_sector_as_byte_variable(unsigned __int16 sector_buffer[]);
+
+void extract_modcomp_emul_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 sector_per_track, __int64 geom);
+void extract_raw_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 sector_per_track, __int64 geom);
+void extract_sic_884x_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 sector_per_track, __int64 geom);
+
+unsigned int from_can_code(unsigned int can_value, unsigned char* result_string);
+unsigned int from_rad50(unsigned int rad50_value, unsigned char* result_string, bool option);
 unsigned int get_can_index(unsigned int ascii_code);
-int read_disk_image_sector_lba(FILE* fp, __int64 sector, void* buf);
-int read_sector_lba(FILE* fp, __int64 sector, size_t  sector_count, void* buf, size_t* return_count, int* end_of_file);
+
+// -------- read disk sectors.
+int read_884x_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
+int read_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
+int read_raw_disk_sector_lba(FILE* fp, __int64 sector, size_t  sector_count, void* buf, size_t* return_count, int* end_of_file);
+// -------- write disk sectors
+int write_884x_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
+int write_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
+// -------- tape image I/O
 void TapeImg_dump_records(char* filename, bool swap_bytes);
 int TapeImg_read_next_record(FILE* fp, __int64* current_file_position, void* buf, int max_buf_bytes, size_t* bytes_read, int* end_of_file);
+// --------CAN CODE
 unsigned int to_can_code(unsigned char* ascii_string);
+
+void update_modcomp_emul_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count);
+void update_sic_884x_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count);
+
+__int16 geom_calc(__int64 sect_per_track, __int64 geom, __int64 log_to_phys[]);
+
+// --------Source USL
 void USL_Directory_Print_DirectSector_Entry(USL_DIRECTORY_ENTRY* direct_entry);
 void USL_Directory_Print_File_Entry(USL_FILE_ENTRY* file_entry);
 void USL_Directory_Print_Initial_Entry(USL_DIRECTORY_ENTRY* direct_entry);

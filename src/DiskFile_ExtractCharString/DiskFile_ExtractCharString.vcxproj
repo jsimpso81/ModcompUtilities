@@ -24,6 +24,7 @@
     <ProjectGuid>{dc8c8071-31f5-4ff0-a00c-4eeb52cf0c48}</ProjectGuid>
     <RootNamespace>DiskFileExtractCharString</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>RawDiskFile_ExtractCharString</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -127,7 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DiskFile_ExtractCharString.c" />
+    <ClCompile Include="RawDiskFile_ExtractCharString.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\modcomp_utility_library\modcomp_utility_library.vcxproj">

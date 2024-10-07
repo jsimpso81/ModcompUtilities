@@ -10,7 +10,7 @@
 #define MIN(i, j) (((i) < (j)) ? (i) : (j))
 
 /* ========================================================================================================================*/
-void dump_sector_as_byte_variable(unsigned __int16 sector_buffer[]) {
+void dump_raw_disk_sector_as_byte_variable(unsigned __int16 sector_buffer[]) {
 
     int start_word;
 

@@ -9,7 +9,7 @@
 #define MIN(i, j) (((i) < (j)) ? (i) : (j))
 
 /* ========================================================================================================================*/
-void dump_file(char* filename, bool swap_bytes) {
+void dump_raw_disk_file(char* filename, bool swap_bytes) {
 
     FILE* inpart;
     __int64 sector;
@@ -51,7 +51,7 @@ void dump_file(char* filename, bool swap_bytes) {
         while (not_done) {
 
             /* -------- read next directory sector, parse and print */
-            stat = read_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
+            stat = read_raw_disk_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
 
             printf(" read sector %lld status %d count read %zd end of file %d\n", sector, stat, return_count, end_of_file);
 
@@ -78,10 +78,14 @@ void dump_file(char* filename, bool swap_bytes) {
                     chars[7] =  MAX(sector_buffer[start_word + 3] & 0x007f, 32);
                     chars[6] =  MAX((sector_buffer[start_word + 3] >> 8) & 0x007f, 32);
 
-                    strcpy_s(cancode1, 4, from_can_code(sector_buffer[start_word], temp_string));
-                    strcpy_s(cancode2, 4, from_can_code(sector_buffer[start_word + 1], temp_string));
-                    strcpy_s(cancode3, 4, from_can_code(sector_buffer[start_word + 2], temp_string));
-                    strcpy_s(cancode4, 4, from_can_code(sector_buffer[start_word + 3], temp_string));
+                    from_can_code(sector_buffer[start_word], temp_string);
+                    strcpy_s(cancode1, 4, temp_string);
+                    from_can_code(sector_buffer[start_word + 1], temp_string);
+                    strcpy_s(cancode2, 4, temp_string);
+                    from_can_code(sector_buffer[start_word + 2], temp_string);
+                    strcpy_s(cancode3, 4, temp_string);
+                    from_can_code(sector_buffer[start_word + 3], temp_string);
+                    strcpy_s(cancode4, 4, temp_string);
 
                     printf(" %8lld  | %08s | %6d %6d %6d %6d | 0x%04X 0x%04X 0x%04X 0x%04X | %3s %3s %3s %3s | \n",
                         word_index, chars,

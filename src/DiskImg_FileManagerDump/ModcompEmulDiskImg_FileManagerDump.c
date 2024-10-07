@@ -1,4 +1,4 @@
-// DiskImg_FileManagerDump.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// ModcompEmulDiskImg_FileManagerDump.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #include <stdio.h>
@@ -30,14 +30,7 @@ int main(int argc, char* argv[]) {
 
 
     /* -------- annouce our program  */
-    printf("\nDiskImg_ExtractPartition - Extract partition file from a Modcomp disk image\n");
-
-    /* -------- parse command line */
-    /*      -i file                */
-    /*      -h                     */
-    /*      -?                     */
-    /*                             */
-
+    printf("\nModcompEmulDiskImg_FileManagerDump - Dump File Manager definition file from a Modcomp Emulator disk image\n");
 
     /* -------- printf("\n arc = % d \n", argc); */
 
@@ -49,13 +42,10 @@ int main(int argc, char* argv[]) {
 
             /* -------- print help */
             if (strcmp(argv[j], "-h") == 0 || strcmp(argv[j], "-?") == 0) {
-                printf("\n\nUSLPart_DirectoryDump - List all directory entries for a USL formatted disk partition\n\n");
+                printf("\n\nModcompEmulDiskImg_FileManagerDump - Dump File Manager definition file from a Modcomp Emulator disk image\n\n");
                 printf("        -h       print help message nad exit\n");
                 printf("        -?       print help message nad exit\n");
-                printf("        -i disk_image  dump the directory of this USL partition file\n");
-                printf("        -p partition_file  dump the directory of this USL partition file\n");
-                printf("        -s start_sector  starting sector 0 relative\n");
-                printf("        -c sector_count  number of sectors\n");
+                printf("        -i disk_image  Modcomp Emulator disk image file \n");
                 exit(0);
             }
 
@@ -86,7 +76,7 @@ int main(int argc, char* argv[]) {
 
     /* -------- read volume header pointer.  */
     sector = 0;
-    stat = read_disk_image_sector_lba(inimg, sector, sector_buffer);
+    stat = read_modcomp_emul_disk_sector_lba(inimg, sector, sector_buffer);
 
     printf("\n --------volume header pointer--------\n");
 
@@ -96,11 +86,11 @@ int main(int argc, char* argv[]) {
     next_dpi = (next_dpi_1 << 16) | (next_dpi_2 << 8) | next_dpi_3;
     printf("    volume header label dpi %lld\n", next_dpi);
 
-    dump_sector(sector_buffer);
+    dump_raw_disk_sector(sector_buffer);
 
     /* -------- read volume header */
     sector = next_dpi;
-    stat = read_disk_image_sector_lba(inimg, sector, sector_buffer);
+    stat = read_modcomp_emul_disk_sector_lba(inimg, sector, sector_buffer);
 
     printf("\n --------volume header label--------\n");
 
@@ -110,13 +100,13 @@ int main(int argc, char* argv[]) {
 
     printf("    volume directory dpi %lld\n", voldir_dpi);
 
-    dump_sector(sector_buffer);
+    dump_raw_disk_sector(sector_buffer);
 
     while (voldir_dpi != 0) {
 
         /* -------- read volume directory segment */
         sector = voldir_dpi;
-        stat = read_disk_image_sector_lba(inimg, sector, sector_buffer);
+        stat = read_modcomp_emul_disk_sector_lba(inimg, sector, sector_buffer);
 
         printf("\n --------volume directory segment--------\n");
 
@@ -126,7 +116,7 @@ int main(int argc, char* argv[]) {
 
         printf("    next volume directory dpi %lld\n", voldir_dpi);
 
-        dump_sector(sector_buffer);
+        dump_raw_disk_sector(sector_buffer);
 
     }
 

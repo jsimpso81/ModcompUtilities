@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ModcompEmulDiskImg_ExtractPartition.c">
+    <ClCompile Include="ModcompEmulDiskImg_UpdatePartition.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

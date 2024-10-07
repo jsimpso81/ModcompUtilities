@@ -3,13 +3,13 @@
 #include "modcomp_utility_library.h"
 
 
-int read_sector_lba(FILE* fp, __int64 sector, size_t  sector_count, void *buf, size_t* return_count, int* end_of_file  ) {
+int read_raw_disk_sector_lba(FILE* fp, __int64 sector, size_t  sector_count, void *buf, size_t* return_count, int* end_of_file  ) {
 
 	__int64 pos;
 	__int64 desired_pos;
 	int stat;
 
-	desired_pos = sector * (__int64)sector_bytes;
+	desired_pos = sector * (__int64)RAW_SECTOR_BYTES;
 	pos = _ftelli64(fp);
 
 	if (pos != desired_pos)
@@ -18,7 +18,7 @@ int read_sector_lba(FILE* fp, __int64 sector, size_t  sector_count, void *buf, s
 		stat = 0;
 
 	if (stat == 0) {
-		*return_count = fread(buf, sector_bytes, sector_count, fp);
+		*return_count = fread(buf, RAW_SECTOR_BYTES, sector_count, fp);
 		stat = ferror(fp);
 		*end_of_file = feof(fp);
 	}

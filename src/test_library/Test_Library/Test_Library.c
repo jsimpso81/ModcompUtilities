@@ -13,7 +13,8 @@ int main()
     int junk = 0;
 
     printf("\n %d \n", to_can_code("ABC"));
-    printf("\n %s \n", from_can_code(1683, temp_string));
+    from_can_code(1683, temp_string);
+    printf("\n %s \n", temp_string);
 
     junk = getchar();
 

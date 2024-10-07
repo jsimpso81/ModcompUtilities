@@ -6,7 +6,8 @@
 
 
 
-void extract_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count) {
+void extract_modcomp_emul_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, 
+                                    __int64 sector_per_track, __int64 geom) {
 
     FILE* inimg;
     FILE* outpart;
@@ -30,7 +31,7 @@ void extract_partition(char* image_name, char* partition_file, __int64 start_sec
 
             /* -------- loop over all sectors, reading and writing */
             for (sector_offset = 0; sector_offset < sector_count; sector_offset++) {
-                stat = read_disk_image_sector_lba(inimg, sector_offset + start_sector, sector_buffer);
+                stat = read_modcomp_emul_disk_sector_lba(inimg, sector_offset + start_sector, sector_buffer);
                 fwrite(sector_buffer, (size_t)256, (size_t)1, outpart);
             }
 

@@ -28,7 +28,12 @@ void TapeImg_dump_records(char* filename, bool swap_bytes) {
     size_t j;
     __int64 word_index;
 
+    int start_byte;
+    
     unsigned char chars[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    unsigned __int16 words[5] = { 0, 0, 0, 0, 0 };
+
     unsigned char cancode1[4] = { 0, 0, 0, 0 };
     unsigned char cancode2[4] = { 0, 0, 0, 0 };
     unsigned char cancode3[4] = { 0, 0, 0, 0 };
@@ -80,26 +85,49 @@ void TapeImg_dump_records(char* filename, bool swap_bytes) {
 
                 for (start_word = 0; start_word < words_read; start_word += 4) {
 
+                    start_byte = start_word + start_word;
+
                     /* -------- ascii xx, xx, xx, xx, xx, xx, xx, xx | xxxxxx, xxxxxx, xxxxxx, xxxxxx | 0xxxxx 0xxxxx 0xxxxx 0xxxxx | can can can can */
                     /* -------- allow only printable characters */
-                    chars[1] = MAX(tape_buffer.words[start_word] & 0x007f, 32);
-                    chars[0] = MAX((tape_buffer.words[start_word] >> 8) & 0x007f, 32);
-                    chars[3] = MAX(tape_buffer.words[start_word + 1] & 0x007f, 32);
-                    chars[2] = MAX((tape_buffer.words[start_word + 1] >> 8) & 0x007f, 32);
-                    chars[5] = MAX(tape_buffer.words[start_word + 2] & 0x007f, 32);
-                    chars[4] = MAX((tape_buffer.words[start_word + 2] >> 8) & 0x007f, 32);
-                    chars[7] = MAX(tape_buffer.words[start_word + 3] & 0x007f, 32);
-                    chars[6] = MAX((tape_buffer.words[start_word + 3] >> 8) & 0x007f, 32);
+                    //chars[0] = MAX((tape_buffer.words[start_word] >> 8) & 0x007f, 32);
+                    //chars[1] = MAX(tape_buffer.words[start_word] & 0x007f, 32);
+                    //chars[2] = MAX((tape_buffer.words[start_word + 1] >> 8) & 0x007f, 32);
+                    //chars[3] = MAX(tape_buffer.words[start_word + 1] & 0x007f, 32);
+                    //chars[4] = MAX((tape_buffer.words[start_word + 2] >> 8) & 0x007f, 32);
+                    //chars[5] = MAX(tape_buffer.words[start_word + 2] & 0x007f, 32);
+                    //chars[6] = MAX((tape_buffer.words[start_word + 3] >> 8) & 0x007f, 32);
+                    //chars[7] = MAX(tape_buffer.words[start_word + 3] & 0x007f, 32);
 
-                    strcpy_s(cancode1, 4, from_can_code(tape_buffer.words[start_word], temp_string));
-                    strcpy_s(cancode2, 4, from_can_code(tape_buffer.words[start_word + 1], temp_string));
-                    strcpy_s(cancode3, 4, from_can_code(tape_buffer.words[start_word + 2], temp_string));
-                    strcpy_s(cancode4, 4, from_can_code(tape_buffer.words[start_word + 3], temp_string));
+                    chars[0] = MAX(tape_buffer.ubytes[start_byte + 0] & 0x7f, 32);
+                    chars[1] = MAX( tape_buffer.ubytes[start_byte + 1] & 0x7f, 32);
+
+                    chars[2] = MAX(tape_buffer.ubytes[start_byte + 2] & 0x7f, 32);
+                    chars[3] = MAX(tape_buffer.ubytes[start_byte + 3] & 0x7f, 32);
+
+                    chars[4] = MAX(tape_buffer.ubytes[start_byte + 4] & 0x7f, 32);
+                    chars[5] = MAX(tape_buffer.ubytes[start_byte + 5] & 0x7f, 32);
+
+                    chars[6] = MAX(tape_buffer.ubytes[start_byte + 6] & 0x7f, 32);
+                    chars[7] = MAX(tape_buffer.ubytes[start_byte + 7] & 0x7f, 32);
+
+                    words[0] = (((unsigned __int16)tape_buffer.ubytes[start_byte + 0] << 8) & 0xff00) | ((unsigned __int16)tape_buffer.ubytes[start_byte + 1] & 0x00ff);
+                    words[1] = (((unsigned __int16)tape_buffer.ubytes[start_byte + 2] << 8) & 0xff00) | ((unsigned __int16)tape_buffer.ubytes[start_byte + 3] & 0x00ff);
+                    words[2] = (((unsigned __int16)tape_buffer.ubytes[start_byte + 4] << 8) & 0xff00) | ((unsigned __int16)tape_buffer.ubytes[start_byte + 5] & 0x00ff);
+                    words[3] = (((unsigned __int16)tape_buffer.ubytes[start_byte + 6] << 8) & 0xff00) | ((unsigned __int16)tape_buffer.ubytes[start_byte + 7] & 0x00ff);
+
+                    from_can_code(words[0], temp_string);
+                    strcpy_s(cancode1, 4, temp_string);
+                    from_can_code(words[1], temp_string);
+                    strcpy_s(cancode2, 4, temp_string);
+                    from_can_code(words[2], temp_string);
+                    strcpy_s(cancode3, 4, temp_string);
+                    from_can_code(words[3], temp_string);
+                    strcpy_s(cancode4, 4, temp_string);
 
                     printf(" %8lld  | %08s | %6d %6d %6d %6d | 0x%04X 0x%04X 0x%04X 0x%04X | %3s %3s %3s %3s | \n",
                         word_index, chars,
-                        tape_buffer.words[start_word], tape_buffer.words[start_word + 1], tape_buffer.words[start_word + 2], tape_buffer.words[start_word + 3],
-                        tape_buffer.words[start_word], tape_buffer.words[start_word + 1], tape_buffer.words[start_word + 2], tape_buffer.words[start_word + 3],
+                        words[0], words[1], words[2], words[3],
+                        words[0], words[1], words[2], words[3],
                         cancode1, cancode2, cancode3, cancode4
                     );
                     word_index += 4;

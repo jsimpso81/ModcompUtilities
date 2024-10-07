@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ModcompEmulDiskImg_ExtractPartition.c">
+    <ClCompile Include="test_calc_geom.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

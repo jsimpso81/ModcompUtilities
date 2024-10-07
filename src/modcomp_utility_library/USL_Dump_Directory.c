@@ -67,9 +67,11 @@ void USL_dump_directory(char* filename) {
     int end_of_file;
     int overall_entry = 0;
     int overall_used_entries = 1;
-    bool print_raw = false;
+    bool print_raw = true;
     bool beyond_end = false;
-    USL_FILE_ENTRY file_entry;
+    USL_FILE_ENTRY file_entry = { 0 };
+    unsigned __int16 USL_log_file = 0;
+    int j;
 
     /* -------- open input disk image */
     status = fopen_s(&inpart, filename, "rb");
@@ -88,11 +90,17 @@ void USL_dump_directory(char* filename) {
 
         while (not_done) {
 
+            printf("\n ================ reading sector %jd\n", sector);
+
             /* -------- read next directory sector, parse and print */
-            stat = read_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
+            stat = read_raw_disk_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
 
             if (return_count > 0) {
 
+                // --------byte swap sector data...
+                for (j = 0; j < 128; j++) {
+                    sector_buffer.sector_raw[j] = bswap16(sector_buffer.sector_raw[j]);
+                }
 
                 printf(" prev sector :  %d \n", sector_buffer.usl_directory_sector.prev_sector);
                 printf(" next sector :  %d \n", sector_buffer.usl_directory_sector.next_sector);
@@ -115,6 +123,7 @@ void USL_dump_directory(char* filename) {
                     /* ------- attached logical file entry */
                     else if ( sector_buffer.usl_directory_sector.entries[entry].raw_entry.word0 == 0xfefe ) {
                         USL_Directory_Print_LogFile_Entry(&sector_buffer.usl_directory_sector.entries[entry]);
+                        USL_log_file = sector_buffer.usl_directory_sector.entries[entry].file_partition_entry.partition_file;
                     }
 
                     /* ------- entry for directory sector entry */
@@ -131,6 +140,7 @@ void USL_dump_directory(char* filename) {
                     /* -------- entry for file */
                     else {
                         USL_Parse_File_Entry(&sector_buffer.usl_directory_sector.entries[entry], &file_entry);
+                        printf(" file entry - %s, start %d, len %d\n", file_entry.file_name, file_entry.starting_sector, file_entry.sector_count);
                         USL_Directory_Print_File_Entry(&file_entry);
                     }
 

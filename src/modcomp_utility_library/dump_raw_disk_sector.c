@@ -10,7 +10,7 @@
 #define MIN(i, j) (((i) < (j)) ? (i) : (j))
 
 /* ========================================================================================================================*/
-void dump_sector(unsigned __int16* sector_buffer) {
+void dump_raw_disk_sector(unsigned __int16* sector_buffer) {
 
     int start_word;
 
@@ -35,10 +35,14 @@ void dump_sector(unsigned __int16* sector_buffer) {
         chars[7] = MAX(sector_buffer[start_word + 3] & 0x007f, 32);
         chars[6] = MAX((sector_buffer[start_word + 3] >> 8) & 0x007f, 32);
 
-        strcpy_s(cancode1, 4, from_can_code(sector_buffer[start_word], temp_string));
-        strcpy_s(cancode2, 4, from_can_code(sector_buffer[start_word + 1], temp_string));
-        strcpy_s(cancode3, 4, from_can_code(sector_buffer[start_word + 2], temp_string));
-        strcpy_s(cancode4, 4, from_can_code(sector_buffer[start_word + 3], temp_string));
+        from_can_code(sector_buffer[start_word], temp_string);
+        strcpy_s(cancode1, 4, temp_string);
+        from_can_code(sector_buffer[start_word + 1], temp_string);
+        strcpy_s(cancode2, 4, temp_string);
+        from_can_code(sector_buffer[start_word + 2], temp_string);
+        strcpy_s(cancode3, 4, temp_string);
+        from_can_code(sector_buffer[start_word + 3], temp_string);
+        strcpy_s(cancode4, 4, temp_string);
 
         printf("   %6d  | %08s | %6d %6d %6d %6d | 0x%04X 0x%04X 0x%04X 0x%04X | %3s %3s %3s %3s | \n",
                         start_word, chars,

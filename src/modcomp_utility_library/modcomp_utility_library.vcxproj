@@ -145,19 +145,25 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bswap16.c" />
-    <ClCompile Include="Dump_File.c" />
-    <ClCompile Include="dump_file_as_byte_variable.c" />
-    <ClCompile Include="dump_sector.c" />
-    <ClCompile Include="dump_sector_as_byte_variable.c" />
-    <ClCompile Include="TapeImg_DumpRecords.c" />
+    <ClCompile Include="Dump_raw_disk_file.c" />
+    <ClCompile Include="dump_raw_disk_file_as_byte_variable.c" />
+    <ClCompile Include="dump_raw_disk_sector.c" />
+    <ClCompile Include="dump_raw_disk_sector_as_byte_variable.c" />
+    <ClCompile Include="extract_raw_disk_partition.c" />
+    <ClCompile Include="extract_sic_8840_disk_partition.c" />
+    <ClCompile Include="geom_calc.c" />
+    <ClCompile Include="read_884x_disk_sector_lba.c" />
+    <ClCompile Include="TapeImg_dump_records.c" />
     <ClCompile Include="TapeImg_ReadNextRecord.c" />
+    <ClCompile Include="update_modcomp_disk_emul_disk_partition.c" />
+    <ClCompile Include="update_sic_884x_disk_partition.c" />
     <ClCompile Include="USL_Dump_Directory.c" />
-    <ClCompile Include="extract_partition.c" />
+    <ClCompile Include="extract_modcomp_emul_disk_partition.c" />
     <ClCompile Include="from_can_code.c" />
     <ClCompile Include="from_rad50.c" />
     <ClCompile Include="get_can_index.c" />
-    <ClCompile Include="read_disk_image_sector_lba.c" />
-    <ClCompile Include="read_sector_lba.c">
+    <ClCompile Include="read_modcomp_emul_disk_sector_lba.c" />
+    <ClCompile Include="read_raw_disk_sector_lba.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -173,6 +179,8 @@
     <ClCompile Include="USL_Extract_All_Files.c" />
     <ClCompile Include="USL_Extract_File.c" />
     <ClCompile Include="USL_Parse_File_Entry.c" />
+    <ClCompile Include="write_884x_disk_sector_lba.c" />
+    <ClCompile Include="write_modcomp_emul_disk_sector_lba.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

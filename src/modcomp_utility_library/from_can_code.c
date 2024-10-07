@@ -3,7 +3,7 @@
 
 #include "modcomp_utility_library.h"
 
-unsigned char* from_can_code(unsigned int can_value, unsigned char* result_string) {
+unsigned int from_can_code(unsigned int can_value, unsigned char* result_string) {
 
 	const unsigned char* can = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.$";
 
@@ -24,6 +24,7 @@ unsigned char* from_can_code(unsigned int can_value, unsigned char* result_strin
 	result_string[2] = can[c3];
 	result_string[3] = 0;
 
-	return result_string;
+	// -------- return 1 if good
+	return 1;
 
 }

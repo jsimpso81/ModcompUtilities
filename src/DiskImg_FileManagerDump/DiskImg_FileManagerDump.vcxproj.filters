@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DiskImg_FileManagerDump.c">
+    <ClCompile Include="ModcompEmulDiskImg_FileManagerDump.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

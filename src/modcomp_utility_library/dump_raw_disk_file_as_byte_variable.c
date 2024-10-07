@@ -9,7 +9,7 @@
 #define MIN(i, j) (((i) < (j)) ? (i) : (j))
 
 /* ========================================================================================================================*/
-void dump_file_as_byte_variable(char* filename, bool swap_bytes, int start_sector, int end_sector) {
+void dump_raw_disk_file_as_byte_variable(char* filename, bool swap_bytes, int start_sector, int end_sector) {
 
     FILE* inpart;
     __int64 sector;
@@ -52,7 +52,7 @@ void dump_file_as_byte_variable(char* filename, bool swap_bytes, int start_secto
         while (not_done) {
 
             /* -------- read next directory sector, parse and print */
-            stat = read_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
+            stat = read_raw_disk_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
 
             printf(" // -- read sector %lld status %d count read %zd end of file %d\n", sector, stat, return_count, end_of_file);
 
@@ -67,7 +67,7 @@ void dump_file_as_byte_variable(char* filename, bool swap_bytes, int start_secto
                         }
                     }
 
-                    dump_sector_as_byte_variable(sector_buffer);
+                    dump_raw_disk_sector_as_byte_variable(sector_buffer);
                 }
                 sector++;
             }

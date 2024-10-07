@@ -67,10 +67,11 @@ void USL_extract_all_files(char* partition_file, char* extract_dir, char* recove
     int end_of_file;
     int overall_entry = 0;
     int overall_used_entries = 1;
-    bool print_raw = false;
+    bool print_raw = true;
     bool beyond_end = false;
     unsigned __int16 USL_log_file = 0;
-    USL_FILE_ENTRY file_entry;
+    USL_FILE_ENTRY file_entry = { 0 };
+    int j;
 
     /* -------- open USL partition file  */
     status = fopen_s(&inpart, partition_file, "rb");
@@ -89,11 +90,17 @@ void USL_extract_all_files(char* partition_file, char* extract_dir, char* recove
 
         while (not_done) {
 
+            printf("\n ================ reading sector %jd\n", sector);
+
             /* -------- read next directory sector, parse and print */
-            stat = read_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
+            stat = read_raw_disk_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
 
             if (return_count > 0) {
 
+                // --------byte swap sector data...
+                for (j = 0; j < 128; j++) {
+                    sector_buffer.sector_raw[j] = bswap16(sector_buffer.sector_raw[j]);
+                }
 
                 /* printf(" prev sector :  %d \n", sector_buffer.usl_directory_sector.prev_sector); */
                 /* printf(" next sector :  %d \n", sector_buffer.usl_directory_sector.next_sector); */

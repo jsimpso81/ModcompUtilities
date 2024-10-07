@@ -32,13 +32,19 @@ void USL_Parse_File_Entry(USL_DIRECTORY_ENTRY* direct_entry, USL_FILE_ENTRY* par
 	int j;
 
 
-	strcpy_s(cancode1, 4, from_can_code(direct_entry->file_entry.file_name_1, temp_string));
-	strcpy_s(cancode2, 4, from_can_code(direct_entry->file_entry.file_name_2, temp_string));
-	strcpy_s(cancode3, 4, from_can_code(direct_entry->file_entry.file_name_3, temp_string));
+	from_can_code(direct_entry->file_entry.file_name_1, temp_string);
+	strcpy_s(cancode1, 4, temp_string);
+	from_can_code(direct_entry->file_entry.file_name_2, temp_string);
+	strcpy_s(cancode2, 4, temp_string);
+	from_can_code(direct_entry->file_entry.file_name_3, temp_string);
+	strcpy_s(cancode3, 4, temp_string);
 
-	strcpy_s(cancode4, 4, from_can_code(direct_entry->file_entry.month_day, temp_string));
-	strcpy_s(cancode5, 4, from_can_code(direct_entry->file_entry.year, temp_string));
-	strcpy_s(cancode6, 4, from_can_code(direct_entry->file_entry.minutes, temp_string));
+	from_can_code(direct_entry->file_entry.month_day, temp_string);
+	strcpy_s(cancode4, 4, temp_string);
+	from_can_code(direct_entry->file_entry.year, temp_string);
+	strcpy_s(cancode5, 4, temp_string);
+	from_can_code(direct_entry->file_entry.minutes, temp_string);
+	strcpy_s(cancode6, 4, temp_string);
 
 	unused_date = (direct_entry->file_entry.month_day >> 9) & 0x007f;
 	month = (direct_entry->file_entry.month_day >> 5) & 0x000f;

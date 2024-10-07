@@ -10,7 +10,8 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 	if (USL_log_file != 0) {
 		char cancode[4] = { 0, 0, 0, 0 };
 		char temp_string[10] = { 0 };
-		strcpy_s( cancode, 4, from_can_code(USL_log_file, temp_string));
+		from_can_code(USL_log_file, temp_string);
+		strcpy_s( cancode, 4, temp_string);
 		printf("\n *** ERROR *** Attached files not supported. File extract not processed. Attached file: %s\n", cancode );
 	}
 
@@ -58,15 +59,22 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 				/* --------do the work of extracton here */
 				unsigned __int16 current_sector = parsed_file_entry->starting_sector;
 				unsigned __int16 last_sector = parsed_file_entry->starting_sector + parsed_file_entry->sector_count -2; /* ----- the last sector contains $$ (end of file), not program*/
-				struct {
-					unsigned __int8 checksum;
-					unsigned __int8 header;
-					unsigned __int16 byte_count;
-					union {
-						unsigned __int16 raw_sector_words[126];
-						signed __int8  raw_sector_bytes[252];
-					} data;
-				} sector_data;
+				
+				unsigned __int16 raw_sector_data[128] = { 0 };
+
+				union {
+					unsigned __int16 raw_sector_data[128];
+					struct {
+						unsigned __int8 checksum;
+						unsigned __int8 header;
+						unsigned __int16 byte_count;
+						union {
+							unsigned __int16 raw_sector_words[126];
+							signed __int8  raw_sector_bytes[252];
+						} data;
+					} sector_data;
+				} swap_sector_data = { 0 };
+
 				int current_byte_pointer = -1;
 				int number_of_data_bytes = 0;
 				int state = 0;
@@ -95,21 +103,29 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 						else {
 							/* -------- read next data sector */
 							printf("\n==========reading sector %d ==============\n", current_sector);
-							stat = read_sector_lba(inpart, current_sector, 1, &sector_data, &return_count, &end_of_file);
+							// stat = read_raw_disk_sector_lba(inpart, current_sector, 1, &sector_data, &return_count, &end_of_file);
+							stat = read_raw_disk_sector_lba(inpart, current_sector, 1, &raw_sector_data, &return_count, &end_of_file);
 							if (stat != 0 || return_count <= 0 || end_of_file != 0) {
 								printf("\n *** ERROR *** trouble reading data sector of USL file. status = %d, count = %zd, eof = %d\n", stat, return_count, end_of_file);
 								not_done = false;
 								break;
 								printf("\n ---- file break -----\n");
 							}
+
+							// --------byte swap sector data...
+							for (j = 0; j < 128; j++) {
+								swap_sector_data.raw_sector_data[j] = bswap16(raw_sector_data[j]);
+							}
+
+
 							/* --------verify first byte has 0x03 */
-							if (sector_data.header != 3) {
-								printf("\n *** ERROR *** data sector does not start with 0x03  value = %d\n", sector_data.header);
+							if (swap_sector_data.sector_data.header != 3) {
+								printf("\n *** ERROR *** data sector does not start with 0x03  value = %d\n", swap_sector_data.sector_data.header);
 							}
 							/* --------verify checksum -- FUTURE */
 
 
-							number_of_data_bytes = sector_data.byte_count - 4; /* remove count for header */
+							number_of_data_bytes = swap_sector_data.sector_data.byte_count - 4; /* remove count for header */
 							//if (current_sector >= last_sector)
 							//	number_of_data_bytes = parsed_file_entry->last_sector_words_used * 2;
 
@@ -120,10 +136,10 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 
 					/* --------get next byte -- for use later */
 					if (current_byte_pointer % 2 == 0) {
-						next_byte = sector_data.data.raw_sector_bytes[current_byte_pointer + 1];
+						next_byte = swap_sector_data.sector_data.data.raw_sector_bytes[current_byte_pointer + 1];
 					}
 					else {
-						next_byte = sector_data.data.raw_sector_bytes[current_byte_pointer - 1];
+						next_byte = swap_sector_data.sector_data.data.raw_sector_bytes[current_byte_pointer - 1];
 					}
 
 					/* --------if repeating - countine to repeat until done */

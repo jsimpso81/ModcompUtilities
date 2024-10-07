@@ -1,4 +1,4 @@
-// DiskFile_ExtractCharString.c : This file contains the 'main' function. Program execution begins and ends there.
+// RawDiskFile_ExtractCharString.c : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #include <stdio.h>
@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
     int last_sector = 0;
 
     /* -------- annouce our program  */
-    printf("\nDiskFile_ExtractCharString - Dump part of disk file as char/byte variable definition.\n");
+    printf("\nRawDiskFile_ExtractCharString - Dump part of disk file as char/byte variable definition.\n");
 
     /* -------- parse command line */
     /*      -s                     */
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 
             /* -------- print help */
             if (strcmp(argv[j], "-h") == 0 || strcmp(argv[j], "-?") == 0) {
-                printf("\n\nUSLPart_DirectoryDump - List all directory entries for a USL formatted disk partition\n\n");
+                printf("\n\nRawDiskFile_ExtractCharString - Dump part of disk file as char/byte variable definition.\n\n");
                 printf("        -h       print help message and exit\n");
                 printf("        -?       print help message and exit\n");
                 printf("        -f file  name of file to dump\n");
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
                 if (j < argc) {
                     start_sector = 3;
                     last_sector = 31;
-                    dump_file_as_byte_variable(argv[j], swap_bytes, start_sector, last_sector);
+                    dump_raw_disk_file_as_byte_variable(argv[j], swap_bytes, start_sector, last_sector);
                 }
             }
             /* --------unrecognized parameter */
