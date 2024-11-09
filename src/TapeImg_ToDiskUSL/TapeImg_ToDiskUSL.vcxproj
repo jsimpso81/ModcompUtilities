@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{f46b553b-579f-45cf-9bd2-de0b03ba8461}</ProjectGuid>
-    <RootNamespace>TapeImgDump</RootNamespace>
+    <ProjectGuid>{fcfbe7cd-c554-4c5d-8e60-f2a79588cbf0}</ProjectGuid>
+    <RootNamespace>TapeImgToDiskUSL</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -131,7 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="TapeImg_Dump.c" />
+    <ClCompile Include="TapeImg_ToDiskUSL.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\modcomp_utility_library\modcomp_utility_library.vcxproj">

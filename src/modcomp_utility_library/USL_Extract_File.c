@@ -58,8 +58,9 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 
 				/* --------do the work of extracton here */
 				unsigned __int16 current_sector = parsed_file_entry->starting_sector;
-				unsigned __int16 last_sector = parsed_file_entry->starting_sector + parsed_file_entry->sector_count -2; /* ----- the last sector contains $$ (end of file), not program*/
-				
+				// unsigned __int16 last_sector = parsed_file_entry->starting_sector + parsed_file_entry->sector_count -2; /* ----- the last sector contains $$ (end of file), not program*/
+				unsigned __int16 last_sector = parsed_file_entry->starting_sector + parsed_file_entry->sector_count - 1; /* ----- the last sector contains $$ (end of file), not program*/
+
 				unsigned __int16 raw_sector_data[128] = { 0 };
 
 				union {
