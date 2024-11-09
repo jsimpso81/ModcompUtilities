@@ -17,8 +17,10 @@ int main(int argc, char* argv[]) {
     __int64 starting_sector = 0;
     __int64 starting_track = 0;
     __int64 sector_count = 1;
+    __int64 unit = 0;
     bool have_image_name = false;
     bool have_partition_name = false;
+    bool have_starting_sector = false;
 
 
     /* -------- annouce our program  */
@@ -41,8 +43,9 @@ int main(int argc, char* argv[]) {
                 printf("        -i disk_image  modcomp emulator disk image file\n");
                 printf("        -p partition_file  partition file\n");
                 printf("        -s start_sector  starting sector 0 relative\n");
-                printf("        -t start_track  starting track 0 relative\n");
+                printf("        -t start_track   starting track 0 relative\n");
                 printf("        -c sector_count  number of sectors\n");
+                printf("        -u drive_unit    drive unit 0-3 (0)\n");
                 exit(0);
             }
 
@@ -67,8 +70,10 @@ int main(int argc, char* argv[]) {
             /* -------- starting sector */
             else if (strcmp(argv[j], "-s") == 0) {
                 j++;
-                if (j < argc)
+                if (j < argc) {
                     sscanf_s(argv[j], "%lld", &starting_sector);
+                    have_starting_sector = true;
+                }
             }
 
             /* -------- starting track */
@@ -77,8 +82,18 @@ int main(int argc, char* argv[]) {
                 if (j < argc) {
                     sscanf_s(argv[j], "%lld", &starting_track);
                     starting_sector = starting_track * SIC_8840_SEC_PER_TRK;
+                    have_starting_sector = true;
                 }
             }
+
+            /* -------- unit number */
+            else if (strcmp(argv[j], "-u") == 0) {
+                j++;
+                if (j < argc) {
+                    sscanf_s(argv[j], "%lld", &unit);
+                }
+            }
+
 
             /* -------- sector count */
             else if (strcmp(argv[j], "-c") == 0) {
@@ -96,10 +111,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (have_image_name && have_partition_name) {
+    if (have_image_name && have_partition_name && have_starting_sector) {
         printf("\nUpdating partition %s to disk %s starting at %lld length %lld sectors.\n", partition_name, image_name, starting_sector, sector_count);
 
-        update_sic_884x_disk_partition(image_name, partition_name, starting_sector, sector_count);
+        update_sic_884x_disk_partition(image_name, partition_name, starting_sector, sector_count, unit );
     }
     else {
         printf("\n *** ERROR **** Not all required parameters provided.\n");

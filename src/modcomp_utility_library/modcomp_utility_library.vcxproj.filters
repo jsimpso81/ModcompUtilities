@@ -122,5 +122,14 @@
     <ClCompile Include="geom_calc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sic_884x_eof_functions.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sic_884x_is_sector_eof.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sic_884x_disk_image_check_fix_eof.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

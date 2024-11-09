@@ -8,7 +8,12 @@
 
 #define SIC_8840_IMG_SECTOR_BYTES RAW_SECTOR_BYTES
 #define SIC_8840_IMG_START_OFFSET_BYTES (size_t)0x4000
+#define SIC_8840_TRK_PER_UNIT (__int64)1632
 #define SIC_8840_SEC_PER_TRK (__int64)24
+//#define SIC_8840_IMG_EOF_BUFFER_BYTES (size_t)19585     // numb of sectors + 1 because of offset start nibble (odd??)
+#define SIC_8840_IMG_EOF_BUFFER_BYTES (size_t)( (__int64)4 * SIC_8840_TRK_PER_UNIT * SIC_8840_SEC_PER_TRK)   // TODO: This twice as big as needed.
+//#define SIC_8840_IMG_EOF_BUFFER_U0_START_OFFSET (size_t)40124864
+#define SIC_8840_IMG_EOF_BUFFER_U0_START_OFFSET (size_t)( (__int64)4 * SIC_8840_TRK_PER_UNIT * SIC_8840_SEC_PER_TRK * SIC_8840_IMG_SECTOR_BYTES + SIC_8840_IMG_START_OFFSET_BYTES)
 
 // #define disk_884x_start_sector (__int64)32
 // #define disk_884x_sect_size (__int64)(256+4)
@@ -128,6 +133,16 @@ int read_raw_disk_sector_lba(FILE* fp, __int64 sector, size_t  sector_count, voi
 // -------- write disk sectors
 int write_884x_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
 int write_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
+
+// --------SIC EOF checking.
+int sic_884x_is_sector_eof(FILE* inimg, __int64 unit, __int64 unit_sector, bool* is_eof);
+int write_884x_eof_buffer(FILE* fp);
+int read_884x_eof_buffer(FILE* fp);
+int sic_884x_check_eof_buffer(__int64 unit, __int64 unit_sector, bool* is_eof);
+int sic_884x_set_eof_buffer(__int64 unit, __int64 unit_sector, bool is_eof);
+void sic_884x_disk_image_check_fix_eof(char* image_name, __int64 unit, bool fix, bool list);
+void sic_884x_disk_image_dump_eof_buffer(char* image_name);
+
 // -------- tape image I/O
 void TapeImg_dump_records(char* filename, bool swap_bytes);
 int TapeImg_read_next_record(FILE* fp, __int64* current_file_position, void* buf, int max_buf_bytes, size_t* bytes_read, int* end_of_file);
@@ -135,7 +150,7 @@ int TapeImg_read_next_record(FILE* fp, __int64* current_file_position, void* buf
 unsigned int to_can_code(unsigned char* ascii_string);
 
 void update_modcomp_emul_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count);
-void update_sic_884x_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count);
+void update_sic_884x_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 unit);
 
 __int16 geom_calc(__int64 sect_per_track, __int64 geom, __int64 log_to_phys[]);
 

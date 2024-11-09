@@ -31,6 +31,10 @@ int read_884x_disk_sector_lba(FILE* fp, __int64 sector, void* raw_sector_buf) {
 
 	memcpy(raw_sector_buf, &disk_buff, RAW_SECTOR_BYTES);
 
+	if (stat != 0) {
+		printf("\n *** ERROR *** read_884x_disk_sector error %d\n", stat);
+	}
+
 	return stat;
 
 }

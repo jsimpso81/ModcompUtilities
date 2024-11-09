@@ -34,6 +34,10 @@ int write_884x_disk_sector_lba(FILE* fp, __int64 sector, void* raw_sector_buf) {
 
 	/* printf("\n first two bytes of image sector : %d", disk_buff.lba); */
 
+	if (stat != 0) {
+		printf("\n *** ERROR *** write_884x_disk_sector error %d\n", stat);
+	}
+
 
 	return stat;
 
