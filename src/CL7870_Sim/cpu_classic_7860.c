@@ -13,6 +13,7 @@
 //	Externally accessible routines:
 //					void cpu_trigger_power_interrupt(SIMJ_U16 power_interrupt_type)
 //					void cpu_trigger_memory_parity_interrupt(SIMJ_U16 parity_interrupt_type)
+//					bool cpu_get_virtual_mode()
 //					void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map)
 //					void cpu_get_instruction_trace( SIMJ_U16 *inx, SIMJ_U32 trace[1024], 
 //							SIMJ_U32 trace_w1[1024], SIMJ_U32 trace_w2[1024], SIMJ_U32 trace_w3[1024], SIMJ_U32 trace_w4[1024])
@@ -41,6 +42,8 @@
 //	Internal only routines:
 //					inline SIMJ_U16 cpu_get_next_DI_request()
 //					inline SIMJ_U16 cpu_get_next_SI_request()
+//					inline void cpu_clear_all_DI_request()
+//					inline void cpu_clear_all_SI_request()
 //					inline void cpu_switch_register_blocks(SIMJ_U8 new_reg_block)
 //					inline void cpu_set_current_PSW(PSW new_psw)
 //					inline SIMJ_U16 cpu_find_bit(SIMJ_U16 bit_value)
@@ -141,46 +144,73 @@ static SIMJ_U8 cpu_register_current_block = 0;		// GRB
 
 // -------- interrupts
 //		0	0x8000	Power Fail Safe / Auto Start
-#define cpu_intr_power_fail (SIMJ_U16)0x8000
+#define CPU_INTR_power_fail (SIMJ_U16)0x8000
+#define CPU_INTR_power_fail_num			0
 //		1	0x4000	Memory Parity
-#define cpu_intr_mem_parity (SIMJ_U16)0x4000
+#define CPU_INTR_mem_parity (SIMJ_U16)0x4000
+#define CPU_INTR_mem_parity_num			1
 //		2	0x2000	System Protect (priv instruction)
-#define cpu_intr_sys_protect (SIMJ_U16)0x2000
+#define CPU_INTR_sys_protect (SIMJ_U16)0x2000
+#define CPU_INTR_sys_protect_num		2
 //		3	0x1000	Multiprocessor Communications
-#define cpu_intr_RMI (SIMJ_U16)0x1000
+#define CPU_INTR_RMI (SIMJ_U16)0x1000
+#define CPU_INTR_RMI_num				3
 //		4	0x0800	Unimplemented Instruction Trap
-#define cpu_intr_UIT (SIMJ_U16)0x0800
+#define CPU_INTR_UIT (SIMJ_U16)0x0800
+#define CPU_INTR_UIT_num				4
 //		5	0x0400	Floating Point Overflow
-#define cpu_intr_floating_overflow (SIMJ_U16)0x0400
+#define CPU_INTR_floating_overflow (SIMJ_U16)0x0400
+#define CPU_INTR_floating_overflow_num	5
 //		6	0x0200	Real Time Clock
-#define cpu_intr_clock (SIMJ_U16)0x0200
+#define CPU_INTR_clock (SIMJ_U16)0x0200
+#define CPU_INTR_clock_num				6
 //		7	0x0100	External
-#define cpu_intr_ext_7 (SIMJ_U16)0x0100
+#define CPU_INTR_ext_7 (SIMJ_U16)0x0100
+#define CPU_INTR_ext_7_num				7
 //		8	0x0080	External
-#define cpu_intr_ext_8 (SIMJ_U16)0x0080
+#define CPU_INTR_ext_8 (SIMJ_U16)0x0080
+#define CPU_INTR_ext_8_num				8
 //		9	0x0040	External
-#define cpu_intr_ext_9 (SIMJ_U16)0x0040
+#define CPU_INTR_ext_9 (SIMJ_U16)0x0040
+#define CPU_INTR_ext_9_num				9
 //		10	0x0020	External
-#define cpu_intr_ext_A (SIMJ_U16)0x0020
+#define CPU_INTR_ext_A (SIMJ_U16)0x0020
+#define CPU_INTR_ext_A_num				10
 //		11	0x0010	External
-#define cpu_intr_ext_B (SIMJ_U16)0x0010
+#define CPU_INTR_ext_B (SIMJ_U16)0x0010
+#define CPU_INTR_ext_B_num				11
 //		12	0x0008	I/O Data Party Line
-#define cpu_intr_DI (SIMJ_U16)0x0008
+#define CPU_INTR_DI (SIMJ_U16)0x0008
+#define CPU_INTR_DI_num					12
 //		13	0x0004	I/O Service Party Line
-#define cpu_intr_SI (SIMJ_U16)0x0004
+#define CPU_INTR_SI (SIMJ_U16)0x0004
+#define CPU_INTR_SI_num					13
 //		14	0x0002	Console interrupt
-#define cpu_intr_console (SIMJ_U16)0x0002
+#define CPU_INTR_console (SIMJ_U16)0x0002
+#define CPU_INTR_console_num			14
 //		15	0x0001	Task Scheduler
-#define cpu_intr_task_sch (SIMJ_U16)0x0001
-//
+#define CPU_INTR_task_sch (SIMJ_U16)0x0001
+#define CPU_INTR_task_sch_num			15
 
-#define DEFAULT_INTR_ENABLED (cpu_intr_power_fail | cpu_intr_sys_protect | cpu_intr_UIT | cpu_intr_floating_overflow)
+#define CPU_INTR_none_num				16
+//
+#define DEFAULT_INTR_ENABLED (CPU_INTR_power_fail | CPU_INTR_sys_protect | CPU_INTR_UIT | CPU_INTR_floating_overflow)
+
+#define CPU_INTR_BASE_ENTRY_PS	(SIMJ_U32)0x000040			// Status -  BASE + INT_VAL * 2
+#define CPU_INTR_BASE_ENTRY_PC	(SIMJ_U32)0x000021			// Pgm counter - BASE + INT_VAL * 2
+#define CPU_INTR_DI_BASE_ENTRY_PC	(SIMJ_U32)0x000080		// Pgm counter - BASE + DEV_ADDR
+#define CPU_INTR_SI_BASE_ENTRY_PC	(SIMJ_U32)0x0000C0		// Pgm counter - BASE + DEV_ADDR
+
+#define CPU_INTR_BASE_RETURN_PS	(SIMJ_U32)0x000041			// Status - BASE + INT_VAL * 2
+#define CPU_INTR_BASE_RETURN_PC	(SIMJ_U32)0x000020			// Pgm counter - BASE + INT_VAL * 2
+
+
 static volatile SIMJ_U16 cpu_interrupt_active = 0;							// interrupt active bits.
 static volatile SIMJ_U16 cpu_interrupt_enabled = DEFAULT_INTR_ENABLED;		// interrupt enabled bits.
 static volatile SIMJ_U16 cpu_interrupt_request = 0;							// interrupt requested bits.
 static volatile SIMJ_U16 cpu_interrupt_request_external = 0;				// external interrupt requested bits.
 static volatile SIMJ_U16 cpu_interrupt_active_mask = 0xffff;
-static volatile SIMJ_U16 cpu_interrupt_active_current = 16;					// currently active interrupt level, 16 = nothing active.
+static volatile SIMJ_U16 cpu_interrupt_active_num = CPU_INTR_none_num;	// currently active interrupt level, 16 = nothing active.
 
 static volatile SIMJ_U16 cpu_interrupt_DI_request_dev_addr[16][4] = { 0 };
 static volatile SIMJ_U32 cpu_interrupt_DI_request_count[16][4] = {0};
@@ -193,6 +223,14 @@ static volatile SIMJ_U32 cpu_interrupt_SI_request_count[16][4] = { 0 };
 static volatile SIMJ_U32 cpu_interrupt_SI_proc_count[16][4] = { 0 };
 static volatile SIMJ_U32 cpu_interrupt_SI_total_request_count = 0;
 static volatile SIMJ_U32 cpu_interrupt_SI_total_proc_count = 0;
+
+static volatile SIMJ_U16 cpu_interrupt_entry_cond_codes[16] = { 0 };
+
+static bool skip_interrupt_determination = false;
+
+static SIMJ_U16 cpu_inst_intr_pc = 0;
+static SIMJ_U16 cpu_inst_intr_opcode = 0;
+static SIMJ_S32 cpu_inst_next_start = 0;
 
 
 static volatile bool cpu_virtual_mode = false;
@@ -211,7 +249,6 @@ static SIMJ_U16 saved_reg_0 = 0;
 
 DEFINE_RESOURCE(  ResourceInterruptRequest );
 
-static bool skip_interrupt_determination = false;
 
 static int use_extended_addressing_mode = 0;	// state machine 0 = none, 1 = next instr to use, 2 = after next instruction
 
@@ -238,7 +275,9 @@ static SIMJ_U16 cpu_mem_last_access_rights = 0;
 
 #include "cpu_macro_register_access.h"
 
-
+// -------- private function declarations
+inline void cpu_clear_all_DI_request();
+inline void cpu_clear_all_SI_request();
 
 // ===========================================================================================================
 // --------public
@@ -255,14 +294,20 @@ static SIMJ_U16 cpu_mem_last_access_rights = 0;
 //		1 0 1 x		local, power recovering, AC power change
 //		1 1 0 x		local, power failing, DC power change
 //		1 1 1 x		local, power failing, AC power change
+// 
+// for the 32/85 the condition codes are as follows:
+// 
+//		n z o c
+//		x 0 x x		power is recovering
+//		x 1 x x		power is failing
 //
 void cpu_trigger_power_interrupt(SIMJ_U16 power_interrupt_type) {
 
 	if (cpu_power_on) {
-		// TODO: Set power interrupt condition codes.
 		// -------- Request ownership of the resource.
 		TAKE_RESOURCE(ResourceInterruptRequest);
-		cpu_interrupt_request_external |= (cpu_intr_power_fail & cpu_interrupt_enabled);
+		cpu_interrupt_request_external |= (CPU_INTR_power_fail & cpu_interrupt_enabled);
+		cpu_interrupt_entry_cond_codes[CPU_INTR_power_fail_num] = power_interrupt_type & PSW_MASK_CC_ALL;
 		// -------- Release ownership of the resource.
 		GIVE_RESOURCE(ResourceInterruptRequest);
 	}
@@ -285,19 +330,37 @@ void cpu_trigger_power_interrupt(SIMJ_U16 power_interrupt_type) {
 //		0 x 1 0		"", err in operand
 //		0 x 1 1		"", undefined
 //
+// for the 32/85 condition codes are as follow
+// 
+//		n z o c
+//		0 x x x		not used
+//		1 x x x		instruction aborted
+//		x x 0 0		undefined
+//		x x 0 1		failure in opcode word
+//		x x 1 0		failure in other instruction word
+//		x x 1 1		undefined
 //
 void cpu_trigger_memory_parity_interrupt(SIMJ_U16 parity_interrupt_type) {
 
 	if (cpu_power_on) {
-		// TODO: Set power interrupt condition codes.
 		// -------- Request ownership of the resource.
 		TAKE_RESOURCE(ResourceInterruptRequest);
-		cpu_interrupt_request_external |= (cpu_intr_mem_parity & cpu_interrupt_enabled);
+		cpu_interrupt_request_external |= (CPU_INTR_mem_parity & cpu_interrupt_enabled);
+		cpu_interrupt_entry_cond_codes[CPU_INTR_mem_parity_num] = parity_interrupt_type & PSW_MASK_CC_ALL;
 		// -------- Release ownership of the resource.
 		GIVE_RESOURCE(ResourceInterruptRequest);
 	}
 
 }
+
+
+// ===========================================================================================================
+// --------pubic
+bool cpu_get_virtual_mode() {
+
+	return cpu_virtual_mode;
+}
+
 
 // ===========================================================================================================
 // --------public
@@ -423,18 +486,23 @@ void cpu_master_clear() {
 	// --------reset all active interrupts
 	cpu_interrupt_active = 0;
 	cpu_interrupt_active_mask = 0xffff;
-	cpu_interrupt_active_current = 16;
+	cpu_interrupt_active_num = 16;
 
 	// --------reset all interrupt requests
 	// -------- Request ownership of the resource.
 	TAKE_RESOURCE( ResourceInterruptRequest );
 	cpu_interrupt_request = 0;
 	cpu_interrupt_request_external = 0;
+	for (j = 0; j < 16; j++) {
+		cpu_interrupt_entry_cond_codes[j] = 0;
+	}
+
+	cpu_clear_all_DI_request();
+	cpu_clear_all_SI_request();
+
 	// -------- Release ownership of the resource.
 	GIVE_RESOURCE( ResourceInterruptRequest );
 	
-	// TODO: clear SI, DI queues.
-
 	// --------condition codes ??
 	cpu_overflow_hist = false;						// OH
 	cpu_cond_code_n = false;						// CC N
@@ -497,14 +565,15 @@ void cpu_request_DI( SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr ) {
 
 	// ------- prio, bus combinations should result in unique dev-addr...
 
-	if ( (( cpu_intr_DI & cpu_interrupt_enabled ) != 0) && cpu_power_on ) {
+	if ( (( CPU_INTR_DI & cpu_interrupt_enabled ) != 0) && cpu_power_on ) {
 
 		// -------- Request ownership of the resource.
 		TAKE_RESOURCE( ResourceInterruptRequest );
 		cpu_interrupt_DI_request_dev_addr[prio][bus] = dev_addr;
 		cpu_interrupt_DI_request_count[prio][bus]++;
 		cpu_interrupt_DI_total_request_count++;
-		cpu_interrupt_request_external |= (cpu_intr_DI); // &cpu_interrupt_enabled);
+		cpu_interrupt_request_external |= (CPU_INTR_DI); // &cpu_interrupt_enabled);
+		cpu_interrupt_entry_cond_codes[CPU_INTR_DI_num] = 0;
 		// -------- Release ownership of the resource.
 		GIVE_RESOURCE( ResourceInterruptRequest );
 
@@ -523,13 +592,14 @@ void cpu_request_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr) {
 
 	// ------- prio, bus combinations should result in unique dev-addr...
 
-	if ( ( ( cpu_intr_SI & cpu_interrupt_enabled ) != 0 ) && cpu_power_on ) {
+	if ( ( ( CPU_INTR_SI & cpu_interrupt_enabled ) != 0 ) && cpu_power_on ) {
 		// -------- Request ownership of the resource.
 		TAKE_RESOURCE( ResourceInterruptRequest );
 		cpu_interrupt_SI_request_dev_addr[prio][bus] = dev_addr;
 		cpu_interrupt_SI_request_count[prio][bus]++;
 		cpu_interrupt_SI_total_request_count++;
-		cpu_interrupt_request_external |= (cpu_intr_SI); // &cpu_interrupt_enabled);
+		cpu_interrupt_request_external |= (CPU_INTR_SI); // &cpu_interrupt_enabled);
+		cpu_interrupt_entry_cond_codes[CPU_INTR_SI_num] = 0;
 		// -------- Release ownership of the resource.
 		GIVE_RESOURCE( ResourceInterruptRequest );
 
@@ -620,6 +690,72 @@ inline SIMJ_U16 cpu_get_next_SI_request() {
 }
 
 // ===========================================================================================================
+// -------- Clears all DI requests (part of master clear)
+// -------- THIS MUST BE CALLED WHILE IN POSSESSION OF THE RESOURCE FOR THE INTERRUPT REQUEST.
+// --------private
+inline void cpu_clear_all_DI_request() {
+
+	int j = 0;
+
+	// --------loop over all priorities and buses
+	// j = priority
+	for (j = 0; j < 16; j++) {
+		cpu_interrupt_DI_request_dev_addr[j][0] = 0;
+		cpu_interrupt_DI_proc_count[j][0] = 0;
+		cpu_interrupt_DI_total_proc_count = 0;
+
+		cpu_interrupt_DI_request_dev_addr[j][1] = 0;
+		cpu_interrupt_DI_proc_count[j][1] = 0;
+		cpu_interrupt_DI_total_proc_count = 0;
+		
+		cpu_interrupt_DI_request_dev_addr[j][2] = 0;
+		cpu_interrupt_DI_proc_count[j][2] = 0;
+		cpu_interrupt_DI_total_proc_count = 0;
+		
+		cpu_interrupt_DI_request_dev_addr[j][3] = 0;
+		cpu_interrupt_DI_proc_count[j][3] = 0;
+		cpu_interrupt_DI_total_proc_count = 0;
+	}
+	cpu_interrupt_DI_total_request_count = 0;
+	cpu_interrupt_DI_total_proc_count = 0;
+
+	return;
+}
+
+// ===========================================================================================================
+// -------- Clears all SI requests (part of master clear)
+// -------- THIS MUST BE CALLED WHILE IN POSSESSION OF THE RESOURCE FOR THE INTERRUPT REQUEST.
+// --------private
+inline void cpu_clear_all_SI_request() {
+
+	int j = 0;
+
+	// --------loop over all priorities and buses
+	// j = priority
+	for (j = 0; j < 16; j++) {
+		cpu_interrupt_SI_request_dev_addr[j][0] = 0;
+		cpu_interrupt_SI_proc_count[j][0] = 0;
+		cpu_interrupt_SI_total_proc_count = 0;
+
+		cpu_interrupt_SI_request_dev_addr[j][1] = 0;
+		cpu_interrupt_SI_proc_count[j][1] = 0;
+		cpu_interrupt_SI_total_proc_count = 0;
+
+		cpu_interrupt_SI_request_dev_addr[j][2] = 0;
+		cpu_interrupt_SI_proc_count[j][2] = 0;
+		cpu_interrupt_SI_total_proc_count = 0;
+
+		cpu_interrupt_SI_request_dev_addr[j][3] = 0;
+		cpu_interrupt_SI_proc_count[j][3] = 0;
+		cpu_interrupt_SI_total_proc_count = 0;
+	}
+	cpu_interrupt_SI_total_request_count = 0;
+	cpu_interrupt_SI_total_proc_count = 0;
+
+	return;
+}
+
+// ===========================================================================================================
 // --------public
 SIMJ_U32 cpu_get_instruction_count() {
 	return cpu_instruction_count;
@@ -640,7 +776,8 @@ void cpu_trigger_console_interrupt() {
 	if (cpu_power_on) {
 		// -------- Request ownership of the resource.
 		TAKE_RESOURCE( ResourceInterruptRequest );
-		cpu_interrupt_request_external |= (cpu_intr_console & cpu_interrupt_enabled);
+		cpu_interrupt_request_external |= (CPU_INTR_console & cpu_interrupt_enabled);
+		cpu_interrupt_entry_cond_codes[CPU_INTR_console_num] = 0;
 		// -------- Release ownership of the resource.
 		GIVE_RESOURCE( ResourceInterruptRequest );
 	}
@@ -656,7 +793,8 @@ void cpu_trigger_clock_interrupt() {
 		cpu_trigger_clock_int++;
 		// -------- Request ownership of the resource.
 		TAKE_RESOURCE( ResourceInterruptRequest );
-		cpu_interrupt_request_external |= (cpu_intr_clock & cpu_interrupt_enabled);
+		cpu_interrupt_request_external |= (CPU_INTR_clock & cpu_interrupt_enabled);
+		cpu_interrupt_entry_cond_codes[CPU_INTR_clock_num] = 0;
 		// -------- Release ownership of the resource.
 		GIVE_RESOURCE( ResourceInterruptRequest );
 	}
@@ -899,10 +1037,10 @@ void cpu_classic_7860() {
 
 
 	// -------- local variables
-	INSTRUCTION instruction = { .all = 0 };
+	INSTRUCTION				instruction = { .all = 0 };
 
 	// -------- for temporary use
-	static SIMJ_S32     temp32_addr_calc = 0;
+	static SIMJ_S32			temp32_addr_calc = 0;
 
 	// -------- parsed instruction values
 	static SIMJ_U16			tmp_instr_src = 0;
@@ -942,6 +1080,8 @@ void cpu_classic_7860() {
 	register VAL32			tmp32_val4 = { .uval = 0 };
 	register VAL32			tmp32_val5 = { .uval = 0 };
 	register VAL32			tmp32_val6 = { .uval = 0 };
+	register VAL32			tmp32_val7 = { .uval = 0 };
+	register VAL32			tmp32_val8 = { .uval = 0 };
 
 	register VAL64			tmp64_val1 = { .uval = 0 };
 	register VAL64			tmp64_val2 = { .uval = 0 };
@@ -955,14 +1095,15 @@ void cpu_classic_7860() {
 #ifdef SHIT
 	SIMJ_S16				temp16_val10 = 0;
 #endif
-	int						temp_bit = 0;
+	SIMJ_S32				temp_bit = 0;
 
-	int						j = 0;
+	SIMJ_S32				j = 0;
 	bool					do_branch = false;
 
 	char op_code_string[20] = "";
 
 	int new_int = 0;
+	int old_int = 0;
 
 	PSW tmp_PSW = { .all = 0 };
 	SIMJ_U16 tmp_dev_addr = 0xffff;
@@ -1001,35 +1142,75 @@ void cpu_classic_7860() {
 //
 //		n z o c
 //		x 0 0 x		not rex, not exr / exi
-//		x 0 1 x		not reg, exr / exi
+//		x 0 1 x		not rex, exr / exi
 //		x 1 0 x		rex, not exr / exi
 //		x 1 1 x		rex, exi / exr
 //
+//  for the 32/85 condition codes as follows
+//		n z o c
+//		x 0 0 x		not rex, not EXR/EXI
+//		x 0 1 x		not rex, instruction is EXR/EXI 
+// 	    x 1 0 x		REX instruction, not EXR/EXI
+// 	    x 1 1 x		REX instruction, EXR/EXI
+//
 
-// TODO: Set CC for UIT
+// -------- UIT
 #define UNIMPLEMENTED_INSTRUCTION {\
 					fprintf(stderr, "\n unimplemented instruction 0x%04x @  0x%04x\n",instruction.all, program_counter);\
 					fprintf(stdout, "\n unimplemented instruction 0x%04x @  0x%04x\n",instruction.all, program_counter);\
-					SET_CC_Z(false);\
-					SET_CC_O(false);\
-					if ( cpu_interrupt_active >= cpu_intr_UIT ) {\
+					if ( cpu_interrupt_active >= CPU_INTR_UIT ) {\
 						gbl_fp_runlight = false;\
 						printf("\nCpu halted.  UIT while interrupt 0-4 active.\n");\
 						cmd_process_print_prompt();\
 					}\
 					TAKE_RESOURCE( ResourceInterruptRequest );\
-					cpu_interrupt_request |= cpu_intr_UIT;\
+					cpu_interrupt_request |= CPU_INTR_UIT;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_UIT_num] = 0;\
 					GIVE_RESOURCE( ResourceInterruptRequest );\
 					goto end_instruction;\
 					}
 
-// TODO: Set CC for UIT
+#define REX_INSTRUCTION {\
+					fprintf(stderr, "\n unimplemented (REX) instruction 0x%04x @  0x%04x\n",instruction.all, program_counter);\
+					fprintf(stdout, "\n unimplemented (REX) instruction 0x%04x @  0x%04x\n",instruction.all, program_counter);\
+					if ( cpu_interrupt_active >= CPU_INTR_UIT ) {\
+						gbl_fp_runlight = false;\
+						printf("\nCpu halted.  UIT while interrupt 0-4 active.\n");\
+						cmd_process_print_prompt();\
+					}\
+					TAKE_RESOURCE( ResourceInterruptRequest );\
+					cpu_interrupt_request |= CPU_INTR_UIT;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_UIT_num] = PSW_MASK_CC_Z;\
+					GIVE_RESOURCE( ResourceInterruptRequest );\
+					goto end_instruction;\
+					}
+
+// -------- this is really the same as UIT.
 #define ILLEGAL_INSTRUCTION {\
 					fprintf(stderr, "\n Illegal instruction 0x%04x @ 0x%04x\n",instruction.all, program_counter);\
-					SET_CC_Z(false);\
-					SET_CC_O(false);\
+					if ( cpu_interrupt_active >= CPU_INTR_UIT ) {\
+						gbl_fp_runlight = false;\
+						printf("\nCpu halted.  UIT while interrupt 0-4 active.\n");\
+						cmd_process_print_prompt();\
+					}\
 					TAKE_RESOURCE( ResourceInterruptRequest );\
-					cpu_interrupt_request |= cpu_intr_UIT;\
+					cpu_interrupt_request |= CPU_INTR_UIT;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_UIT_num] = 0;\
+					GIVE_RESOURCE( ResourceInterruptRequest );\
+					goto end_instruction;\
+					}
+
+#define EXI_EXR_INSTRUCTION {\
+					fprintf(stderr, "\n EXI/EXR inside EXI/ExR instruction 0x%04x @  0x%04x\n",instruction.all, program_counter);\
+					fprintf(stdout, "\n EXI/EXR inside EXI/ExR instruction 0x%04x @  0x%04x\n",instruction.all, program_counter);\
+					if ( cpu_interrupt_active >= CPU_INTR_UIT ) {\
+						gbl_fp_runlight = false;\
+						printf("\nCpu halted.  UIT while interrupt 0-4 active.\n");\
+						cmd_process_print_prompt();\
+					}\
+					TAKE_RESOURCE( ResourceInterruptRequest );\
+					cpu_interrupt_request |= CPU_INTR_UIT;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_UIT_num] = PSW_MASK_CC_O;\
 					GIVE_RESOURCE( ResourceInterruptRequest );\
 					goto end_instruction;\
 					}
@@ -1055,47 +1236,100 @@ void cpu_classic_7860() {
 //		1 1 0 1		extended mode instruction write violation
 //		1 1 1 0		extended mode operand read violation
 //		1 1 1 1		extended mode operand write violation
-//
+// 
+// for the 32/85 condition codes are defined as follows
+// 
+// 	   n z o c
+// 	   0 0 0 0		memory interface stall alarm
+// 	   0 0 0 1		page fault, memory page not resident
+// 	   0 0 1 0		page fault, page table not resident
+// 	   0 0 1 1		page fault, directory page not resident
+// 	   0 1 0 0		mapping fault, no valid entry for state
+// 	   0 1 0 1		unrecoverable memory error in page table access during page miss routine
+// 	   0 1 1 0		priv instruction violation EXI, EXR
+// 	   0 1 1 1		priv instruction violation
+// 	   1 0 0 0		address protect, instruction read
+// 	   1 0 0 1		CAR/CIR with no active interrupt
+// 	   1 0 1 0		address protect, operand read
+// 	   1 0 1 1		address protect, operand write
+//	   1 1 0 0		not used
+//     1 1 0 1		not used
+//     1 1 1 0		address protect, EXMA operand read
+//     1 1 1 1		address protect, EXMA operand write
+// 	
 
-// TODO: Set system protect trap condition codes.
+
 #define PRIV_INSTR_TRAP {\
 					fprintf(stderr, "\n privileged instruction 0x%04x @ 0x%04x\n",instruction.all, program_counter);\
 					TAKE_RESOURCE( ResourceInterruptRequest );\
-					cpu_interrupt_request |= cpu_intr_sys_protect;\
+					cpu_interrupt_request |= CPU_INTR_sys_protect;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_sys_protect_num] = PSW_MASK_CC_Z | PSW_MASK_CC_O | PSW_MASK_CC_C;\
 					GIVE_RESOURCE( ResourceInterruptRequest );\
 					goto end_instruction;\
 					}
 
 
-// TODO: Set system protect trap condition codes.
-#define MEM_ACCESS_TRAP {\
-					TAKE_RESOURCE( ResourceInterruptRequest );\
-					cpu_interrupt_request |= cpu_intr_sys_protect;\
-					GIVE_RESOURCE( ResourceInterruptRequest );\
-					goto end_instruction;\
-					}
-
-// TODO: Set system protect trap condition codes.
 #define MEM_ACCESS_TRAP_NO_READ {\
 					fprintf(stderr, "\n mem access trap - no read - inst: 0x%04x @ 0x%04x, acc:  0x%04x\n",instruction.all, program_counter, cpu_mem_last_access_rights);\
-					MEM_ACCESS_TRAP;\
+					TAKE_RESOURCE( ResourceInterruptRequest );\
+					cpu_interrupt_request |= CPU_INTR_sys_protect;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_sys_protect_num] = PSW_MASK_CC_N | PSW_MASK_CC_O;\
+					GIVE_RESOURCE( ResourceInterruptRequest );\
+					goto end_instruction;\
 					}
 
-// TODO: Set system protect trap condition codes.
 #define MEM_ACCESS_TRAP_NO_EXEC {\
 					fprintf(stderr, "\n mem access trap - no execute - inst: 0x%04x @ 0x%04x, acc:  0x%04x\n",instruction.all, program_counter, cpu_mem_last_access_rights);\
-					MEM_ACCESS_TRAP;\
+					TAKE_RESOURCE( ResourceInterruptRequest );\
+					cpu_interrupt_request |= CPU_INTR_sys_protect;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_sys_protect_num] = PSW_MASK_CC_N;\
+					GIVE_RESOURCE( ResourceInterruptRequest );\
+					goto end_instruction;\
 					}
 
-// TODO: Set system protect trap condition codes.
 #define MEM_ACCESS_TRAP_NO_WRITE {\
 					fprintf(stderr, "\n mem access trap - no write - inst: 0x%04x @ 0x%04x, acc:  0x%04x\n",instruction.all, program_counter, cpu_mem_last_access_rights);\
-					MEM_ACCESS_TRAP;\
+					TAKE_RESOURCE( ResourceInterruptRequest );\
+					cpu_interrupt_request |= CPU_INTR_sys_protect;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_sys_protect_num] = PSW_MASK_CC_N | PSW_MASK_CC_O | PSW_MASK_CC_C;\
+					GIVE_RESOURCE( ResourceInterruptRequest );\
+					goto end_instruction;\
+					}
+
+//
+//	float trap
+//
+//			N	0 = result >= zero
+//				1 = result < zero
+//			Z	0 = result not zero
+//				1 = result Is zero
+//			O	1 always set
+//			C	0 = exponent overflow
+//				1 = exponent underflow
+//
+//  for the 32/85 condition codes as follows
+//		
+//			N	0 = result >= zero
+//				1 = result < zero
+//			Z	0 = result not zero
+//				1 = result Is zero
+//			O	1 always set
+//			C	0 = exponent underflow
+//				1 = exponent overflow
+//				**> NOTE <** C is different !!!
+//
+
+// TODO: Set CC for FLOAT TRAP
+#define FLOAT_TRAP {\
+					fprintf(stderr, "\n Float trap 0x%04x @ 0x%04x\n",instruction.all, program_counter);\
+					TAKE_RESOURCE( ResourceInterruptRequest );\
+					cpu_interrupt_request |= CPU_INTR_floating_overflow;\
+					cpu_interrupt_entry_cond_codes[CPU_INTR_floating_overflow_num] = 0;\
+					GIVE_RESOURCE( ResourceInterruptRequest );\
+					goto end_instruction;\
 					}
 
 
-
-// TODO: Set system protect trap condition codes.
 //#define BAD_SHORT_DISPLACED_ADDR_TRAP {\
 //					fprintf(stderr, "\n bad address trap 0x%04x @  0x%04x\n",instruction.all, program_counter);\
 //					fprintf(stderr,"    memory including instruction  0x%04x  0x%04x  0x%04x  0x%04x\n",\
@@ -1106,7 +1340,7 @@ void cpu_classic_7860() {
 //					fprintf(stderr, "    register R1 0x%04x\n",GET_REGISTER_VALUE(1) );\
 //					fprintf(stderr, "    short displaced addr calc  0x%04x\n",  GET_MEMORY_ADDR_SHORT_DISPLACED );\
 //					TAKE_RESOURCE( ResourceInterruptRequest );\
-//					cpu_interrupt_request |= cpu_intr_sys_protect;\
+//					cpu_interrupt_request |= CPU_INTR_sys_protect;\
 //					GIVE_RESOURCE( ResourceInterruptRequest );\
 //					goto end_instruction;\
 //					}
@@ -1147,7 +1381,13 @@ void cpu_classic_7860() {
 
 
 // -------- test if cpu mode is privileged
-#define IS_PRIV_MODE  (cpu_priv_mode | !cpu_virtual_mode) 
+#if SIMJ_SIM_CPU == 7830
+#define IS_PRIV_MODE  ( ( cpu_priv_mode && cpu_virtual_mode ) || ( !cpu_virtual_mode && ( !cpu_nonvirt_prot_enabled || ( cpu_nonvirt_prot_enabled && ( program_counter < cpu_nonvirt_prot_lowprot_reg || ( program_counter >= cpu_nonvirt_prot_upprot_reg && program_counter < cpu_nonvirt_prot_gbl_reg) ) ) ) ) )
+#else
+#define IS_PRIV_MODE  (cpu_priv_mode || !cpu_virtual_mode) 
+#endif
+
+
 
 // --------allowed set interrupt masks
 #define SIA_ALLOWED 0xffff		// docs say level 0 cant be set active, but diags expect it.	
@@ -1158,7 +1398,18 @@ void cpu_classic_7860() {
 #define RIE_ALLOWED_NOT	( ~0x13ff )		// -- not allowed to reset enable 0, 1, 2, 4, 5 	
 #define RIR_ALLOWED_NOT ( ~0xffff )
 
-
+// TODO: Is it really necessary to sync interrupt requests.
+#define IS_THERE_A_NEW_INTERRUPT {\
+					TAKE_RESOURCE(ResourceInterruptRequest);\
+					cpu_interrupt_request |= cpu_interrupt_request_external;\
+					cpu_interrupt_request_external = 0;\
+					GIVE_RESOURCE(ResourceInterruptRequest);\
+					if (((cpu_interrupt_request & cpu_interrupt_enabled & cpu_interrupt_active_mask) > (cpu_interrupt_active & cpu_interrupt_active_mask))) {\
+					}
+#define END_IS_THERE_A_NEW_INTERRUPT {\
+						goto end_instruction;\
+					}\
+					}
 
 	// --------------------------------------------------------
 	// printf("\n CPU started.\n");
@@ -1177,6 +1428,7 @@ void cpu_classic_7860() {
 		if (!skip_interrupt_determination ) {
 
 			// -------- make interrupt request register synchronous.
+			// TODO: Is it really necessary to sync interrupt requests.
 			TAKE_RESOURCE( ResourceInterruptRequest );
 			cpu_interrupt_request |= cpu_interrupt_request_external;
 			cpu_interrupt_request_external = 0;
@@ -1191,14 +1443,13 @@ void cpu_classic_7860() {
 				if (new_int < 16) {
 
 					// --------store the current program counter and status double word to dedicated memory location
-					SET_MEMORY_VALUE_ABS(0x0020 + (new_int * 2), program_counter);
-					SET_MEMORY_VALUE_ABS(0x0041 + (new_int * 2), cpu_get_current_PSW().all);
+					SET_MEMORY_VALUE_ABS(CPU_INTR_BASE_RETURN_PC + (new_int * 2), program_counter);
+					SET_MEMORY_VALUE_ABS(CPU_INTR_BASE_RETURN_PS + (new_int * 2), cpu_get_current_PSW().all);
 
 					// --------set new PSW and new PC -- to go to the interrupt processing routine.
-					// TODO: check to implement SI and DI routines.
 
 					// -------- DI
-					if (new_int == 12) {
+					if (new_int == CPU_INTR_DI_num) {
 						print_delayed_message = false;
 						// -------- turn off DI request and report error.
 						// -------- Request ownership of the resource.
@@ -1208,27 +1459,27 @@ void cpu_classic_7860() {
 						if (tmp_dev_addr == 0xffff) {
 							tmp_dev_addr = 0;
 						}
-						//	//  cpu_interrupt_request &= ~cpu_intr_DI;
+						//	//  cpu_interrupt_request &= ~CPU_INTR_DI;
 						//	print_delayed_message = true;
 						//	// -------- set the normal address for DI if no devices requested...
-						//	program_counter = GET_MEMORY_VALUE_ABS(0x0021 + (new_int * 2));
-						//	tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						//	program_counter = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_ENTRY_PC + (new_int * 2));
+						//	tmp_PSW.all = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_ENTRY_PS + (new_int * 2));
 						//	cpu_set_current_PSW(tmp_PSW);
 
 						//	// --------set that the interrupt is active!
 						//	cpu_interrupt_active |= bit[new_int];
 						//	cpu_interrupt_active_mask = mask[new_int];
-						//  cpu_interrupt_active_current = new_int;
+						//  cpu_interrupt_active_num = new_int;
 						//}
 						//else {
-						program_counter = GET_MEMORY_VALUE_ABS(0x0080 + tmp_dev_addr);
-						tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						program_counter = GET_MEMORY_VALUE_ABS(CPU_INTR_DI_BASE_ENTRY_PC + tmp_dev_addr);
+						tmp_PSW.all = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_ENTRY_PS + (new_int * 2));
 						cpu_set_current_PSW(tmp_PSW);
 
 						// --------set that the interrupt is active!
 						cpu_interrupt_active |= bit[new_int];
 						cpu_interrupt_active_mask = mask[new_int];
-						cpu_interrupt_active_current = new_int;
+						cpu_interrupt_active_num = new_int;
 						//}
 						// -------- Release ownership of the resource.
 						GIVE_RESOURCE( ResourceInterruptRequest );
@@ -1238,7 +1489,7 @@ void cpu_classic_7860() {
 					}
 
 					// -------- SI
-					else if (new_int == 13) {
+					else if (new_int == CPU_INTR_SI_num) {
 						print_delayed_message = false;
 						// -------- Request ownership of the resource.
 						TAKE_RESOURCE( ResourceInterruptRequest );
@@ -1248,27 +1499,27 @@ void cpu_classic_7860() {
 							tmp_dev_addr = 0;
 						}
 						// 	// -------- turn off SI request and report error.
-						// 	//  cpu_interrupt_request &= ~cpu_intr_SI;
+						// 	//  cpu_interrupt_request &= ~CPU_INTR_SI;
 						// 	print_delayed_message = true;
 						// 	// -------- set the normal address for DI if no devices requested...
-						// 	program_counter = GET_MEMORY_VALUE_ABS(0x0021 + (new_int * 2));
-						// 	tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						// 	program_counter = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_ENTRY_PC + (new_int * 2));
+						// 	tmp_PSW.all = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_ENTRY_PS + (new_int * 2));
 						// 	cpu_set_current_PSW(tmp_PSW);
 
 						// 	// --------set that the interrupt is active!
 						// 	cpu_interrupt_active |= bit[new_int];
 						// 	cpu_interrupt_active_mask = mask[new_int];
-						//	cpu_interrupt_active_current = new_int;
+						//	cpu_interrupt_active_num = new_int;
 						// }
 						// else {
-						program_counter = GET_MEMORY_VALUE_ABS(0x00C0 + tmp_dev_addr);
-						tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						program_counter = GET_MEMORY_VALUE_ABS(CPU_INTR_SI_BASE_ENTRY_PC + tmp_dev_addr);
+						tmp_PSW.all = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_ENTRY_PS + (new_int * 2));
 						cpu_set_current_PSW(tmp_PSW);
 
 						// --------set that the interrupt is active!
 						cpu_interrupt_active |= bit[new_int];
 						cpu_interrupt_active_mask = mask[new_int];
-						cpu_interrupt_active_current = new_int;
+						cpu_interrupt_active_num = new_int;
 						// }
 						// -------- Release ownership of the resource.
 						GIVE_RESOURCE( ResourceInterruptRequest );
@@ -1281,28 +1532,41 @@ void cpu_classic_7860() {
 					else {
 						// --------get instruction that caused issue..
 						GET_MEMORY_VALUE_IM(tmp16_val1.uval, program_counter);
-						program_counter = GET_MEMORY_VALUE_ABS(0x0021 + (new_int * 2));
-						tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x0040 + (new_int * 2));
+						program_counter = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_ENTRY_PC + (new_int * 2));
+						tmp_PSW.all = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_ENTRY_PS + (new_int * 2));
+
+						// --------set condition codes for different interrupt numbers.
+						if (new_int >= CPU_INTR_power_fail_num && new_int <= CPU_INTR_floating_overflow_num) {
+							tmp_PSW.all = (tmp_PSW.all & ~PSW_MASK_CC_ALL) | (cpu_interrupt_entry_cond_codes[new_int] & PSW_MASK_CC_ALL);
+						}
+
 						cpu_set_current_PSW(tmp_PSW);
-						if (new_int == 1) {
-							SET_CC_N(true);		// global
-						}
-						else if (new_int == 2) {
-							SET_CC_N(false);
-							SET_CC_Z(true);
-						}
-						else if (new_int == 4) {
-							SET_CC_Z(((tmp16_val1.uval & 0xff00) == 0x2300));  // rex
-							SET_CC_O(((tmp16_val1.uval & 0xff00) == 0xb300) || ((tmp16_val1.uval & 0xff0f) == 0xe805)); // exi, exr
-						}
+
+						//if (new_int == 1) {
+						//	SET_CC_N(true);		// global
+						//}
+						//else if (new_int == 2) {
+						//	SET_CC_N(false);
+						//	SET_CC_Z(true);
+						//}
+						//else if (new_int == 4) {
+						//	SET_CC_Z(((tmp16_val1.uval & 0xff00) == 0x2300));  // rex
+						//	SET_CC_O(((tmp16_val1.uval & 0xff00) == 0xb300) || ((tmp16_val1.uval & 0xff0f) == 0xe805)); // exi, exr
+						//}
+						 
 						// --------set that the interrupt is active!
 						cpu_interrupt_active |= bit[new_int];
 						cpu_interrupt_active_mask = mask[new_int];
-						cpu_interrupt_active_current = new_int;
+						cpu_interrupt_active_num = new_int;
 					}
 
 					// fprintf(stderr, "\n cpu - new interrupt level %d, new pc 0x%04x, new psw 0x%04x\n", new_int, program_counter, cpu_get_current_PSW().all);
 
+				}
+				else {
+					// --------DEBUG
+					fprintf(stderr, "\n cpu - erroneous interrupt determination.  new_int: %d, new pc 0x%04x, req: 0x%04x, act: 0x%04x, ena: 0x%04x\n", new_int, program_counter, cpu_interrupt_request, cpu_interrupt_active, cpu_interrupt_enabled);
+					// --------END DEBUG
 				}
 			}
 		}
@@ -1354,7 +1618,7 @@ void cpu_classic_7860() {
 		// --------process each opcode.  
 		switch (instruction.parts.op_code) {
 
-			// --------00 -- HLT -- Halt (Privileged)          
+		// --------00 -- HLT -- Halt (Privileged)          
 		case  OP_HLT:			// 0x00
 			if (IS_PRIV_MODE) {
 				gbl_fp_runlight = false;
@@ -1370,7 +1634,7 @@ void cpu_classic_7860() {
 		case  OP_AUG01:			// 0x01	
 			switch (instruction.parts.dest_reg) {
 
-				// --  0	RMI -- Request Multi·processor interrupt
+			// --  0	RMI -- Request Multi·processor interrupt
 			case 0:
 				if (IS_PRIV_MODE) {
 					rmi_request(instruction.parts.src_reg);
@@ -1381,7 +1645,7 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  1	EVMO -- Enter Virtual Mode of CPU Execution
+			// --  1	EVMO -- Enter Virtual Mode of CPU Execution
 			case 1:
 				if (IS_PRIV_MODE) {
 					cpu_virtual_mode = true;
@@ -1392,11 +1656,14 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  2	SIOM -- Select Another Program's IM as Current OM
+			// --  2	SIOM -- Select Another Program's IM as Current OM
 			case 2:
 				if (IS_PRIV_MODE) {
 					tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
-					cpu_operand_map = (tmp16_val1.uval >> 13) & 0x0007;
+					cpu_operand_map = (tmp16_val1.uval >> PSW_SHIFT_IMAP) & 0x0007;
+					// --------DEBUG
+					fprintf(stderr, " SIOM  pc: 0x%04x, new omap %d, reg value: 0x%04x\n", program_counter, cpu_operand_map, tmp16_val1.uval);
+					// --------END DEBUG
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1404,11 +1671,14 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  3	SOOM -- Select Another Program's OM as Current OM
+			// --  3	SOOM -- Select Another Program's OM as Current OM
 			case 3:
 				if (IS_PRIV_MODE) {
 					tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
-					cpu_operand_map = (tmp16_val1.uval >> 5) & 0x0007;
+					cpu_operand_map = (tmp16_val1.uval >> PSW_SHIFT_OMAP) & 0x0007;
+					// --------DEBUG
+					fprintf(stderr, " SOOM  pc: 0x%04x, new omap %d, reg value: 0x%04x\n", program_counter, cpu_operand_map, tmp16_val1.uval);
+					// --------END DEBUG
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1416,10 +1686,13 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  4	SZOM -- Select Map Zero as Current OM
+			// --  4	SZOM -- Select Map Zero as Current OM
 			case 4:
 				if (IS_PRIV_MODE) {
 					cpu_operand_map = 0;
+					// --------DEBUG
+					fprintf(stderr, " SZOM  pc: 0x%04x\n", program_counter);
+					// --------END DEBUG
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1427,11 +1700,11 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  5	SCRB -- Select Current Register Block in PSD
+			// --  5	SCRB -- Select Current Register Block in PSD
 			case 5:
 				if (IS_PRIV_MODE) {
 					tmp16_val1.uval = GET_SOURCE_REGISTER_VALUE;
-					tmpu8 = (SIMJ_U8)(tmp16_val1.uval >> 8) & 0x000f;
+					tmpu8 = (SIMJ_U8)(tmp16_val1.uval >> PSW_SHIFT_GRB) & 0x000f;
 					if (tmpu8 != cpu_register_current_block) {
 						cpu_switch_register_blocks(tmpu8);
 					}
@@ -1442,8 +1715,8 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  6	EXMA -- Enter Extended Memory Addressing Mode
-				// --  7	EXMA -- Enter Extended Memory Addressing Mode
+			// --  6	EXMA -- Enter Extended Memory Addressing Mode
+			// --  7	EXMA -- Enter Extended Memory Addressing Mode
 			case 6:
 			case 7:
 #if SIMJ_SIM_CPU == 7830
@@ -1453,7 +1726,7 @@ void cpu_classic_7860() {
 #endif
 				break;
 
-				// --  8	XVMO -- Exit Virtual Mode of CPU Execution
+			// --  8	XVMO -- Exit Virtual Mode of CPU Execution
 			case 8:
 				if (IS_PRIV_MODE) {
 					cpu_virtual_mode = false;
@@ -1464,18 +1737,50 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  9	ZIMP -- Zero Section of Instruction Map
+			// --  9	ZIMP -- Zero Section of Instruction Map
 			case 9:
 				if (IS_PRIV_MODE) {
 					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> 13) & 0x0007;		// contains map number. (IMAP)
-					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;			// VP (starting offset in map
+					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> PSW_SHIFT_IMAP) & 0x0007;	// contains map number. (IMAP)
+					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;					// VP (starting offset in map
 					tmp32_val5.uval = 0xffffff00 | ((tmp32_val1.uval >> 16) & 0x000000ff);	// neg length
-					tmp32_val5.sval *= -1;											// positive length
+					tmp32_val6.sval = -1 * tmp32_val5.sval;									// positive length
+					// --------DEBUG
+					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+					fprintf(stderr, " % s inst : 0x%04x  reg: 0x%08x, map: 0x%04x \n",
+						junkxx, instruction.all, tmp32_val1.uval, tmp16_val2.uval);
+					fprintf(stderr, "       start offset: 0x%08x \n", tmp32_val4.uval);
+					fprintf(stderr, "       length:       0x%08x \n", tmp32_val6.uval);
+					// --------END DEBUG
 					// TODO: Make instruction abortable and restartable
-					for (j = 0; j < tmp32_val5.sval; j++) {
-						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val4.uval + j].all = 0;
+					if (instruction.parts.op_code != cpu_inst_intr_opcode || program_counter != cpu_inst_intr_pc) {
+						cpu_inst_next_start = 0;
 					}
+					for (j = cpu_inst_next_start; j < tmp32_val6.sval; j++) {
+						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val4.uval + j].all = 0;
+						// --------see if time to check interrupts.
+						if (j > 0 && (j & 15) == 0) {
+							// --------see there is a new interrupt.
+							IS_THERE_A_NEW_INTERRUPT
+								// -------- update register with new starting offset and length, then quit instruction
+								//tmp32_val4.uval += j;		// starting offset.
+								//tmp32_val5.sval += j;		// negative length
+								//tmp32_val8.uval = tmp32_val1.uval & 0x0000ffff | ((tmp32_val5.uval << 16) & 0x00ff0000) | ((tmp32_val4.uval << 24) & 0xff000000);
+								//SET_SOURCE_REGISTER_VALUE_DOUBLE(tmp32_val8.uval);
+								//fprintf(stderr, "       interrupting   updated reg: 0x%08x, new off: 0x%08x, new -len: 0x%08x \n",
+								//	tmp32_val8.uval, tmp32_val4.uval, tmp32_val5.uval);
+								cpu_inst_intr_pc = program_counter;
+								cpu_inst_intr_opcode = instruction.parts.op_code;
+								cpu_inst_next_start = j + 1;
+								// --------DEBUG
+								fprintf(stderr, "       interrupting   next start: 0x%08x \n", cpu_inst_next_start);
+								// --------END DEBUG
+							END_IS_THERE_A_NEW_INTERRUPT
+						}
+					}
+					cpu_inst_intr_pc = 0;
+					cpu_inst_intr_opcode = 0;
+					cpu_inst_next_start = 0;
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1483,18 +1788,50 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  B	ZOMP -- Zero Section of Operand Map
+			// --  B	ZOMP -- Zero Section of Operand Map
 			case 11:
 				if (IS_PRIV_MODE) {
 					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> 5) & 0x0007;		// contains map number. (OMAP)
-					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;			// VP (starting offset in map
+					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> PSW_SHIFT_OMAP) & 0x0007;	// contains map number. (OMAP)
+					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;					// VP (starting offset in map
 					tmp32_val5.uval = 0xffffff00 | ((tmp32_val1.uval >> 16) & 0x000000ff);	// neg length
-					tmp32_val5.sval *= -1;											// positive length
-					// TODO: Make instruction abortable and restartable
-					for (j = 0; j < tmp32_val5.sval; j++) {
-						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val4.uval + j].all = 0;
+					tmp32_val6.sval = -1 * tmp32_val5.sval;									// positive length
+					// --------DEBUG
+					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+					fprintf(stderr, " % s inst : 0x%04x  reg: 0x%08x, map: 0x%04x \n",
+						junkxx, instruction.all, tmp32_val1.uval, tmp16_val2.uval);
+					fprintf(stderr, "       start offset: 0x%08x \n", tmp32_val4.uval);
+					fprintf(stderr, "       length:       0x%08x \n", tmp32_val6.uval);
+					// --------END DEBUG
+					if (instruction.parts.op_code != cpu_inst_intr_opcode || program_counter != cpu_inst_intr_pc) {
+						cpu_inst_next_start = 0;
 					}
+					// TODO: Make instruction abortable and restartable
+					for (j = cpu_inst_next_start; j < tmp32_val6.sval; j++) {
+						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val4.uval + j].all = 0;
+						// --------see if time to check interrupts.
+						if (j > 0 && (j & 15) == 0) {
+							// --------see there is a new interrupt.
+							IS_THERE_A_NEW_INTERRUPT
+								// -------- update register with new starting offset and length, then quit instruction
+								// tmp32_val4.uval += j;		// starting offset.
+								// tmp32_val5.sval += j;		// negative length
+								// tmp32_val8.uval = tmp32_val1.uval & 0x0000ffff | ((tmp32_val5.uval << 16) & 0x00ff0000) | ((tmp32_val4.uval << 24) & 0xff000000);
+								// SET_SOURCE_REGISTER_VALUE_DOUBLE(tmp32_val8.uval);
+								// fprintf(stderr, "       interrupting   updated reg: 0x%08x, new off: 0x%08x, new -len: 0x%08x \n",
+								//	tmp32_val8.uval, tmp32_val4.uval, tmp32_val5.uval);
+								cpu_inst_intr_pc = program_counter;
+								cpu_inst_intr_opcode = instruction.parts.op_code;
+								cpu_inst_next_start = j + 1;
+								// --------DEBUG
+								fprintf(stderr, "       interrupting   next start: 0x%08x \n", cpu_inst_next_start);
+								// --------END DEBUG
+							END_IS_THERE_A_NEW_INTERRUPT
+						}
+					}
+					cpu_inst_intr_pc = 0;
+					cpu_inst_intr_opcode = 0;
+					cpu_inst_next_start = 0;
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1502,28 +1839,53 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  D	LIMP -- Load Instruction Map Image into Hardware Map
+			// --  D	LIMP -- Load Instruction Map Image into Hardware Map
 			case 13:
 				if (IS_PRIV_MODE) {
 					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> 13) & 0x0007;		// contains map number. (IMAP)
-					tmp32_val3.uval = (tmp32_val1.uval & 0x00001fff) << 8;			// abs page address (MIAP)
-					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;			// VP (starting offset in map
+					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> PSW_SHIFT_IMAP) & 0x0007;	// contains map number. (IMAP)
+					tmp32_val3.uval = (tmp32_val1.uval & 0x00001fff) << 8;					// abs page address (MIAP)
+					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;					// VP (starting offset in map
 					tmp32_val5.uval = 0xffffff00 | ((tmp32_val1.uval >> 16) & 0x000000ff);	// neg length
-					tmp32_val5.sval *= -1;											// positive length
+					tmp32_val6.sval = -1 * tmp32_val5.sval;									// positive length
 					// --------DEBUG
 					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-					fprintf(stderr, " % s inst : 0x%04x  reg: 0x%08x, imap: 0x%04x \n", 
+					fprintf(stderr, " % s inst : 0x%04x  reg: 0x%08x, map: 0x%04x \n", 
 							junkxx, instruction.all, tmp32_val1.uval, tmp16_val2.uval);
 					fprintf(stderr, "       start page:   0x%08x \n", tmp32_val3.uval);
 					fprintf(stderr, "       start offset: 0x%08x \n", tmp32_val4.uval);
-					fprintf(stderr, "       length:       0x%08x \n", tmp32_val5.uval);
+					fprintf(stderr, "       length:       0x%08x \n", tmp32_val6.uval);
 					// --------END DEBUG
-					// TODO: Make instruction abortable and restartable
-					for (j = 0; j < tmp32_val5.sval; j++) {
-						tmp32_val6.uval = tmp32_val4.uval + j;
-						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val6.uval].all = GET_MEMORY_VALUE_ABS(tmp32_val3.uval + tmp32_val6.uval);
+					if (instruction.parts.op_code != cpu_inst_intr_opcode || program_counter != cpu_inst_intr_pc) {
+						cpu_inst_next_start = 0;
 					}
+					// TODO: Make instruction abortable and restartable
+					for (j = cpu_inst_next_start; j < tmp32_val6.sval; j++) {
+						tmp32_val7.uval = tmp32_val4.uval + j;
+						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val7.uval].all = GET_MEMORY_VALUE_ABS(tmp32_val3.uval + tmp32_val7.uval);
+						// --------see if time to check interrupts.
+						if (j > 0 && (j & 15) == 0) {
+							// --------see there is a new interrupt.
+							IS_THERE_A_NEW_INTERRUPT
+								// -------- update register with new starting offset and length, then quit instruction
+								// tmp32_val4.uval += j;		// starting offset.
+								// tmp32_val5.sval += j;		// negative length
+								// tmp32_val8.uval = tmp32_val1.uval & 0x0000ffff | ((tmp32_val5.uval << 16) & 0x00ff0000) | ((tmp32_val4.uval << 24) & 0xff000000);
+								// SET_SOURCE_REGISTER_VALUE_DOUBLE( tmp32_val8.uval );
+								// fprintf(stderr, "       interrupting   updated reg: 0x%08x, new off: 0x%08x, new -len: 0x%08x \n", 
+								// 			tmp32_val8.uval, tmp32_val4.uval, tmp32_val5.uval);
+								cpu_inst_intr_pc = program_counter;
+ 			 					cpu_inst_intr_opcode = instruction.parts.op_code;
+								cpu_inst_next_start = j + 1;
+								// --------DEBUG
+								fprintf(stderr, "       interrupting   next start: 0x%08x \n", cpu_inst_next_start);
+								// --------END DEBUG
+							END_IS_THERE_A_NEW_INTERRUPT
+						}
+					}
+					cpu_inst_intr_pc = 0;
+					cpu_inst_intr_opcode = 0;
+					cpu_inst_next_start = 0;
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1531,28 +1893,56 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  E	LOMP -- Load Operand Map Image Into Hardware Map
+			// --  E	LOMP -- Load Operand Map Image Into Hardware Map
 			case 14:
 				if (IS_PRIV_MODE) {
 					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> 5) & 0x0007;		// contains map number. (OMAP)
-					tmp32_val3.uval = (tmp32_val1.uval & 0x00001fff) << 8;			// abs page address (MIAP)
-					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;			// VP (starting offset in map
+					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> PSW_SHIFT_OMAP) & 0x0007;	// contains map number. (OMAP)
+					tmp32_val3.uval = (tmp32_val1.uval & 0x00001fff) << 8;					// abs page address (MIAP)
+					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;					// VP (starting offset in map
 					tmp32_val5.uval = 0xffffff00 | ((tmp32_val1.uval >> 16) & 0x000000ff);	// neg length
-					tmp32_val5.sval *= -1;											// positive length
+					tmp32_val6.sval = -1 * tmp32_val5.sval;									// positive length
 					// --------DEBUG
 					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-					fprintf(stderr, " % s inst : 0x%04x  reg: 0x%08x, imap: 0x%04x \n",
+					fprintf(stderr, " % s inst : 0x%04x  reg: 0x%08x, map: 0x%04x \n",
 						junkxx, instruction.all, tmp32_val1.uval, tmp16_val2.uval);
 					fprintf(stderr, "       start page:   0x%08x \n", tmp32_val3.uval);
 					fprintf(stderr, "       start offset: 0x%08x \n", tmp32_val4.uval);
-					fprintf(stderr, "       length:       0x%08x \n", tmp32_val5.uval);
+					fprintf(stderr, "       length:       0x%08x \n", tmp32_val6.uval);
 					// --------END DEBUG
-					// TODO: Make instruction abortable and restartable
-					for (j = 0; j < tmp32_val5.sval; j++) {
-						tmp32_val6.uval = tmp32_val4.uval + j;
-						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val6.uval].all = GET_MEMORY_VALUE_ABS(tmp32_val3.uval + tmp32_val6.uval);
+					if (instruction.parts.op_code != cpu_inst_intr_opcode || program_counter != cpu_inst_intr_pc) {
+						cpu_inst_next_start = 0;
 					}
+					// TODO: Make instruction abortable and restartable
+					for (j = cpu_inst_next_start; j < tmp32_val6.sval; j++) {
+						tmp32_val7.uval = tmp32_val4.uval + j;
+						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val7.uval].all = GET_MEMORY_VALUE_ABS(tmp32_val3.uval + tmp32_val7.uval);
+						// --------DEBUG
+						fprintf(stderr, "        map: %3d  entry: 0x%04x Value: 0x%04x \n", tmp16_val2.uval, tmp32_val7.uval, cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val7.uval].all);
+						// --------END DEBUG
+						// --------see if time to check interrupts.
+						if (j > 0 && (j & 15) == 0) {
+							// --------see there is a new interrupt.
+							IS_THERE_A_NEW_INTERRUPT
+								// -------- update register with new starting offset and length, then quit instruction
+								//tmp32_val4.uval += j;		// starting offset.
+								//tmp32_val5.sval += j;		// negative length
+								//tmp32_val8.uval = tmp32_val1.uval & 0x0000ffff | ((tmp32_val5.uval << 16) & 0x00ff0000) | ((tmp32_val4.uval << 24) & 0xff000000);
+								//SET_SOURCE_REGISTER_VALUE_DOUBLE(tmp32_val8.uval);
+								//fprintf(stderr, "       interrupting   updated reg: 0x%08x, new off: 0x%08x, new -len: 0x%08x \n",
+								//	tmp32_val8.uval, tmp32_val4.uval, tmp32_val5.uval);
+								cpu_inst_intr_pc = program_counter;
+								cpu_inst_intr_opcode = instruction.parts.op_code;
+								cpu_inst_next_start = j + 1;
+								// --------DEBUG
+								fprintf(stderr, "       interrupting   next start: 0x%08x \n", cpu_inst_next_start);
+								// --------END DEBUG
+							END_IS_THERE_A_NEW_INTERRUPT
+						}
+					}
+					cpu_inst_intr_pc = 0;
+					cpu_inst_intr_opcode = 0;
+					cpu_inst_next_start = 0;
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1560,21 +1950,54 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  F	SOMP -- Store Operand Map into Map Image
+			// --  F	SOMP -- Store Operand Map into Map Image
 			case 15:
 				if (IS_PRIV_MODE) {
 					tmp32_val1.uval = GET_SOURCE_REGISTER_VALUE_DOUBLE;
-					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> 5) & 0x0007;		// contains map number. (OMAP)
-					tmp32_val3.uval = (tmp32_val1.uval & 0x00001fff) << 8;			// abs page address (MIAP)
-					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;			// VP (starting offset in map
+					tmp16_val2.uval = (GET_REGISTER_VALUE(15) >> PSW_SHIFT_OMAP) & 0x0007;	// contains map number. (OMAP)
+					tmp32_val3.uval = (tmp32_val1.uval & 0x00001fff) << 8;					// abs page address (MIAP)
+					tmp32_val4.uval = (tmp32_val1.uval >> 24) & 0x000000ff;					// VP (starting offset in map
 					tmp32_val5.uval = 0xffffff00 | ((tmp32_val1.uval >> 16) & 0x000000ff);	// neg length
-					tmp32_val5.sval *= -1;											// positive length
-					for (j = 0; j < tmp32_val5.sval; j++) {
-						tmp32_val6.uval = tmp32_val4.uval + j;
-						SET_MEMORY_VALUE_ABS(tmp32_val3.uval + tmp32_val6.uval, cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val6.uval].all );
+					tmp32_val6.sval = -1 * tmp32_val5.sval;									// positive length
+					// --------DEBUG
+					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+					fprintf(stderr, " % s inst : 0x%04x  reg: 0x%08x, map: 0x%04x \n",
+						junkxx, instruction.all, tmp32_val1.uval, tmp16_val2.uval);
+					fprintf(stderr, "       start page:   0x%08x \n", tmp32_val3.uval);
+					fprintf(stderr, "       start offset: 0x%08x \n", tmp32_val4.uval);
+					fprintf(stderr, "       length:       0x%08x \n", tmp32_val6.uval);
+					// --------END DEBUG
+					if (instruction.parts.op_code != cpu_inst_intr_opcode || program_counter != cpu_inst_intr_pc) {
+						cpu_inst_next_start = 0;
+					}
+					for (j = cpu_inst_next_start; j < tmp32_val6.sval; j++) {
+						tmp32_val7.uval = tmp32_val4.uval + j;
+						SET_MEMORY_VALUE_ABS(tmp32_val3.uval + tmp32_val7.uval, cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val7.uval].all );
+						// --------see if time to check interrupts.
+						if (j > 0 && (j & 15) == 0) {
+							// --------see there is a new interrupt.
+							IS_THERE_A_NEW_INTERRUPT
+								// -------- update register with new starting offset and length, then quit instruction
+								//tmp32_val4.uval += j;		// starting offset.
+								//tmp32_val5.sval += j;		// negative length
+								//tmp32_val8.uval = tmp32_val1.uval & 0x0000ffff | ((tmp32_val5.uval << 16) & 0x00ff0000) | ((tmp32_val4.uval << 24) & 0xff000000);
+								//SET_SOURCE_REGISTER_VALUE_DOUBLE(tmp32_val8.uval);
+								//fprintf(stderr, "       interrupting   updated reg: 0x%08x, new off: 0x%08x, new -len: 0x%08x \n",
+								//	tmp32_val8.uval, tmp32_val4.uval, tmp32_val5.uval);
+								cpu_inst_intr_pc = program_counter;
+								cpu_inst_intr_opcode = instruction.parts.op_code;
+								cpu_inst_next_start = j + 1;
+								// --------DEBUG
+								fprintf(stderr, "       interrupting   next start: 0x%08x \n", cpu_inst_next_start);
+								// --------END DEBUG
+							END_IS_THERE_A_NEW_INTERRUPT
+						}
 					}
 					SET_CC_N(false);
 					SET_CC_Z(false);
+					cpu_inst_intr_pc = 0;
+					cpu_inst_intr_opcode = 0;
+					cpu_inst_next_start = 0;
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1582,9 +2005,9 @@ void cpu_classic_7860() {
 				}
 				break;
 
-				// --  A	UIT
+			// --  A	UIT
 			case 10:
-				// --  C	UIT
+			// --  C	UIT
 			case 12:
 			default:
 				UNIMPLEMENTED_INSTRUCTION;
@@ -1611,6 +2034,9 @@ void cpu_classic_7860() {
 				case 1:		// SPR - Set Protect (IF)  (disable non-virtual protection emulation)  7830 only
 					if (IS_PRIV_MODE) {
 						cpu_nonvirt_prot_enabled = false;
+						// --------DEBUG
+						fprintf(stderr, "  SPR - set mod II protection off\n");
+						// --------END DEUBG
 						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 					}
 					else {
@@ -1622,6 +2048,9 @@ void cpu_classic_7860() {
 					if (IS_PRIV_MODE) {
 						cpu_nonvirt_prot_gbl_reg = GET_SOURCE_REGISTER_VALUE & 0xff00;
 						cpu_nonvirt_prot_enabled = true;
+						// --------DEBUG
+						fprintf(stderr, "  SGP - set global protect boundary: 0x%04x\n", cpu_nonvirt_prot_gbl_reg);
+						// --------END DEUBG
 						SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 					}
 					else {
@@ -1636,8 +2065,6 @@ void cpu_classic_7860() {
 #endif
 			break;
 
-			
-
 
 		case  OP_RMPS_RMWS:	    // 0x03 -         
 #if SIMJ_SIM_CPU == 7830
@@ -1645,6 +2072,9 @@ void cpu_classic_7860() {
 				if (IS_PRIV_MODE) {
 					cpu_nonvirt_prot_enabled = true;
 					cpu_nonvirt_prot_lowprot_reg = GET_SOURCE_REGISTER_VALUE & 0xff80;
+					// --------DEBUG
+					fprintf(stderr, "  SLP - set lower protect boundary: 0x%04x\n", cpu_nonvirt_prot_lowprot_reg);
+					// --------END DEUBG
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1683,6 +2113,9 @@ void cpu_classic_7860() {
 				if (IS_PRIV_MODE) {
 					cpu_nonvirt_prot_enabled = true;
 					cpu_nonvirt_prot_upprot_reg = GET_SOURCE_REGISTER_VALUE & 0xff80;
+					// --------DEBUG
+					fprintf(stderr, "  SUP - set upper protect boundary: 0x%04x\n", cpu_nonvirt_prot_upprot_reg);
+					// --------END DEUBG
 					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
@@ -1692,7 +2125,7 @@ void cpu_classic_7860() {
 			else {											// WMS -- Write Memory Status
 #endif
 				if (IS_PRIV_MODE) {
-					UNIMPLEMENTED_INSTRUCTION;				// TODO: implement this.
+					UNIMPLEMENTED_INSTRUCTION;				// TODO: implement WMS instruction.
 				}
 				else {
 					PRIV_INSTR_TRAP;
@@ -1857,7 +2290,38 @@ void cpu_classic_7860() {
 				// -------- 7	MBVV  -- Move Virtual Block to Virtual Block       
 			case 7:
 				if (IS_PRIV_MODE) {
-					UNIMPLEMENTED_INSTRUCTION;
+					tmp16_val1.uval = GET_DESTINATION_REGISTER_NUMB & 0xC;
+					tmp16_val2.uval = GET_REGISTER_VALUE(tmp16_val1.uval);		// implied neg transfer
+					tmp16_val3.uval = GET_REGISTER_VALUE(tmp16_val1.uval|1);	// source virt address
+					tmp16_val4.uval = GET_REGISTER_VALUE(tmp16_val1.uval|2);	// destination virt address
+					tmp32_val2.uval = 0xffff0000 | ((SIMJ_U32)tmp16_val2.uval & 0x0000ffff);
+					tmp32_val2.sval *= -1;										// positive tranfer count.
+					if (instruction.parts.op_code != cpu_inst_intr_opcode || program_counter != cpu_inst_intr_pc) {
+						cpu_inst_next_start = 0;
+					}
+					for (j = cpu_inst_next_start; j < tmp32_val2.sval; j++ ) {
+						GET_MEMORY_VALUE_OM(tmp16_val6.uval, (SIMJ_U16)(tmp16_val3.uval + j));
+						SET_MEMORY_VALUE_OM( (SIMJ_U16)(tmp16_val4.uval+j), tmp16_val6.uval);
+						// --------see if time to check interrupts.
+						if (j > 0 && (j & 15) == 0) {
+							// --------see there is a new interrupt.
+							IS_THERE_A_NEW_INTERRUPT
+								// -------- update register with new starting offset and length, then quit instruction
+								cpu_inst_intr_pc = program_counter;
+								cpu_inst_intr_opcode = instruction.parts.op_code;
+								cpu_inst_next_start = j + 1;
+								// --------DEBUG
+								fprintf(stderr, "       interrupting   next start: 0x%08x \n", cpu_inst_next_start);
+								// --------END DEBUG
+							END_IS_THERE_A_NEW_INTERRUPT
+						}
+					}
+					cpu_inst_intr_pc = 0;
+					cpu_inst_intr_opcode = 0;
+					cpu_inst_next_start = 0;
+					SET_CC_N(false);
+					SET_CC_Z(true);
+					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 				}
 				else {
 					PRIV_INSTR_TRAP;
@@ -2096,11 +2560,10 @@ void cpu_classic_7860() {
 				break;
 
 			case  OP_REX:			// 0x23  --  Request Executive Service
-				// SET_CC_Z(true);		// It is a REX
-				// SET_CC_O(false);	// It is not a EXR or EXI
 				// -------- Request ownership of the resource.
 				TAKE_RESOURCE( ResourceInterruptRequest) ;
-				cpu_interrupt_request |= cpu_intr_UIT;
+				cpu_interrupt_request |= CPU_INTR_UIT;
+				cpu_interrupt_entry_cond_codes[CPU_INTR_UIT_num] = PSW_MASK_CC_Z;
 				// -------- Release ownership of the resource.
 				GIVE_RESOURCE( ResourceInterruptRequest );
 				break;
@@ -2114,25 +2577,28 @@ void cpu_classic_7860() {
 						cpu_interrupt_active, cpu_interrupt_request);
 					// --------END DEBUG
 					// --------find highest active interrupt
-					// TODO: Use cpu_interrupt_active_current instead of search.
-					new_int = 16;
+					// TODO: Use cpu_interrupt_active_num instead of search.
+					old_int = 16;
 					for (j = 0; j < 16; j++) {
 						if ((bit[j] & cpu_interrupt_active) != 0) {
-							new_int = j;
+							old_int = j;
 							break;
 						}
 					}
 					// --------DEBUG
-					fprintf(stderr, "        active = %d\n", new_int);
+					fprintf(stderr, "        active = %d  alt active = %d\n", old_int, cpu_interrupt_active_num);
+					if (old_int != cpu_interrupt_active_num) {
+						fprintf(stderr, "          **** Active and ALt Active different *****\n");
+					}
 					// --------END DEBUG
 					// --------get return process_status_double_word from dedicated memory location or register
-					if (new_int < 16) {
+					if (old_int < 16) {
 						// --------set return new PSW and PC
 						// --------get return process pc and status double word from dedicated memory location
 						if ((tmp16_val1.uval = (instruction.parts.src_reg & 0x000e)) == 0) {
 
-							program_counter = GET_MEMORY_VALUE_ABS(0x20 + (new_int * 2));
-							tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x41 + (new_int * 2));
+							program_counter = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_RETURN_PC + (old_int * 2));
+							tmp_PSW.all = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_RETURN_PS + (old_int * 2));
 							cpu_set_current_PSW(tmp_PSW);
 							// --------DEBUG
 							fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
@@ -2140,26 +2606,26 @@ void cpu_classic_7860() {
 						}
 						// -------- get return pc and psw from register.
 						else {
-							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
-							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
+							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval & 0xe);
+							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval | 1);
 							cpu_set_current_PSW(tmp_PSW);
 							// --------DEBUG
 							fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
 							// --------END DEBUG
 						}
 						// --------clear active for that interrupt
-						cpu_interrupt_active &= bitnot[new_int];
+						cpu_interrupt_active &= bitnot[old_int];
 
 						// --------nothing active, reset masks.
 						if (cpu_interrupt_active == 0) {
 							cpu_interrupt_active_mask = mask[15];
-							cpu_interrupt_active_current = 16;
+							cpu_interrupt_active_num = 16;
 						}
 						// --------set information for newest high active interrupt.
 						else {
 							new_int = cpu_find_bit(cpu_interrupt_active);
 							cpu_interrupt_active_mask = mask[new_int];
-							cpu_interrupt_active_current = new_int;
+							cpu_interrupt_active_num = new_int;
 						}
 						// --------DEBUG
 						fprintf(stderr, "        new active: 0x%04x\n", cpu_interrupt_active);
@@ -2167,28 +2633,33 @@ void cpu_classic_7860() {
 					}
 					// -------- If no interrupt is active when the CIR instruction is executed, the dedicated locations O and 1 are used to restore the PSD if register Rs = 0.
 					// -------- Assume this applies to CAR too.
+					// -------- For 32/85 behaviour is different -- A sys protect trap is issued.
 					// -------- TODO: check to make certain that 0 - PC and 1 - PSW (it only makes sense)
 					else {
 						// --------set return new PSW and PC
-						if ((tmp16_val1.uval = (instruction.parts.src_reg & 0x000d)) == 0) {
+						if ((tmp16_val1.uval = (instruction.parts.src_reg & 0x000e)) == 0) {
 							// --------get current process pc and status double word from dedicated memory location
 							program_counter = GET_MEMORY_VALUE_ABS(0);
 							tmp_PSW.all = GET_MEMORY_VALUE_ABS(1);
 							cpu_set_current_PSW(tmp_PSW);
 							// --------DEBUG
-							fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							fprintf(stderr, "        NO INT ACTIVE normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
 							// --------END DEBUG
 						}
 						else {
-							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
-							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
+							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval & 0xe);
+							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval | 1);
 							cpu_set_current_PSW(tmp_PSW);
 							// --------DEBUG
-							fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							fprintf(stderr, "        NO INT ACTIVE register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
 							// --------END DEBUG
 						}
-						// --------DEBUG
-						fprintf(stderr, "      nothing was active!!!\n" );
+						// -------- just in case...
+						cpu_interrupt_active_mask = mask[15];
+						cpu_interrupt_active_num = 16;
+
+						// --------DEBUG DUP
+						// fprintf(stderr, "      nothing was active!!!\n" );
 						// --------END DEBUG
 					}
 					// -------- allow one instruction to execute before the next interrupt.
@@ -2208,59 +2679,63 @@ void cpu_classic_7860() {
 
 			case  OP_CIR:			// 0x25  --  CIR  --  Clear interrupt and Return        
 				if (IS_PRIV_MODE) {
-					// --------DEBUG
-					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-					fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n",
-						program_counter, junkxx, instruction.all,
-						cpu_interrupt_active, cpu_interrupt_request);
-					// --------END DEBUG
-					// TODO: Use cpu_interrupt_active_current variable.
+					// TODO: Use cpu_interrupt_active_num variable.
 					// --------find highest active interrupt
-					new_int = 16;
+					old_int = 16;
 					for (j = 0; j < 16; j++) {
 						if ((bit[j] & cpu_interrupt_active) != 0) {
-							new_int = j;
+							old_int = j;
 							break;
 						}
 					}
 					// --------DEBUG
-					fprintf(stderr, "        active = %d\n", new_int);
+					if (old_int != 6 && old_int != 4 && old_int != 12) {	// no debug on clock release...
+						util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+						fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x, active: 0x%04x, request: 0x%04x\n",
+							program_counter, junkxx, instruction.all,
+							cpu_interrupt_active, cpu_interrupt_request);
+						fprintf(stderr, "        active = %d\n", old_int);
+					}
 					// --------END DEBUG
 					// --------get return process_status_double_word from dedicated memory location or register
-					if (new_int < 16) {
+					if (old_int < 16) {
 						// --------set return new PSW and PC
 						// --------get return process pc and status double word from dedicated memory location
 						if ((tmp16_val1.uval = (instruction.parts.src_reg & 0x000e)) == 0) {
-							program_counter = GET_MEMORY_VALUE_ABS(0x20 + (new_int * 2));
-							tmp_PSW.all = GET_MEMORY_VALUE_ABS(0x41 + (new_int * 2));
+							program_counter = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_RETURN_PC + (old_int * 2));
+							tmp_PSW.all = GET_MEMORY_VALUE_ABS(CPU_INTR_BASE_RETURN_PS + (old_int * 2));
 							cpu_set_current_PSW(tmp_PSW);
 							// --------DEBUG
-							fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							if (old_int != 6 && old_int != 4 && old_int != 12) {	// no debug on clock release...
+								fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							}
 							// --------END DEBUG
 						}
 						// -------- get return pc and psw from register.
 						else {
-							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
-							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
+							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval & 0xe);
+							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval | 1);
 							cpu_set_current_PSW(tmp_PSW);
 							// --------DEBUG
-							fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							if (old_int != 6 && old_int != 4 && old_int != 12) {	// no debug on clock release...
+								fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							}
 							// --------END DEBUG
 						}
 						// --------clear active for that interrupt
-						cpu_interrupt_active &= bitnot[new_int];
+						cpu_interrupt_active &= bitnot[old_int];
 
 						// --------clear request
 						// -------- Request ownership of the resource.
 						TAKE_RESOURCE( ResourceInterruptRequest );
-						if ((new_int == 12) && (cpu_interrupt_DI_total_request_count == cpu_interrupt_DI_total_proc_count)) {
-							cpu_interrupt_request &= bitnot[new_int];
+						if ((old_int == CPU_INTR_DI_num) && (cpu_interrupt_DI_total_request_count == cpu_interrupt_DI_total_proc_count)) {
+							cpu_interrupt_request &= bitnot[old_int];
 						}
-						else if ( (new_int == 13) && (cpu_interrupt_SI_total_request_count == cpu_interrupt_SI_total_proc_count)) {
-							cpu_interrupt_request &= bitnot[new_int];
+						else if ( (old_int == CPU_INTR_SI_num) && (cpu_interrupt_SI_total_request_count == cpu_interrupt_SI_total_proc_count)) {
+							cpu_interrupt_request &= bitnot[old_int];
 						}
 						else {
-							cpu_interrupt_request &= bitnot[new_int];
+							cpu_interrupt_request &= bitnot[old_int];
 						}
 						// -------- Release ownership of the resource.
 						GIVE_RESOURCE( ResourceInterruptRequest );
@@ -2268,36 +2743,40 @@ void cpu_classic_7860() {
 						// --------nothing active, reset masks.
 						if (cpu_interrupt_active == 0) {
 							cpu_interrupt_active_mask = mask[15];
+							cpu_interrupt_active_num = CPU_INTR_none_num;
 						}
 						// --------set information for newest high active interrupt.
 						else {
 							new_int = cpu_find_bit(cpu_interrupt_active);
 							cpu_interrupt_active_mask = mask[new_int];
-							cpu_interrupt_active_current = new_int;
+							cpu_interrupt_active_num = new_int;
 						}
 						// --------DEBUG
-						fprintf(stderr, "        new active: 0x%04x  request:  0x%04x\n", cpu_interrupt_active, cpu_interrupt_request);
+						if (old_int != 6 && old_int != 4 && old_int != 12) {	// no debug on clock release...
+							fprintf(stderr, "        new active: 0x%04x  request:  0x%04x\n", cpu_interrupt_active, cpu_interrupt_request);
+						}
 						// --------END DEBUG
 					}
 					// -------- If no interrupt is active when the CIR instruction is executed, the dedicated locations O and 1 are used to restore the PSD if register Rs = 0.
 					// -------- TODO: check to make certain that 0 - PC and 1 - PSW (it only makes sense)
+					// -------- For 32/85 behaviour is different -- A sys protect trap is issued.
 					else {
 						// --------set return new PSW and PC
-						if ((tmp16_val1.uval = (instruction.parts.src_reg & 0x000d)) == 0) {
+						if ((tmp16_val1.uval = (instruction.parts.src_reg & 0x000e)) == 0) {
 							// --------get current process pc and status double word from dedicated memory location
 							program_counter = GET_MEMORY_VALUE_ABS(0);
 							tmp_PSW.all = GET_MEMORY_VALUE_ABS(1);
 							cpu_set_current_PSW(tmp_PSW);
 							// --------DEBUG
-							fprintf(stderr, "        normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							fprintf(stderr, "        NO INT ACTIVE normal return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
 							// --------END DEBUG
 						}
 						else {
-							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval);
-							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval + 1);
+							program_counter = GET_REGISTER_VALUE(tmp16_val1.uval & 0xe);
+							tmp_PSW.all = GET_REGISTER_VALUE(tmp16_val1.uval | 1);
 							cpu_set_current_PSW(tmp_PSW);
 							// --------DEBUG
-							fprintf(stderr, "        register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
+							fprintf(stderr, "        NO INT ACTIVE register return  pc: 0x%04x, psw: 0x%04x\n", program_counter, tmp_PSW.all);
 							// --------END DEBUG
 						}
 						// --------DEBUG
@@ -2306,7 +2785,7 @@ void cpu_classic_7860() {
 						// --------END DEBUG
 					}
 					// -------- allow one instruction to execute before the next interrupt.
-					skip_interrupt_determination = true;
+					// skip_interrupt_determination = true;
 					// --------DEBUG --- DUPLICATE MESSAGES - DONT NEED.
 					// fprintf(stderr, "     new pc 0x%04x, new active: 0x%04x, request: 0x%04x\n",
 					// 	program_counter, cpu_interrupt_active, cpu_interrupt_request);
@@ -2352,21 +2831,21 @@ void cpu_classic_7860() {
 							cpu_interrupt_enabled |= (tmp16_val1.uval & SIE_ALLOWED);
 							// -------- if we just enabled SI or DI see if there is a back log that needs to set the request.
 							// -------- This really shouldn't be needed, but DIs are getting missed....
-							if ((tmp16_val1.uval & SIE_ALLOWED) == cpu_intr_DI) {
+							if ((tmp16_val1.uval & SIE_ALLOWED) == CPU_INTR_DI) {
 								// -------- Request ownership of the resource.
 								TAKE_RESOURCE( ResourceInterruptRequest );
 								if (cpu_interrupt_DI_total_proc_count != cpu_interrupt_DI_total_request_count) {
-									cpu_interrupt_request |= cpu_intr_DI;
+									cpu_interrupt_request |= CPU_INTR_DI;
 									fprintf(stderr, " SIE needed to re-request outstanding DI.\n");
 								}
 								// -------- Release ownership of the resource.
 								GIVE_RESOURCE( ResourceInterruptRequest );
 							}
-							else if ((tmp16_val1.uval & SIE_ALLOWED) == cpu_intr_SI) {
+							else if ((tmp16_val1.uval & SIE_ALLOWED) == CPU_INTR_SI) {
 								// -------- Request ownership of the resource.
 								TAKE_RESOURCE( ResourceInterruptRequest );
 								if (cpu_interrupt_SI_total_proc_count != cpu_interrupt_SI_total_request_count) {
-									cpu_interrupt_request |= cpu_intr_SI;
+									cpu_interrupt_request |= CPU_INTR_SI;
 									fprintf(stderr, " SIE needed to re-request outstanding SI.\n");
 								}
 								// -------- Release ownership of the resource.
@@ -2374,10 +2853,10 @@ void cpu_classic_7860() {
 							}
 							// TOD: FIX THIS - should not need to poke clock int when enabled.  Likely throttling issue.
 							// -------- Poke clock interrupt if enabled.
-							// else if ((tmp16_val1.uval & SIE_ALLOWED) == cpu_intr_clock) {
+							// else if ((tmp16_val1.uval & SIE_ALLOWED) == CPU_INTR_clock) {
 							// 	TAKE_RESOURCE( ResourceInterruptRequest );
 							// 	// -------- Release ownership of the resource.
-							// 	cpu_interrupt_request |= cpu_intr_clock;
+							// 	cpu_interrupt_request |= CPU_INTR_clock;
 							// 	GIVE_RESOURCE( ResourceInterruptRequest );
 							// }
 							// --------DEBUG
@@ -2452,12 +2931,12 @@ void cpu_classic_7860() {
 							// 	TAKE_RESOURCE( ResourceInterruptRequest );
 							// 	cpu_interrupt_request &= (tmp16_val1.uval | RIR_ALLOWED_NOT);
 							// 	// TODO: make the si/di stuf more efficient.
-							// 	if ((cpu_interrupt_DI_total_proc_count != cpu_interrupt_DI_total_request_count) && ((cpu_interrupt_enabled & cpu_intr_DI) != 0)) {
-							// 		cpu_interrupt_request |= cpu_intr_DI;
+							// 	if ((cpu_interrupt_DI_total_proc_count != cpu_interrupt_DI_total_request_count) && ((cpu_interrupt_enabled & CPU_INTR_DI) != 0)) {
+							// 		cpu_interrupt_request |= CPU_INTR_DI;
 							// 		//fprintf(stderr, " RIR needed to re-request outstanding DI.\n");
 							// 	}
-							// 	if ((cpu_interrupt_SI_total_proc_count != cpu_interrupt_SI_total_request_count) && ((cpu_interrupt_enabled & cpu_intr_SI) != 0)) {
-							// 		cpu_interrupt_request |= cpu_intr_SI;
+							// 	if ((cpu_interrupt_SI_total_proc_count != cpu_interrupt_SI_total_request_count) && ((cpu_interrupt_enabled & CPU_INTR_SI) != 0)) {
+							// 		cpu_interrupt_request |= CPU_INTR_SI;
 							// 		//fprintf(stderr, " RIR needed to re-request outstanding SI.\n");
 							// 	}
 							// 	// -------- Release ownership of the resource.
@@ -2481,12 +2960,12 @@ void cpu_classic_7860() {
 							TAKE_RESOURCE( ResourceInterruptRequest );
 							cpu_interrupt_request &= ( tmp16_val1.uval | RIR_ALLOWED_NOT);
 							// TODO: make the si/di stuf more efficient.
-							if ( (cpu_interrupt_DI_total_proc_count != cpu_interrupt_DI_total_request_count) && ( ( cpu_interrupt_enabled & cpu_intr_DI ) != 0 ) ) {
-								cpu_interrupt_request |= cpu_intr_DI;
+							if ( (cpu_interrupt_DI_total_proc_count != cpu_interrupt_DI_total_request_count) && ( ( cpu_interrupt_enabled & CPU_INTR_DI ) != 0 ) ) {
+								cpu_interrupt_request |= CPU_INTR_DI;
 								//fprintf(stderr, " RIR needed to re-request outstanding DI.\n");
 							}
-							if ((cpu_interrupt_SI_total_proc_count != cpu_interrupt_SI_total_request_count) && ( ( cpu_interrupt_enabled & cpu_intr_SI ) != 0 ) ) {
-								cpu_interrupt_request |= cpu_intr_SI;
+							if ((cpu_interrupt_SI_total_proc_count != cpu_interrupt_SI_total_request_count) && ( ( cpu_interrupt_enabled & CPU_INTR_SI ) != 0 ) ) {
+								cpu_interrupt_request |= CPU_INTR_SI;
 								//fprintf(stderr, " RIR needed to re-request outstanding SI.\n");
 							}
 							// -------- Release ownership of the resource.
@@ -5218,7 +5697,7 @@ void cpu_classic_7860() {
 		// -------- the only way to get here is if the result of an EXI or EXR instruction is an EXI
 		// -------- instruction.
 		case  OP_EXR:			// 	        0xb3
-			ILLEGAL_INSTRUCTION;
+			EXI_EXR_INSTRUCTION;
 			break;
 
 		case  OP_LFS:			// 	        0xb4
@@ -6507,7 +6986,7 @@ void cpu_classic_7860() {
 				// -------- the only way to get here is if the result of an EXI or EXR instruction is an EXI
 				// -------- instruction.
 			case 5:
-				ILLEGAL_INSTRUCTION;
+				EXI_EXR_INSTRUCTION;
 				break;
 
 				// --  6	MPI  --  Multiply Immediate	
@@ -7105,13 +7584,6 @@ void cpu_classic_7860() {
 			gbl_fp_single_step = false;
 			WakeByAddressSingle((LPVOID)& gbl_fp_single_step);
 		}
-
-		// --------update some front panel values
-		// TODO: make these getters so not to slow down CPU.
-		// gbl_fp_cc_n_light = cpu_cond_code_n;
-		// gbl_fp_cc_z_light = cpu_cond_code_z;
-		// gbl_fp_cc_o_light = cpu_cond_code_o;
-		// gbl_fp_cc_c_light = cpu_cond_code_c;
 
 	}
 

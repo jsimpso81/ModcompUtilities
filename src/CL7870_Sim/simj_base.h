@@ -140,6 +140,22 @@ typedef union {
 	PSW_BITS sep;
 } PSW;
 
+// -------- fields in PSW
+#define PSW_MASK_IMAP	(SIMJ_U16)0xE000
+#define PSW_MASK_PRV	(SIMJ_U16)0x1000
+#define PSW_MASK_GRB	(SIMJ_U16)0x0F00
+#define PSW_MASK_OMAP	(SIMJ_U16)0x00E0
+#define PSW_MASK_OH		(SIMJ_U16)0x0010
+#define PSW_MASK_CC_ALL (SIMJ_U16)0x000F
+#define PSW_MASK_CC_N	(SIMJ_U16)0x0008
+#define PSW_MASK_CC_Z	(SIMJ_U16)0x0004
+#define PSW_MASK_CC_O	(SIMJ_U16)0x0002
+#define PSW_MASK_CC_C	(SIMJ_U16)0x0001
+
+#define PSW_SHIFT_IMAP 13
+#define PSW_SHIFT_GRB  8
+#define PSW_SHIFT_OMAP 5
+
 // ==================================================
 // -------- MEMORY MAPS ARE A WORK IN PROCESS.
 // -------- memory map access rights
@@ -269,6 +285,7 @@ SIMJ_U16 cpu_get_program_counter();
 PSW cpu_get_current_PSW();
 void cpu_get_instruction_trace(SIMJ_U16* inx, SIMJ_U32 trace[1024],
 	SIMJ_U32 trace_w1[1024], SIMJ_U32 trace_w2[1024], SIMJ_U32 trace_w3[1024], SIMJ_U32 trace_w4[1024]);
+bool cpu_get_virtual_mode();
 void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map);
 SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index);
 bool cpu_get_power_on();

@@ -1,4 +1,12 @@
-ocrmypdf --deskew --clean --oversample 1200
+ocrmypdf --deskew --clean --oversample 1200 210-142000-000--Modcomp-CLASSIC-Central-Processor-7830-Ref.pdf 210-142000-000--Modcomp-CLASSIC-Central-Processor-7830-Ref-OCR.pdf
+
+ocrmypdf --deskew --clean --oversample 1200 226-721001-003--CLASSIC-Computer-Reference-Manual-Central-Processor-CLII45-CLII55.pdf 226-721001-003--CLASSIC-Computer-Reference-Manual-Central-Processor-CLII45-CLII55-OCR.pdf
+
+
+ocrmypdf --deskew --clean --oversample 1200 220-140000-003--CLASSIC-Central-Processor-Diag.pdf 220-140000-003--CLASSIC-Central-Processor-Diag-OCR.pdf
+
+ocrmypdf --deskew --clean --oversample 1200  211-804018-B01-FMSaveRestor.pdf 211-804018-B01-FMSaveRestor-OCR.pdf
+
 
 Diagnostics
 OPT=#8020

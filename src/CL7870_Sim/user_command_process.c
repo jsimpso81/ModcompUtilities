@@ -249,6 +249,11 @@ void process_user_commands(FILE* cmd_src) {
 							printf(" Verbose debug mode : %s\n", (gbl_verbose_debug ? "On" : "Off"));
 						}
 
+						//--------virtual
+						else if (strcmp(cmd_data->cmd_line_parsed[1], "virtual") == 0) {
+							printf(" CPU Real/Virtual mode is: %s\n", (cpu_get_virtual_mode() ? "Virtual" : "Real"));
+						}
+
 						//--------reg
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "reg") == 0) {
 							disp_cur_reg(stdout);

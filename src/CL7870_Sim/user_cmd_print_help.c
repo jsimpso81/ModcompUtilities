@@ -86,6 +86,7 @@ void user_cmd_print_help() {
 	printf("      show switches - show console switches\n");
 	printf("      show trace - show instruction trace\n");
 	printf("      show verbose - show verbose debug mode\n");
+	printf("      show virtual - show cpu virtual/real mode\n");
 	printf("\n");
 	printf("      step <instruction count> - execute a single instruction\n");
 

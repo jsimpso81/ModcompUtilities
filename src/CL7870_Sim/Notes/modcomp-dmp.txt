@@ -1,0 +1,46 @@
+devin davison lyokoboy0 at gmail.com
+https://classiccmp.org/pipermail/cctech/2019-November/041460.html
+
+
+https://github.com/magol
+https://www.flickr.com/photos/magnus_osterlund/238688862
+
+https://hackaday.com/2017/07/16/hey-nasa-do-you-want-your-stuff-back/
+
+
+
+
+
+DMP
+
+	real-mode
+		- contiguous actual memory
+		- 16 pairs of tc/ta
+		- TC 60-6F
+		- TA 70-7F
+
+	virtual mode
+		- virtual address space defined by map image in memory
+		- 60 indirect virtual address of TA/TC table accomodating
+			64 devices.
+	
+	dedicated memory locations
+		- transfer count
+			- negative word count
+			non-virtual mode
+			bit 0 (C) - 1 single block
+				  - 0 transfer chain of blocks
+			virtual mode
+			bit 0-2 (C)
+				- 000 - string chain via O/S map image
+				- 001 - string chain via task map image
+				- 10x - transfer single block.
+					for 10x rest is 14 bit neg
+					count, upto 16384 words
+				
+				- for chaining, ta is virtual adress
+
+				- map 0 page resides at page 1 (0x0100)
+
+		- transfer address
+	

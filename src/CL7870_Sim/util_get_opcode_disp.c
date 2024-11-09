@@ -620,16 +620,106 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 
 
 		// -------- OP_LDXT_STXT_DMT_STMT
+		case  OP_LDXT_STXT_LDMT_STMT:	//	0x88
+			switch (loc_inst.parts.dest_reg & 0x0003) {
+
+			case 0:				//  STXT  --  Store Triple-Register into Memory Tripleword (Short-Indexed)      
+				strcpy_s(op_buffer, buf_size, "STXT");
+				break;
+
+			case 1:				//  LDXT  --  Load Triple-Register from Memory Triple- word (Short-Indexed)
+				strcpy_s(op_buffer, buf_size, "LDXT");
+				break;
+
+			case 2:				//  STMT  --  Store Triple-Register into Memory Triple-Word       
+				strcpy_s(op_buffer, buf_size, "STMT");
+				break;
+
+			case 3:				//  LDMT  --  Load Triple-Register from Memory Tripleword       
+				strcpy_s(op_buffer, buf_size, "LDMT");
+				break;
+			}
+			break;
+
+
 
 		// -------- OP_IRRD_TTRD
+		case  OP_IRRD_TTRD:			// 	0x8a
+			// -------- IRRD  --  Interchange Double Register and Double Register      
+			if ((loc_inst.all & 0x0010) != 0) {
+				strcpy_s(op_buffer, buf_size, "IRRD");
+			}
+			// -------- TTRD  --  Transfer Two's Complement of Double- Register to Double-Register    
+			else {
+				strcpy_s(op_buffer, buf_size, "TTRD");
+			}
+			break;
 
 		// -------- OP_CRRT_CRRQ_TTRQ
+		case  OP_CRRT_CRRQ_TTRQ:			// 0x8b
+			switch (loc_inst.parts.dest_reg & 0x0003) {
+			case 0:			//  --  TTRQ  --  Transfer Two's Complement of Quadruple- Register to Quadruple-Register    
+				strcpy_s(op_buffer, buf_size, "CRRT");
+				break;
+
+			case 2:			// --  CRRT  --  Compare Triple Register to Triple Register      
+				strcpy_s(op_buffer, buf_size, "CRRQ");
+				break;
+
+			case 3:			// --  CRRQ  --  Compare Quad Register to Quad Register      
+				strcpy_s(op_buffer, buf_size, "TTRQ");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
 
 		// -------- OP_ESD_ESS
+		case  OP_ESD_ESS:			//         0x8c
+			switch (loc_inst.parts.dest_reg & 0x01) {
+
+			case 0:				//  --  ESD  --  Extend Sign Double         
+				strcpy_s(op_buffer, buf_size, "ESD");
+				break;
+
+			case 1:				//  --  ESS  --  Extend Sign Single         
+				strcpy_s(op_buffer, buf_size, "ESS");
+				break;
+			}
+			break;
+
 
 		// -------- OP_TRRQ_LDXD
+		case  OP_TRRQ_LDXD:		//			0x8d
+			switch (loc_inst.parts.dest_reg & 0x0001) {
+
+			case 0:			// --  TRRQ  --  Transfer Quadruple-Register to Quadruple Register       
+				strcpy_s(op_buffer, buf_size, "TRRQ");
+				break;
+
+			case 1:			//  --  LDXD  --  Load Double-Register from Memoty Doubleword (Short-Indexed)      
+				strcpy_s(op_buffer, buf_size, "LDXD");
+				break;
+			}
+			break;
 
 		// -------- OP_CRXD_STXD
+		case  OP_CRXD_STXD:		//        0x8e
+			switch (loc_inst.parts.dest_reg & 0x0001) {
+
+			case 0:				//  --  CRXD  --  Compare Double Register to Short-Indexed Memory Doubleword     
+				strcpy_s(op_buffer, buf_size, "CRXD");
+				break;
+
+			case 1:				//  --  STXD  --  Store Double-Register into Memory Doubleword (Short-Indexed)      
+				strcpy_s(op_buffer, buf_size, "STXD");
+				break;
+			}
+			break;
+
+
  
 		// -------- OP_AUG8F
 		case  OP_AUG8F:			//         0x8f
@@ -697,8 +787,30 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 
 
 		// -------- OP_DVRD_DVMD
+		case  OP_DVRD_DVMD:		//        0xa3
+			switch (loc_inst.parts.dest_reg & 0x1) {
+
+			case 0:				//  --  DVRD  --  Divide Quad-Register by Double-Register        
+				strcpy_s(op_buffer, buf_size, "DVRD");
+				break;
+
+			case 1:				//  --  DVMD  --  Divide Quad-Register by Memory Doubleword       
+				strcpy_s(op_buffer, buf_size, "DVMD");
+				break;
+			}
+			break;
 
 		// -------- OP_HHI_HNH
+		case  OP_HHI_HNH:			// 	        0xa6
+			// HNH  --  Hop on Magnitude Not Higher Condition      
+			if (loc_inst.all & 0x0080) {
+				strcpy_s(op_buffer, buf_size, "HNH");
+			}
+			// HHI  --  Hop on Magnitude Higher Condition        
+			else {
+				strcpy_s(op_buffer, buf_size, "HHI");
+			}
+			break;
 
 		// -------- OP_AUGA7
 		case  OP_AUGA7:			//         0xa7
@@ -849,16 +961,131 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 		// -------- OP_ADRD_ADMD
+		case  OP_ADRD_ADMD:		//        0xc8
+			//  --  ADRD(DAR)  --  Add Double-Register to Double-Register        
+			if ((loc_inst.parts.dest_reg & 1) == 0) {
+				strcpy_s(op_buffer, buf_size, "ADRD");
+			}
+			//  --  ADMD  --  Add Memory Doubleword to Double- Register      
+			else {
+				strcpy_s(op_buffer, buf_size, "ADMD");
+			}
+			break;
 
 		// -------- OP_SURD_SUMD
+		case  OP_SURD_SUMD:		//        0xc9
+			//  --  SURD  --  Subtract Double-Register from Double-Register        
+			if ((loc_inst.parts.dest_reg & 1) == 0) {
+				strcpy_s(op_buffer, buf_size, "SURD");
+			}
+			//  --  SUMD  --  Subtract Memory Doubleword from Double-Register       
+			else {
+				strcpy_s(op_buffer, buf_size, "SUMD");
+			}
+			break;
+
 
 		// -------- OP_AUGCA
+		case  OP_AUGCA:			//         0xca
+
+			// -------- NOTE TRUE = 0, FALSE = FFFF
+			switch (loc_inst.parts.dest_reg) {
+			case 0:		// --  SRNS	Set Register if Condition Code N Set
+				strcpy_s(op_buffer, buf_size, "SRNS");
+				break;
+			case 1:		// --  SRZS	Set Register if Condition Code Z Set
+				strcpy_s(op_buffer, buf_size, "SRZS");
+				break;
+			case 2:		// --  SROS	Set Register if Condition Code O Set
+				strcpy_s(op_buffer, buf_size, "SROS");
+				break;
+			case 3:		// --  SRCS	Set Register if Code C Set
+				strcpy_s(op_buffer, buf_size, "SRCS");
+				break;
+			case 4:		// --  SRLS	Set Register on Less than Condition
+				strcpy_s(op_buffer, buf_size, "SRLS");
+				break;
+			case 5:		// --  SRLE	Set Register on Less than or Equal Condition
+				strcpy_s(op_buffer, buf_size, "SRLE");
+				break;
+			case 6:		// --  SRHI	Set Register on Magnitude Higher Condition
+				strcpy_s(op_buffer, buf_size, "SRHI");
+				break;
+			case 8:		// --  SRNR	Set Register if Condition Code N Reset
+				strcpy_s(op_buffer, buf_size, "SRNR");
+				break;
+			case 9:		// --  SRZR	Set Register if Condition Code Z Reset
+				strcpy_s(op_buffer, buf_size, "SRZR");
+				break;
+			case 10:		// --  SROR	Set Register if Condition Code O Reset
+				strcpy_s(op_buffer, buf_size, "SROR");
+				break;
+			case 11:		// --  SRCR	Set Register if Condition Code C Reset 
+				strcpy_s(op_buffer, buf_size, "SRCR");
+				break;
+			case 12:		// --  SRGE	Set Register on Greater than or Equal Condition
+				strcpy_s(op_buffer, buf_size, "SRGE");
+				break;
+			case 13:		// --  SRGT	Set Register on Greater than Condition
+				strcpy_s(op_buffer, buf_size, "SRGT");
+				break;
+			case 14:		// --  SRNH	Set Register on Magnitude not Higher Condition
+				strcpy_s(op_buffer, buf_size, "SRNH");
+				break;
+			case 15:		// -- UNDOCUMENTED -- Don't know what this really does, set reg to -1
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
 
 		// -------- OP_TRRD_LDMD
+		case  OP_TRRD_LDMD:		//        0xcd
+			switch (loc_inst.parts.dest_reg & 0x0001) {
+
+			case 0:				//  --  TRRD -- Transfer Double-Register to Double- Register
+				strcpy_s(op_buffer, buf_size, "TRRD");
+				break;
+
+			case 1:				//  --  LDMD  -- Load Double-Register from Memory Doubleword 
+				strcpy_s(op_buffer, buf_size, "LDMD");
+				break;
+			}
+			break;
+
 
 		// -------- OP_CLM_STMD_CLMD
+		case  OP_CLM_STMD_CLMD:	//        0xce
+			if (loc_inst.parts.dest_reg == 0) {
+				//--------CLM  --  Clear Memory          
+				strcpy_s(op_buffer, buf_size, "CLM");
+			}
+			else if ((loc_inst.parts.dest_reg & 0x1) == 0) {
+				//--------CLMD
+				strcpy_s(op_buffer, buf_size, "CLMD");
+			}
+			else {
+				//--------STMD          
+				strcpy_s(op_buffer, buf_size, "STMD");
+			}
+			break;
 
-		// -------- OP_CRRD_CRMD
+			// -------- OP_CRRD_CRMD
+		case  OP_CRRD_CRMD:		//        0xcf
+			switch (loc_inst.parts.dest_reg & 0x0001) {
+
+			case 0:				//  --  CRRD  --  Compare Double-Register with Double Register       
+				strcpy_s(op_buffer, buf_size, "CRRD");
+				break;
+
+			case 1:				//  --  CRMD  --  Compare Double-Register with Memory Doubleword       
+				strcpy_s(op_buffer, buf_size, "CRMD");
+				break;
+			}
+			break;
+
 
 		// -------- OP_BRU_BLM
 		case  OP_BRU_BLM:			
@@ -963,12 +1190,80 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			break;
 
 		// -------- OP_SUI_CRI
+		case  OP_SUI_CRI:			//         0xe9
+			switch (loc_inst.parts.src_reg) {
+
+			case 0:		// SUI  --  SUI  --  Subtract Memory (Immediate) from Register       
+				strcpy_s(op_buffer, buf_size, "----");
+				break;
+
+			case 1:		// CRI  --  CRI  --  Compare Register with Memory (Immediate)       
+				strcpy_s(op_buffer, buf_size, "----");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "----");
+				break;
+			}
+			break;
+
 
 		// -------- OP_ETI_TETI
+		case  OP_ETI_TETI:			//         0xea
+			switch (loc_inst.parts.src_reg) {
+
+			case 0:		// ETI
+				strcpy_s(op_buffer, buf_size, "ETI");
+				break;
+
+			case 1:		// TETI
+				strcpy_s(op_buffer, buf_size, "TETI");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
+
 
 		// -------- OP_ORI_TORI
+		case  OP_ORI_TORI:			//         0xeb
+			switch (loc_inst.parts.src_reg) {
+
+			case 0:		// ORI
+				strcpy_s(op_buffer, buf_size, "ORI");
+				break;
+
+			case 1:		// TORI
+				strcpy_s(op_buffer, buf_size, "TORI");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
+
 
 		// -------- OP_XOI_TXOI
+		case  OP_XOI_TXOI:			//         0xec
+			switch (loc_inst.parts.src_reg) {
+
+			case 0:		// XOI
+				strcpy_s(op_buffer, buf_size, "XOI");
+				break;
+
+			case 1:		// TXOI
+				strcpy_s(op_buffer, buf_size, "TXOI");
+				break;
+
+			default:
+				strcpy_s(op_buffer, buf_size, "---");
+				break;
+			}
+			break;
+
 
 		// -------- OP_LDI_LDF_LDFD_FDFQ
 		case  OP_LDI_LDF_LDFD_FDFQ:    //    0xed

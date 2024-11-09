@@ -108,6 +108,7 @@
 #define GET_MEMORY_VALUE_IM_VIRT( A ) ( gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] )
 #define GET_MEMORY_VALUE_OM_VIRT( A ) ( gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] )
 
+
 #define GET_MEMORY_VALUE_IM( OUTVAL, A ) {\
 					if ( cpu_virtual_mode ) {\
 						VIRT_MEM_CHECK_ACCESS_EXEC( A, cpu_instruction_map );\
@@ -117,6 +118,8 @@
 						OUTVAL = GET_MEMORY_VALUE_ABS( (SIMJ_U16)(A) );\
 					}\
 					}
+
+
 #define GET_MEMORY_VALUE_OM( OUTVAL, A ) {\
 					if (  cpu_virtual_mode ) {\
 						VIRT_MEM_CHECK_ACCESS_READ( A, cpu_operand_map );\
