@@ -1324,9 +1324,13 @@
 1,features of the current program were added by Don Woods (DON @ SU-AI).
 1,The current version was done by Kent Blackett and Bob Supnik.
 1,			- - -
-1,Port of the program to standard FORTRAN IV for MODCOMP was done by
-1,Jim Simpson.
-1,			- - -
+1,Bug reports and other correspondence should be sent to:
+1,
+1,	Digital Equipment Computer Users Society
+1,	One Iron Way, MR2-3/E55
+1,	Marlboro, Mass. 01752
+1,	Attn:  Adventure Maintenance
+1,
 2,A little dwarf with a big knife blocks your way.
 3,A little dwarf just walked around a corner, saw you, threw a little
 3,axe at you which missed, cursed, and ran away.
@@ -1641,7 +1645,7 @@
 199,You prod the nearest dwarf, who wakes up grumpily, takes one look at
 199,you, curses, and grabs for his axe.
 200,Is this acceptable?
-201,Colossal Cave is ALWAYS open, provided this is your MODCOMP.
+201,Colossal Cave is ALWAYS open, provided this is your PDP-11.
 -1
 7
 1,3
