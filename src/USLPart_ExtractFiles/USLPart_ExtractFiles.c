@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
     bool  have_extract_dir = false;
     bool  have_recovery_dir = false;
     int   max_line_bytes = 80;
+    bool  tape_flag = false;
 
 
     /* -------- annouce our program  */
@@ -51,6 +52,7 @@ int main(int argc, char* argv[]) {
                 printf("        -d directory  extract files to this directory\n");
                 printf("        -r directory  extract recoverd (deleted) files to this directory\n");
                 printf("        -m rec_bytes  max line length in bytes, default = 80\n");
+                printf("        -t            file is tape. No EOF after each entry.\n");
                 exit(0);
             }
 
@@ -94,6 +96,11 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            /* -------- tape file */
+            else if (strcmp(argv[j], "-t") == 0) {
+                tape_flag = true;
+            }
+
             /* --------unrecognized parameter */
             else {
                 if (j != 0)
@@ -103,7 +110,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (have_partition && have_extract_dir && have_recovery_dir) {
-        USL_extract_all_files( partition_name, extract_directory, recovery_directory, max_line_bytes );
+        USL_extract_all_files( partition_name, extract_directory, recovery_directory, max_line_bytes, tape_flag );
     }
     else {
         printf("\n *** ERROR ***  not all required parameters specified.\n");

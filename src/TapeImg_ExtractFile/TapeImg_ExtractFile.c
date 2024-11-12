@@ -1,4 +1,4 @@
-// TapeImg_ToDiskUSL.c : This file contains the 'main' function. Program execution begins and ends there.
+// TapeImg_ExtractFile.c : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #include <stdio.h>
@@ -9,7 +9,7 @@
 #include "../modcomp_utility_library/modcomp_utility_library.h"
 
 /* ========================================================================================================================*/
-void extract_usl_from_tape_image(char* tape_file_name, char* disk_file_name) {
+void extract_file_from_tape_image(char* tape_file_name, char* disk_file_name) {
 
     FILE* in_tape_file;
     FILE* out_disk_file;
@@ -55,31 +55,31 @@ void extract_usl_from_tape_image(char* tape_file_name, char* disk_file_name) {
         return;
     }
 
-    //--------read first tape record.   It should be x bytes long and contain @USL.
-    //--------don't write this to disk.
-    bytes_read = 0;
-    end_of_file = -1;
-    current_file_pos = 0;
-    stat = TapeImg_read_next_record(in_tape_file, &current_file_pos, &tape_buffer, 65536, &bytes_read, &end_of_file);
-
-    printf(" read tape record -- status %d bytes read %zd end of file %d\n", stat, bytes_read, end_of_file);
-
-    if (bytes_read > 0) {
-    }
-
-
     //--------loop over all other tape records until end of file.  Write to disk.
     sector_offset = 0;
-    while ( not_done ) {
+    current_file_pos = 0;
+
+    while (not_done) {
+        bytes_read = 0;
+        end_of_file = -1;
+
+        for (j = 0; j < 256; j++) {
+            tape_buffer.words[j] = 0;
+        }
+
         stat = TapeImg_read_next_record(in_tape_file, &current_file_pos, &tape_buffer, 65536, &bytes_read, &end_of_file);
         printf(" read tape record -- status %d bytes read %zd end of file %d\n", stat, bytes_read, end_of_file);
 
-        if (bytes_read == 256 && stat == 0) {
+        if (bytes_read > 0 && bytes_read <= 256 && stat == 0) {
             fwrite(&tape_buffer, (size_t)256, (size_t)1, out_disk_file);
             printf(" write disk record -- \n");
         }
         else {
-            if (end_of_file != 0) {
+            if (bytes_read > 0) {
+                printf("\n ============= UNEXPECTED NUMBER OF BYTES %zd====================\n",bytes_read);
+                not_done = false;
+            }
+            else if (end_of_file != 0) {
                 printf("\n ============= end of file ====================\n");
                 not_done = false;
             }
@@ -94,7 +94,7 @@ void extract_usl_from_tape_image(char* tape_file_name, char* disk_file_name) {
     //--------close tape image file
     fclose(in_tape_file);
 
-    //--------close disk USL file.
+    //--------close disk file.
     fclose(out_disk_file);
 
 
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
     char disk_file_name[1000] = { 0 };
 
     /* -------- annouce our program  */
-    printf("\nTapeImg_ToDiskUSL - Convert Tape USL image to Disk USL.\n");
+    printf("\nTapeImg_ExtractFile - Convert Tape file to Disk File.\n");
 
     /* printf("\n arc = % d \n", argc); */
 
@@ -160,9 +160,8 @@ int main(int argc, char* argv[]) {
         }
         // -------- if we have a file name, then dump it...
         if (have_disk_file_name && have_tape_file_name) {
-            extract_usl_from_tape_image(tape_file_name, disk_file_name);
+            extract_file_from_tape_image(tape_file_name, disk_file_name);
         }
     }
     exit(0);
 }
-

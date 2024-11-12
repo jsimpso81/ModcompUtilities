@@ -161,8 +161,8 @@ void USL_Directory_Print_Initial_Entry(USL_DIRECTORY_ENTRY* direct_entry);
 void USL_Directory_Print_LogFile_Entry(USL_DIRECTORY_ENTRY* direct_entry);
 void USL_Directory_Print_Raw_Entry(USL_DIRECTORY_ENTRY * direct_entry);
 void USL_dump_directory(char* filename);
-void USL_extract_all_files(char* partition_file, char* extract_dir, char* recover_dir, int max_line_bytes);
-void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTRY* parsed_file_entry, char* directory, int max_line_bytes);
+void USL_extract_all_files(char* partition_file, char* extract_dir, char* recover_dir, int max_line_bytes, bool tape_flag);
+void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTRY* parsed_file_entry, char* directory, int max_line_bytes, bool tape_flag);
 void USL_Parse_File_Entry(USL_DIRECTORY_ENTRY* direct_entry, USL_FILE_ENTRY* parsed_file_entry);
 
 

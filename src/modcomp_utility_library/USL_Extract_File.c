@@ -4,7 +4,8 @@
 #include "../modcomp_utility_library/modcomp_utility_library.h"
 
 
-void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTRY* parsed_file_entry, char* directory, int max_line_bytes) {
+void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTRY* parsed_file_entry, 
+		char* directory, int max_line_bytes, bool tape_flag ) {
 
 	/* -------- see if this is from an attached file. */
 	if (USL_log_file != 0) {
@@ -58,8 +59,10 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 
 				/* --------do the work of extracton here */
 				unsigned __int16 current_sector = parsed_file_entry->starting_sector;
-				// unsigned __int16 last_sector = parsed_file_entry->starting_sector + parsed_file_entry->sector_count -2; /* ----- the last sector contains $$ (end of file), not program*/
-				unsigned __int16 last_sector = parsed_file_entry->starting_sector + parsed_file_entry->sector_count - 1; /* ----- the last sector contains $$ (end of file), not program*/
+				unsigned __int16 last_sector = parsed_file_entry->starting_sector + parsed_file_entry->sector_count -2; /* ----- the last sector contains $$ (end of file), not program*/
+				if (tape_flag) {
+					last_sector++;		//--------tapes don't have eof on each file.
+				}
 
 				unsigned __int16 raw_sector_data[128] = { 0 };
 
