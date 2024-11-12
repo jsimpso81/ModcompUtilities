@@ -7,15 +7,17 @@ C MODIFIED BY KENT BLACKETT
 C             ENGINEERING SYSTEMS GROUP
 C             DIGITAL EQUIPMENT CORP.
 C             15-JUL-77
-C MODIFIED BY      BOB SUPNIK
-C            DISK ENGINEERING
-C            21-OCT-77
-C MODIFIED BY      BOB SUPNIK
-C            DISK ENGINEERING
-C            25-AUG-78
-C MODIFIED BY      BOB SUPNIK
-C            SMALL SYSTEMS
-C            12-NOV-78
+C MODIFIED BY BOB SUPNIK
+C             DISK ENGINEERING
+C             21-OCT-77
+C MODIFIED BY BOB SUPNIK
+C             DISK ENGINEERING
+C             25-AUG-78
+C MODIFIED BY BOB SUPNIK
+C             SMALL SYSTEMS
+C             12-NOV-78
+C MODIFIED BY JIM SIMPSON                                               JAS
+C             ??-???-84                                                 JAS
 C ORIGINAL VERSION WAS FOR DECSYSTEM-10
 C NEXT VERSION WAS FOR FORTRAN IV-PLUS UNDER
 C THE IAS OPERATING SYSTEM ON THE PDP-11/70
@@ -43,6 +45,7 @@ C
       LOGICAL LMWARN,CLOSNG,PANIC,HINTED,
      1       CLOSED,GAVEUP,SCORNG,DSEEN
 C
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /VERSN/ VMAJ,VMIN,VEDIT
       COMMON /TXTCOM/ RTEXT,LINES,ASCVAR
       COMMON /ALPHAS/ BLANK,EOF,CYE,CY,CNO,CN,CPO,CUR,CWE,CST,
@@ -95,6 +98,7 @@ C#######################################################################
 C---THIS ROUTINE IS NEW
       BLOCK DATA ADV
       IMPLICIT INTEGER (A-Z)
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /VERSN/ VMAJ,VMIN,VEDIT
       COMMON /ALPHAS/ BLANK,EOF,CYE,CY,CNO,CN,CPO,CUR,CWE,CST,
      1      CEN,CTE
@@ -106,6 +110,10 @@ C
 C
       DATA VMAJ/3/,VMIN/0/,VEDIT/'A'/
 C
+C--------IO FILE UNIT NUMBERS.   KBIN AND KBOUT PSEUDO STANDARD.        JAS
+C--------DTFILE MUST MATCH THE DEFINE FILE.                             JAS
+      DATA KBIN / 5 /, KBOUT / 6 / TXFILE / 1 /, DTFILE / 2 /           JAS
+      DATA SVFILE / 3 /                                                 JAS
       END
 C
 C#######################################################################
@@ -154,6 +162,7 @@ C
       LOGICAL BITSET,LMWARN,CLOSNG,PANIC,
      1       CLOSED,GAVEUP,SCORNG
 C
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /VERSN/ VMAJ,VMIN,VEDIT
       COMMON /TXTCOM/ RTEXT,LINES,ASCVAR
       COMMON /VOCCOM/ KTAB,ATAB,A2TAB,TABSIZ
@@ -318,19 +327,20 @@ C
       TRVSIZ = 750
       CLSMAX = 12
 D     VCOUNT = 0
-D     TYPE 1000
+CJASD     TYPE 1000                                                     JAS
+D     WRITE(KBOUT,1000)                                                 JAS
 D1000 FORMAT(' INITIALIZING...')
 C
 C FIRST, TRY TO RESTORE PRE-EXISTING COPY OF DATA BASE
 C
       CALL RSTRGM(.FALSE.,I)
       IF(I.NE.0) GO TO 10
-CJAS  CALL ASSIGN(2,'ATEXT.DAT')
-CJAS  OPEN(2,FILE='ATEXT.DAT', ACCESS='DIRECT', RECL=74, 
-CJAS 1     STATUS='UNKNOWN', ACTION='READ' )
-CJASD     TYPE *,' -- INIT FILE 2 OPENED--'      
-      DEFINE FILE 2(FILSIZ,37,U,ASCVAR)
-D     TYPE *,' -- INIT FILE 2 DEFINED--'      
+CJAS  CALL ASSIGN(2,'ATEXT.DAT')                                        JAS
+CJAS  OPEN(2,FILE='ATEXT.DAT', ACCESS='DIRECT', RECL=74,                JAS
+CJAS 1     STATUS='UNKNOWN', ACTION='READ' )                            JAS
+CJASD     TYPE *,' -- INIT FILE 2 OPENED--'                             JAS
+      DEFINE FILE 2(FILSIZ,37,U,ASCVAR)  
+D     WRITE(KBOUT,*) ' -- INIT FILE 2 DEFINED--'                        JAS      
       GO TO 5000
 C
 C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -370,13 +380,13 @@ C
 C
 CJAS  CALL ASSIGN(1,'ATEXT.TXT')
       OPEN(1,FILE='ATEXT.TXT',READONLY)
-D     TYPE *,' -- LINE 1001 FILE 1 OPENED--'      
+D     WRITE(KBOUT,*) ' -- LINE 1001 FILE 1 OPENED--'                    JAS      
 CJAS  CALL ASSIGN(2,'ATEXT.DAT')
 CJAS  OPEN(2,FILE='ATEXT.DAT', ACCESS='DIRECT', RECL=74, 
 CJAS 1     STATUS='UNKNOWN', ACTION='READWRITE' )
 CJASD     TYPE *,' -- LINE 1001 FILE 2 OPENED--'      
       DEFINE FILE 2(FILSIZ,37,U,ASCVAR)
-D     TYPE *,' -- LINE 1001 FILE 2 DEFINED--'      
+D     WRITE(KBOUT,*) ' -- LINE 1001 FILE 2 DEFINED--'                   JAS      
       ASCVAR = 1
       LINUSE=1
       TRVS=1
@@ -384,9 +394,11 @@ D     TYPE *,' -- LINE 1001 FILE 2 DEFINED--'
 C
 C  START NEW DATA SECTION.  SECT IS THE SECTION NUMBER.
 C
-1002  READ(1,1003)SECT
+CJAS1002  READ(1,1003)SECT                                              JAS
+1002  READ(TXFILE,1003)SECT                                             JAS
 1003  FORMAT(I5)
-D      TYPE 930,SECT
+CJASD      TYPE 930,SECT                                                JAS
+D      WRITE(KBOUT,930),SECT                                            JAS
 D930  FORMAT(' NOW LOADING SECTION',I3)
       OLDLOC=-1
       GOTO(1100,1004,1004,1030,1040,1004,1004,1050,1060,1070,1004,
@@ -399,7 +411,8 @@ C  SECTIONS 1, 2, 5, 6, 10.  READ MESSAGES AND SET UP POINTERS.
 C
 1004  READ(1,1005) LOC,LINES
 1005  FORMAT(I5,36A2)
-      WRITE(2'ASCVAR) LOC,LINES
+CJAS  WRITE(2'ASCVAR) LOC,LINES                                         JAS
+      WRITE(DTFILE'ASCVAR) LOC,LINES                                    JAS
       LINUSE = ASCVAR-1
       IF(LOC .EQ. -1) GO TO 1002
       IF(LOC .EQ. OLDLOC) GO TO 1020
@@ -580,7 +593,8 @@ C
       HINTED(I)=.FALSE.
 1300  HINTLC(I)=0
 C
-D     TYPE 931,TABNDX,TABSIZ,VCOUNT,VRBSIZ,CLSSES,CLSMAX,
+CJASD     TYPE 931,TABNDX,TABSIZ,VCOUNT,VRBSIZ,CLSSES,CLSMAX,           JAS
+D     WRITE(KBOUT,931) TABNDX,TABSIZ,VCOUNT,VRBSIZ,CLSSES,CLSMAX,       JAS
 D    1      HNTMAX,HNTSIZ,TRVS,TRVSIZ,LINUSE,FILSIZ
 D931  FORMAT(' USED VS MAX TABLE VALUES:'/
 D    1      1X,I5,' OF ',I5,' VOCAB ENTRIES'/
@@ -779,6 +793,7 @@ C
       LOGICAL TOTING,HERE,AT,BITSET,DARK,WZDARK,LMWARN,CLOSNG,PANIC,
      1       CLOSED,GAVEUP,SCORNG,YEA
 C
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /VERSN/ VMAJ,VMIN,VEDIT
       COMMON /TXTCOM/ RTEXT,LINES,ASCVAR
       COMMON /ALPHAS/ BLANK,EOF,CYE,CY,CNO,CN,CPO,CUR,CWE,CST,
@@ -1109,7 +1124,8 @@ C  NOW WE KNOW WHAT'S HAPPENING.  LET'S TELL THE POOR SUCKER ABOUT IT.
 C
       IF(DTOTAL.EQ.0)GOTO 2000
       IF(DTOTAL.EQ.1)GOTO 75
-      TYPE 67,DTOTAL
+CJAS  TYPE 67,DTOTAL                                                    JAS
+      WRITE(KBOUT,67) DTOTAL                                            JAS
 67    FORMAT(' There are ',I1,' threatening little dwarves in the'
      1      ,' room with you.')
       GOTO 77
@@ -1117,14 +1133,16 @@ C
 77    IF(ATTACK.EQ.0)GOTO 2000
       IF(DFLAG.EQ.2)DFLAG=3
       IF(ATTACK.EQ.1)GOTO 79
-      TYPE 78,ATTACK
+CJAS  TYPE 78,ATTACK                                                    JAS
+      WRITE(KBOUT,78) ATTACK                                            JAS
 78    FORMAT(' ',I1,' of them throw knives at you!')
       K=6
 82    IF(STICK.GT.1)GOTO 83
       CALL RSPEAK(K+STICK)
       IF(STICK.EQ.0)GOTO 2000
       GOTO 84
-83    TYPE 68,STICK
+CJAS83 TYPE 68,STICK                                                    JAS
+83    WRITE(KBOUT,68) STICK                                             JAS
 68    FORMAT(' ',I1,' of them get you!')
 84    OLDLC2=LOC
       GOTO 99
@@ -1319,7 +1337,8 @@ C
       IF(FIXED(K).NE.LOC.AND..NOT.HERE(K))GOTO 5100
 5010  IF(WD2.NE.0)GOTO 2800
       IF(VERB.NE.0)GOTO 4090
-      TYPE 5015
+CJAS  TYPE 5015                                                         JAS
+      WRITE(KBOUT,5015)                                                 JAS
 5015  FORMAT(' What do you want to do with the ',$)
       CALL A5TOA1(WD1,WD1A,WD1X,2H?  )
       GOTO 2600
@@ -1344,7 +1363,8 @@ C
       OBJ=ROD2
       GOTO 5010
 5190  IF((VERB.EQ.FIND.OR.VERB.EQ.INVENT).AND.WD2.EQ.0)GOTO 5010
-      TYPE 5199
+CJAS  TYPE 5199                                                         JAS
+      WRITE(KBOUT,5199)                                                 JAS
 5199  FORMAT(' I don''t see any ',$)
       CALL A5TOA1(WD1,WD1A,WD1X,2H.  )
       GOTO 2012
@@ -1577,7 +1597,8 @@ C  TRANSITIVE CODE, AND SOME VERBS USE CODE FOR OTHER VERBS, AS NOTED BELOW.
 C
 C  RANDOM INTRANSITIVE VERBS COME HERE.  CLEAR OBJ JUST IN CASE (SEE "ATTACK").
 C
-8000  TYPE 8002
+CJAS8000  TYPE 8002                                                     JAS
+8000  WRITE(KBOUT,8002)                                                 JAS
 8002  FORMAT(' I don''t understand "',$)
       CALL A5TOA1(WD1,WD1A,WD1X,2H".  )
       OBJ=0
@@ -1691,7 +1712,8 @@ C
       WD1X=WD2X
 9031  CALL VOCAB(WD1,WD1A,-1,I)
       IF(I.EQ.62.OR.I.EQ.65.OR.I.EQ.71.OR.I.EQ.2025)GOTO 9035
-      TYPE 9032
+CJAS  TYPE 9032                                                         JAS
+      WRITE(KBOUT,9032)                                                 JAS
 9032  FORMAT(' Okay, "',$)
       CALL A5TOA1(WD1,WD1A,WD1X,2H".  )
       GOTO 2012
@@ -2086,7 +2108,8 @@ C
       GOTO 20000
 C
 8241  SCORNG=.FALSE.
-      TYPE 8243,SCORE,MXSCOR
+CJAS  TYPE 8243,SCORE,MXSCOR                                            JAS
+      WRITE(KBOUT,8243) SCORE,MXSCOR                                    JAS
 8243  FORMAT(' If you were to quit now, you would score',I4
      1      ,' out of a possible',I4,'.')
       GAVEUP=YES(143,54,54)
@@ -2195,7 +2218,8 @@ C            CAVE  BIRD  SNAKE MAZE  DARK  WITT
 C
 40010 HINTLC(HINT)=0
       IF(.NOT.YES(HINTS(HINT,3),0,54))GOTO 2602
-      TYPE 40012,HINTS(HINT,2)
+CJAS  TYPE 40012,HINTS(HINT,2)                                          JAS
+      WRITE(KBOUT,40012) HINTS(HINT,2)                                  JAS
 40012 FORMAT(' I am prepared to give you a hint, but it will cost you',
      1      I2,' points.')
       HINTED(HINT)=YES(175,HINTS(HINT,4),54)
@@ -2433,30 +2457,36 @@ C
 C
 C  THAT SHOULD BE GOOD ENOUGH.  LET'S TELL HIM ALL ABOUT IT.
 C
-      TYPE 20100,SCORE,MXSCOR,TURNS
+CJAS  TYPE 20100,SCORE,MXSCOR,TURNS                                     JAS
+      WRITE(KBOUT,20100) SCORE,MXSCOR,TURNS                             JAS
 20100 FORMAT(/' You scored',I4,' out of a possible',I4,
      1      ', using',I5,' turns.')
 C
       DO 20200 I=1,CLSSES
       IF(CVAL(I).GE.SCORE)GOTO 20210
 20200 CONTINUE
-      TYPE 20202
+CJAS  TYPE 20202                                                        JAS
+      WRITE(KBOUT,20202)                                                JAS
 20202 FORMAT(' You just went off my scale!!'/)
       GOTO 25000
 C
 20210 CALL SPEAK(CTEXT(I))
       IF(I.EQ.CLSSES-1)GOTO 20220
       K=CVAL(I)+1-SCORE
-      TYPE 20212,K
+CJAS  TYPE 20212,K                                                      JAS
+      WRITE(KBOUT,20212) K                                              JAS
 20212 FORMAT(' To achieve the next higher rating, you need',I3,
      1      ' more point',$)
-      IF(K.EQ.1) TYPE 20213
-      IF(K.NE.1) TYPE 20214
+CJAS  IF(K.EQ.1) TYPE 20213                                             JAS
+      IF(K.EQ.1) WRITE(KBOUT,20213)                                     JAS
+CJAS  IF(K.NE.1) TYPE 20214                                             JAS
+      IF(K.NE.1) WRITE(KBOUT,20214)                                     JAS
 20213 FORMAT('+.'/)
 20214 FORMAT('+s.'/)
       GOTO 25000
 C
-20220 TYPE 20222
+CJAS20220 TYPE 20222                                                    JAS
+20220 WRITE(KBOUT,20222)                                                JAS
 20222 FORMAT(' To achieve the next higher rating ',
      1      'would be a neat trick!'/' Congratulations!!'/)
 C
@@ -2475,26 +2505,30 @@ C
 C  PRINT THE MESSAGE IN RECORD N OF THE RANDOM ACCESS MESSAGE FILE.
 C
       IMPLICIT INTEGER (A-Z)
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /TXTCOM/ RTEXT,LINES,ASCVAR
       COMMON /ALPHAS/ BLANK,EOF
       DIMENSION RTEXT(205),LINES(36)
 C
       IF(N.EQ.0)RETURN
-      READ(2'N) LOC,LINES
+CJAS  READ(2'N) LOC,LINES                                               JAS
+      READ(DTFILE'N) LOC,LINES                                          JAS
       IF(LINES(1).EQ.EOF)RETURN
 1     OLDLOC = LOC
       DO 3 I=36,1,-1
       L = I
       IF(LINES(I) .NE. BLANK) GO TO 5
 3     CONTINUE
-5     TYPE 2,(LINES(I),I=1,L)
+CJAS5 TYPE 2,(LINES(I),I=1,L)                                           JAS
+5     WRITE(KBOUT,2) (LINES(I),I=1,L)                                   JAS
 2     FORMAT(' ',36A2)
-      READ(2'ASCVAR) LOC,LINES
+CJAS  READ(2'ASCVAR) LOC,LINES                                          JAS
+      READ(DTFILE'ASCVAR) LOC,LINES                                     JAS
       IF(LOC .EQ. OLDLOC) GO TO 1
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE PSPEAK(MSG,SKIP)
 C
@@ -2503,6 +2537,7 @@ C  MSG SHOULD BE THE INDEX OF
 C  THE OBJECT.  (INVEN+N+1 MESSAGE IS PROP=N MESSAGE).
 C
       IMPLICIT INTEGER (A-Z)
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /TXTCOM/ RTEXT,LINES,ASCVAR
       COMMON /PTXCOM/ PTEXT
       DIMENSION RTEXT(205),LINES(36),PTEXT(100)
@@ -2511,7 +2546,8 @@ C
       IF(SKIP.LT.0)GOTO 9
       OLDLOC=MSG
       DO 3 I=1,SKIP+1
-1     READ(2'M)LOC,LINES
+CJAS1 READ(2'M)LOC,LINES                                                JAS
+1     READ(DTFILE'M)LOC,LINES                                           JAS
       M = ASCVAR
       IF(LOC.EQ.OLDLOC) GO TO 1
       OLDLOC=LOC
@@ -2521,7 +2557,7 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE RSPEAK(I)
 C
@@ -2535,7 +2571,7 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE GETIN(WORD1,WORD1A,WORD1X,WORD2,WORD2A,WORD2X)
 C
@@ -2547,12 +2583,15 @@ C  BLANKS MAY FOLLOW THE WORD.  IF A SECOND WORD APPEARS, IT IS RETURNED IN
 C  WORD2 AND WORD2A (CHARS 5 AND 68 IN WORD2X), ELSE WORD2 IS SET TO ZERO.
 C
       IMPLICIT INTEGER (A-Z)
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       LOGICAL*1 FRST(20),BLANK,LCA,LCZ,UCA
       DATA BLANK/' '/,UCA/'A'/,LCA/'a'/,LCZ/'z'/
 C
-      TYPE 1
+CJAS  TYPE 1                                                            JAS
+      WRITE(KBOUT,1)                                                    JAS
 1     FORMAT(' >',$)
-2     ACCEPT 3,FRST
+CJAS2     ACCEPT 3,FRST                                                 JAS
+2     READ(KBIN,3) FRST                                                 JAS
 3     FORMAT(20A1)
 C
       DO 5 I=1,20
@@ -2591,7 +2630,7 @@ C
 C
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       LOGICAL FUNCTION YES(X,Y,Z)
 C
@@ -2599,13 +2638,15 @@ C  PRINT MESSAGE X, WAIT FOR YES/NO ANSWER.  IF YES, PRINT Y AND LEAVE YEA
 C  TRUE; IF NO, PRINT Z AND LEAVE YEA FALSE.
 C
       IMPLICIT INTEGER (A-Z)
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /ALPHAS/ BLANK,EOF,CYE,CY,CNO,CN
 C
 1     IF(X.NE.0)CALL RSPEAK(X)
       CALL GETIN(REPLY,JUNK1,JUNK2,JUNK3,JUNK4,JUNK5)
       IF(REPLY.EQ.CYE .OR. REPLY.EQ.CY)GOTO 10
       IF(REPLY.EQ.CNO .OR. REPLY.EQ.CN)GOTO 20
-      TYPE 9
+CJAS  TYPE 9                                                            JAS
+      WRITE(KBOUT,9)                                                    JAS
 9     FORMAT(' Please answer the question.')
       GOTO 1
 10    YES=.TRUE.
@@ -2632,12 +2673,17 @@ C AND TYPES IT OUT, FOLLOWED BY THE PUNCTUATION MARK IN D.
 C IT ALSO APPENDS A CRLF TO GET TO A NEW LINE.
 C
       IMPLICIT INTEGER (A-Z)
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /ALPHAS/ BLANK
 C
-      IF(A .NE. BLANK) TYPE 1,A
-      IF(B .NE. BLANK) TYPE 1,B
-      IF(C .NE. BLANK) TYPE 1,C
-      TYPE 2,D
+CJAS  IF(A .NE. BLANK) TYPE 1,A                                         JAS
+      IF(A .NE. BLANK) WRITE(KBOUT,1) A                                 JAS
+CJAS  IF(B .NE. BLANK) TYPE 1,B                                         JAS
+      IF(B .NE. BLANK) WRITE(KBOUT,1) B                                 JAS
+CJAS  IF(C .NE. BLANK) TYPE 1,C                                         JAS
+      IF(C .NE. BLANK) WRITE(KBOUT,1) C                                 JAS
+CJAS  TYPE 2,D                                                          JAS
+      WRITE(KBOUT,2) D                                                  JAS
       RETURN
 C
 1     FORMAT('+',A2,$)
@@ -2645,7 +2691,7 @@ C
 C
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
 C  DATA STRUCTURE ROUTINES (VOCAB, DSTROY, JUGGLE, MOVE, PUT, CARRY, DROP)
 C
@@ -2661,6 +2707,7 @@ C  (THUS "STEPS", WHICH IS A MOTION VERB AS WELL AS AN OBJECT, MAY BE LOCATED
 C  AS AN OBJECT.)  AND IT ALSO MEANS THE KTAB VALUE IS TAKEN MOD 1000.
 C
       IMPLICIT INTEGER (A-Z)
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /VOCCOM/ KTAB,ATAB,A2TAB,TABSIZ
       DIMENSION KTAB(300),ATAB(300),A2TAB(300)
 C
@@ -2673,7 +2720,8 @@ C
 C
 2     V=-1
       IF(INIT.LT.0)RETURN
-      TYPE 100,ID1,ID2
+CJAS  TYPE 100,ID1,ID2                                                  JAS
+      WRITE(KBOUT,100) ID1,ID2                                          JAS
 100   FORMAT(' KEYWORD = ',2A2)
       CALL BUG(5)
 C
@@ -2682,7 +2730,7 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE DSTROY(OBJECT)
 C
@@ -2694,7 +2742,7 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE JUGGLE(OBJECT)
 C
@@ -2712,7 +2760,7 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE MOVE(OBJECT,WHERE)
 C
@@ -2733,7 +2781,7 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       INTEGER FUNCTION PUT(OBJECT,WHERE,PVAL)
 C
@@ -2747,7 +2795,7 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE CARRY(OBJECT,WHERE)
 C
@@ -2774,7 +2822,7 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE DROP(OBJECT,WHERE)
 C
@@ -2799,10 +2847,11 @@ C
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
       SUBROUTINE BUG(NUM)
       IMPLICIT INTEGER (A-Z)
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
 C
 C  THE FOLLOWING CONDITIONS ARE CURRENTLY CONSIDERED FATAL BUGS.  NUMBERS < 20
 C  ARE DETECTED WHILE READING THE DATABASE; THE OTHERS OCCUR AT "RUN TIME".
@@ -2830,11 +2879,14 @@ C      26      LOCATION HAS NO TRAVEL ENTRIES
 C      27      HINT NUMBER EXCEEDS GOTO LIST
 C      28      INVALID MONTH RETURNED BY DATE FUNCTION
 C
-      TYPE 1, NUM
+CJAS  TYPE 1, NUM                                                       JAS
+      WRITE(KBOUT,1) NUM                                                JAS
 1     FORMAT (/' Fatal error ',I3,'.  Consult your local wizard.'/)
       CALL EXIT
       END
 C
+C======================================================================
+C      
       SUBROUTINE INIRND(I,J)
       IMPLICIT INTEGER(A-Z)
       INTEGER*4 R3
@@ -2846,6 +2898,8 @@ C
       R3 = R1+R2
       RETURN
       END
+C
+C======================================================================
 C
       INTEGER FUNCTION RND(RANGE)
       IMPLICIT INTEGER(A-Z)
@@ -2889,6 +2943,7 @@ C
       LOGICAL LMWARN,CLOSNG,PANIC,HINTED,
      1       CLOSED,GAVEUP,SCORNG,DSEEN
 C
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /VERSN/ VMAJ,VMIN,VEDIT
       COMMON /TXTCOM/ RTEXT,LINES,ASCVAR
       COMMON /ALPHAS/ BLANK,EOF,CYE,CY,CNO,CN,CPO,CUR,CWE,CST,
@@ -2925,35 +2980,50 @@ C
       DIMENSION HINTLC(20),HINTED(20),HINTS(20,4)
       DIMENSION TK(20),DSEEN(6),DLOC(6),ODLOC(6)
 C
-CJAS  IF(F1) CALL ASSIGN(1,'ASAVE.DAT')
-      IF(F1) OPEN(1,FILE='ASAVE.DAT',FORM='UNFORMATTED')
-CJAS  IF(.NOT.F1) CALL ASSIGN(1,'AINDX.DAT')
-      IF(.NOT.F1) OPEN(1,FILE='AINDX.DAT',FORM='UNFORMATTED')
-D     TYPE *,' -- SAVEGM FILE 1 OPENED--'      
+CJAS  IF(F1) CALL ASSIGN(1,'ASAVE.DAT')                                 JAS
+      IF(F1) OPEN(SVFILE,FILE='ASAVE.DAT',FORM='UNFORMATTED')           JAS
+CJAS  IF(.NOT.F1) CALL ASSIGN(1,'AINDX.DAT')                            JAS
+      IF(.NOT.F1) OPEN(SVFILE,FILE='AINDX.DAT',FORM='UNFORMATTED')      JAS
+D     WRITE(KBOUT,*) ' -- SAVEGM FILE 1 OPENED--'                       JAS      
 C
-      WRITE(1) VMAJ,VMIN,VEDIT
-      WRITE(1) RTEXT,KTAB,ATAB,A2TAB
-      WRITE(1) ATLOC,LINK,PLACE,FIXED,HOLDNG
-      WRITE(1) PTEXT,ABB,LINUSE,TRVS,CLSSES
-      WRITE(1) OLDLOC,LOC,CVAL,NEWLOC,KEY
-      WRITE(1) PLAC,FIXD,ACTSPK,COND,HINTS
-      WRITE(1) HNTMAX,PROP,TALLY,TALLY2,HINTLC
-      WRITE(1) CHLOC,CHLOC2,DSEEN,DFLAG,DLOC,DALTLC
-      WRITE(1) TURNS,LMWARN,KNFLOC,DETAIL,ABBNUM
-      WRITE(1) NUMDIE,MAXDIE,DKILL,FOOBAR,BONUS
-      WRITE(1) CLOCK1,CLOCK2,CLOSNG,PANIC,CLOSED
-      WRITE(1) GAVEUP,SCORNG,ODLOC,CTEXT,STEXT,LTEXT
-      WRITE(1) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC
+CJAS  WRITE(1) VMAJ,VMIN,VEDIT                                          JAS
+CJAS  WRITE(1) RTEXT,KTAB,ATAB,A2TAB                                    JAS
+CJAS  WRITE(1) ATLOC,LINK,PLACE,FIXED,HOLDNG                            JAS
+CJAS  WRITE(1) PTEXT,ABB,LINUSE,TRVS,CLSSES                             JAS
+CJAS  WRITE(1) OLDLOC,LOC,CVAL,NEWLOC,KEY                               JAS
+CJAS  WRITE(1) PLAC,FIXD,ACTSPK,COND,HINTS                              JAS
+CJAS  WRITE(1) HNTMAX,PROP,TALLY,TALLY2,HINTLC                          JAS
+CJAS  WRITE(1) CHLOC,CHLOC2,DSEEN,DFLAG,DLOC,DALTLC                     JAS
+CJAS  WRITE(1) TURNS,LMWARN,KNFLOC,DETAIL,ABBNUM                        JAS
+CJAS  WRITE(1) NUMDIE,MAXDIE,DKILL,FOOBAR,BONUS                         JAS
+CJAS  WRITE(1) CLOCK1,CLOCK2,CLOSNG,PANIC,CLOSED                        JAS
+CJAS  WRITE(1) GAVEUP,SCORNG,ODLOC,CTEXT,STEXT,LTEXT                    JAS
+CJAS  WRITE(1) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC                JAS
 C
-      IF(F1) TYPE 100
+      WRITE(SVFILE) VMAJ,VMIN,VEDIT                                     JAS
+      WRITE(SVFILE) RTEXT,KTAB,ATAB,A2TAB                               JAS
+      WRITE(SVFILE) ATLOC,LINK,PLACE,FIXED,HOLDNG                       JAS
+      WRITE(SVFILE) PTEXT,ABB,LINUSE,TRVS,CLSSES                        JAS
+      WRITE(SVFILE) OLDLOC,LOC,CVAL,NEWLOC,KEY                          JAS
+      WRITE(SVFILE) PLAC,FIXD,ACTSPK,COND,HINTS                         JAS
+      WRITE(SVFILE) HNTMAX,PROP,TALLY,TALLY2,HINTLC                     JAS
+      WRITE(SVFILE) CHLOC,CHLOC2,DSEEN,DFLAG,DLOC,DALTLC                JAS
+      WRITE(SVFILE) TURNS,LMWARN,KNFLOC,DETAIL,ABBNUM                   JAS
+      WRITE(SVFILE) NUMDIE,MAXDIE,DKILL,FOOBAR,BONUS                    JAS
+      WRITE(SVFILE) CLOCK1,CLOCK2,CLOSNG,PANIC,CLOSED                   JAS
+      WRITE(SVFILE) GAVEUP,SCORNG,ODLOC,CTEXT,STEXT,LTEXT               JAS
+      WRITE(SVFILE) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC           JAS
+C
+CJAS  IF(F1) TYPE 100                                                   JAS
+      IF(F1) WRITE(KBOUT,100)                                           JAS
 100   FORMAT(' Saved.')
 CJAS  CALL CLOSE(1)
-      CLOSE(1)
+      CLOSE(SVFILE)                                                     JAS
       F2=0
       RETURN
       END
 C
-C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+C======================================================================
 C
 C
       SUBROUTINE RSTRGM(F1,F2)
@@ -2962,6 +3032,7 @@ C
       LOGICAL LMWARN,CLOSNG,PANIC,HINTED,
      1       CLOSED,GAVEUP,SCORNG,DSEEN
 C
+      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
       COMMON /VERSN/ VMAJ,VMIN,VEDIT
       COMMON /TXTCOM/ RTEXT,LINES,ASCVAR
       COMMON /ALPHAS/ BLANK,EOF,CYE,CY,CNO,CN,CPO,CUR,CWE,CST,
@@ -2999,13 +3070,13 @@ C
       DIMENSION TK(20),DSEEN(6),DLOC(6),ODLOC(6)
 C
 1000  CONTINUE      
-CJAS  IF(F1) CALL ASSIGN(1,'ASAVE.DAT')
-      IF(F1) OPEN(1,FILE='ASAVE.DAT',STATUS='OLD',
-     1            FORM='UNFORMATTED',READONLY)
-CJAS  IF(.NOT.F1) CALL ASSIGN(1,'AINDX.DAT')
-      IF(.NOT.F1) OPEN(1,FILE='AINDX.DAT',FORM='UNFORMATTED',
-     1               STATUS='OLD',READONLY,ERR=8000)
-D     TYPE *,' -- RSTRGM 1 OPENED--'      
+CJAS  IF(F1) CALL ASSIGN(1,'ASAVE.DAT')                                 JAS
+      IF(F1) OPEN(SVFILE,FILE='ASAVE.DAT',STATUS='OLD',                 JAS
+     1            FORM='UNFORMATTED',READONLY)                          JAS
+CJAS  IF(.NOT.F1) CALL ASSIGN(1,'AINDX.DAT')                            JAS
+      IF(.NOT.F1) OPEN(SVFILE,FILE='AINDX.DAT',FORM='UNFORMATTED',      JAS
+     1               STATUS='OLD',READONLY,ERR=8000)                    JAS
+D     WRITE(KBOUT,*) ' -- RSTRGM 1 OPENED--'                            JAS      
       GOTO 9000
 C--------ERROR OPENING AINDX.DAT, INITIALIZE THE FILE AND TRY AGAIN.
 C--------THIS IS THE CODE FROM ABUILD.FOR      
@@ -3025,33 +3096,48 @@ C--------THIS IS THE CODE FROM ABUILD.FOR
 C
 9000  CONTINUE      
 C
-      READ(1) I1,I2,I3
+CJAS  READ(1) I1,I2,I3                                                  JAS
+      READ(SVFILE) I1,I2,I3                                             JAS
       IF((I1.NE.VMAJ).OR.(I2.NE.VMIN)) GO TO 50
 C
-      READ(1) RTEXT,KTAB,ATAB,A2TAB
-      READ(1) ATLOC,LINK,PLACE,FIXED,HOLDNG
-      READ(1) PTEXT,ABB,LINUSE,TRVS,CLSSES
-      READ(1) OLDLOC,LOC,CVAL,NEWLOC,KEY
-      READ(1) PLAC,FIXD,ACTSPK,COND,HINTS
-      READ(1) HNTMAX,PROP,TALLY,TALLY2,HINTLC
-      READ(1) CHLOC,CHLOC2,DSEEN,DFLAG,DLOC,DALTLC
-      READ(1) TURNS,LMWARN,KNFLOC,DETAIL,ABBNUM
-      READ(1) NUMDIE,MAXDIE,DKILL,FOOBAR,BONUS
-      READ(1) CLOCK1,CLOCK2,CLOSNG,PANIC,CLOSED
-      READ(1) GAVEUP,SCORNG,ODLOC,CTEXT,STEXT,LTEXT
-      READ(1) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC
+CJAS  READ(1) RTEXT,KTAB,ATAB,A2TAB                                     JAS
+CJAS  READ(1) ATLOC,LINK,PLACE,FIXED,HOLDNG                             JAS
+CJAS  READ(1) PTEXT,ABB,LINUSE,TRVS,CLSSES                              JAS
+CJAS  READ(1) OLDLOC,LOC,CVAL,NEWLOC,KEY                                JAS
+CJAS  READ(1) PLAC,FIXD,ACTSPK,COND,HINTS                               JAS
+CJAS  READ(1) HNTMAX,PROP,TALLY,TALLY2,HINTLC                           JAS
+CJAS  READ(1) CHLOC,CHLOC2,DSEEN,DFLAG,DLOC,DALTLC                      JAS
+CJAS  READ(1) TURNS,LMWARN,KNFLOC,DETAIL,ABBNUM                         JAS
+CJAS  READ(1) NUMDIE,MAXDIE,DKILL,FOOBAR,BONUS                          JAS
+CJAS  READ(1) CLOCK1,CLOCK2,CLOSNG,PANIC,CLOSED                         JAS
+CJAS  READ(1) GAVEUP,SCORNG,ODLOC,CTEXT,STEXT,LTEXT                     JAS
+CJAS  READ(1) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC                 JAS
+      READ(SVFILE) RTEXT,KTAB,ATAB,A2TAB                                JAS
+      READ(SVFILE) ATLOC,LINK,PLACE,FIXED,HOLDNG                        JAS
+      READ(SVFILE) PTEXT,ABB,LINUSE,TRVS,CLSSES                         JAS
+      READ(SVFILE) OLDLOC,LOC,CVAL,NEWLOC,KEY                           JAS
+      READ(SVFILE) PLAC,FIXD,ACTSPK,COND,HINTS                          JAS
+      READ(SVFILE) HNTMAX,PROP,TALLY,TALLY2,HINTLC                      JAS
+      READ(SVFILE) CHLOC,CHLOC2,DSEEN,DFLAG,DLOC,DALTLC                 JAS
+      READ(SVFILE) TURNS,LMWARN,KNFLOC,DETAIL,ABBNUM                    JAS
+      READ(SVFILE) NUMDIE,MAXDIE,DKILL,FOOBAR,BONUS                     JAS
+      READ(SVFILE) CLOCK1,CLOCK2,CLOSNG,PANIC,CLOSED                    JAS
+      READ(SVFILE) GAVEUP,SCORNG,ODLOC,CTEXT,STEXT,LTEXT                JAS
+      READ(SVFILE) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC            JAS
 C
-      IF(F1) TYPE 100
+CJAS  IF(F1) TYPE 100                                                   JAS
+      IF(F1) WRITE(KBOUT,100)                                           JAS
 100   FORMAT(' Restored.')
-CJAS  CALL CLOSE(1)
-      CLOSE(1)
+CJAS  CALL CLOSE(1)                                                     JAS
+      CLOSE(SVFILE)                                                     JAS
       F2=0
       RETURN
 C
-50    IF(F1) TYPE 110
+CJAS50 IF(F1) TYPE 110                                                  JAS              
+50    IF(F1) WRITE(KBOUT,110)                                           JAS
 110   FORMAT(' File is obsolete, RESTORE fails.')
-CJAS  CALL CLOSE(1)
-      CLOSE(1)
+CJAS  CALL CLOSE(1)                                                     JAS
+      CLOSE(SVFILE)                                                     JAS
       F2=-1
       RETURN
       END
