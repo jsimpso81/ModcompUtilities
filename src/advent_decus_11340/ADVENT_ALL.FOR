@@ -2481,8 +2481,10 @@ CJAS  IF(K.EQ.1) TYPE 20213                                             JAS
       IF(K.EQ.1) WRITE(KBOUT,20213)                                     JAS
 CJAS  IF(K.NE.1) TYPE 20214                                             JAS
       IF(K.NE.1) WRITE(KBOUT,20214)                                     JAS
-20213 FORMAT('+.'/)
-20214 FORMAT('+s.'/)
+CJAS20213 FORMAT('+.'/)                                                 JAS
+20213 FORMAT('.'/)                                                      JAS
+CJAS20214 FORMAT('+s.'/)                                                JAS
+20214 FORMAT('s.'/)                                                     JAS     
       GOTO 25000
 C
 CJAS20220 TYPE 20222                                                    JAS
@@ -2584,7 +2586,8 @@ C  WORD2 AND WORD2A (CHARS 5 AND 68 IN WORD2X), ELSE WORD2 IS SET TO ZERO.
 C
       IMPLICIT INTEGER (A-Z)
       COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
-      LOGICAL*1 FRST(20),BLANK,LCA,LCZ,UCA
+CJAS  LOGICAL*1 FRST(20),BLANK,LCA,LCZ,UCA                              JAS
+      CHARACTER*1 FRST(20),BLANK,LCA,LCZ,UCA                            JAS
       DATA BLANK/' '/,UCA/'A'/,LCA/'a'/,LCZ/'z'/
 C
 CJAS  TYPE 1                                                            JAS
@@ -2595,8 +2598,13 @@ CJAS2     ACCEPT 3,FRST                                                 JAS
 3     FORMAT(20A1)
 C
       DO 5 I=1,20
-      IF((FRST(I).GE.LCA).AND.(FRST(I).LE.LCZ))
-     1      FRST(I)=FRST(I)-LCA+UCA
+C--------TODO: MAKE THIS MORE EFFICIENT...                              JAS          
+CJAS  IF((FRST(I).GE.LCA).AND.(FRST(I).LE.LCZ))                         JAS
+CJAS 1      FRST(I)=FRST(I)-LCA+UCA                                     JAS
+      IF ( ICHAR(FRST(I)(1:1)) .GE. ICHAR(LCA(1:1)) .AND.               JAS
+     1     ICHAR(FRST(I)(1:1)) .LE. ICHAR(LCZ(1:1)) )                   JAS
+     2      FRST(I)(1:1) = CHAR(ICHAR(FRST(I)(1:1))-                    JAS
+     3                     ICHAR(LCA(1:1))+ICHAR(UCA(1:1)))             JAS          
 5     CONTINUE
       ST2 = 1
       IX1 = 0
@@ -2619,12 +2627,14 @@ C
       IF(FRST(I) .NE. BLANK) GO TO 25
 500   IX1 = MIN0(6,IX1)
       IX2 = MIN0(6,IX2)
+C--------TODO: DECODE NOT STD F77 USE READ...      
       DECODE(IX1,99,FRST) WORD1,WORD1A,WORD1X
 99    FORMAT(3A2)
       WORD2 = 0
       IF(IX2 .EQ. 0) RETURN
       DO 30 I=1,IX2
 30    FRST(I)=FRST(ST2+I-1)
+C--------TODO: DECODE NOT STD F77 USE READ...      
       DECODE(IX2,99,FRST) WORD2,WORD2A,WORD2X
       RETURN
 C
@@ -2686,8 +2696,10 @@ CJAS  TYPE 2,D                                                          JAS
       WRITE(KBOUT,2) D                                                  JAS
       RETURN
 C
-1     FORMAT('+',A2,$)
-2     FORMAT('+',A2)
+CJAS1     FORMAT('+',A2,$)                                              JAS
+1     FORMAT(A2,$)                                                      JAS
+CJAS2     FORMAT('+',A2)                                                JAS
+2     FORMAT(A2)                                                        JAS
 C
       END
 C
