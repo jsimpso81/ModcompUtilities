@@ -396,3 +396,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+#advent data files
+advent.u2d
+advent_pre_decus.u2d
+fort.2
+asave.dat
+AINDX.DAT
+advent_decus_11340.u2d
