@@ -68,6 +68,7 @@ C
       COMMON /MISC2/ I,RTXSIZ,CLSMAX,MAGSIZ,LOCSIZ,CTEXT,STEXT,LTEXT,
      1SECT,TRAVEL,TRVCON,TRVLOC,TRVSIZ,TABNDX,OBJ,J,K,VERB,HNTSIZ,
      2MAXTRS,HINTED,HNTLOC,KK
+      COMMON /MS2COM/ VCOUNT                                            JAS
 C
       DIMENSION LINES(36)
       DIMENSION TRAVEL(750),TRVCON(750),TRVLOC(750)
@@ -183,6 +184,7 @@ C
       COMMON /MISC2/ I,RTXSIZ,CLSMAX,MAGSIZ,LOCSIZ,CTEXT,STEXT,LTEXT,
      1SECT,TRAVEL,TRVCON,TRVLOC,TRVSIZ,TABNDX,OBJ,J,K,VERB,HNTSIZ,
      2MAXTRS,HINTED,HNTLOC,KK
+      COMMON /MS2COM/ VCOUNT                                            JAS
 C
       DIMENSION LINES(36)
       DIMENSION TRAVEL(750),TRVCON(750),TRVLOC(750)
@@ -311,7 +313,8 @@ C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C
 C INIT THE RANDOM NUMBER GENERATOR
 C
-      CALL IDATE(I,J,K)
+CJAS  CALL IDATE(I,J,K)                                                 JAS
+      CALL XDATE(I,J,K)                                                 JAS
       I=I.OR.K
       J=J.OR.K
       CALL INIRND(I,J)
@@ -335,12 +338,15 @@ C FIRST, TRY TO RESTORE PRE-EXISTING COPY OF DATA BASE
 C
       CALL RSTRGM(.FALSE.,I)
       IF(I.NE.0) GO TO 10
+      
+C--------GAME WAS RESTORED.                                             JAS      
 CJAS  CALL ASSIGN(2,'ATEXT.DAT')                                        JAS
-CJAS  OPEN(2,FILE='ATEXT.DAT', ACCESS='DIRECT', RECL=74,                JAS
-CJAS 1     STATUS='UNKNOWN', ACTION='READ' )                            JAS
-CJASD     TYPE *,' -- INIT FILE 2 OPENED--'                             JAS
-      DEFINE FILE 2(FILSIZ,37,U,ASCVAR)  
-D     WRITE(KBOUT,*) ' -- INIT FILE 2 DEFINED--'                        JAS      
+      OPEN(2,FILE='ATEXT.DAT', ACCESS='DIRECT', RECL=74,                JAS
+     1     STATUS='UNKNOWN', ACTION='READ' )                            JAS
+      ASCVAR = 1                                                        JAS
+D     WRITE(KBOUT,*) ' -- INIT FILE 2 OPENED--'                         JAS
+CJAS  DEFINE FILE 2(FILSIZ,37,U,ASCVAR)                                 JAS  
+CJASD WRITE(KBOUT,*) ' -- INIT FILE 2 DEFINED--'                        JAS      
       GO TO 5000
 C
 C- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -378,15 +384,16 @@ C
       COND(I)=0
 1001  CONTINUE
 C
-CJAS  CALL ASSIGN(1,'ATEXT.TXT')
-      OPEN(1,FILE='ATEXT.TXT',READONLY)
+CJAS  CALL ASSIGN(1,'ATEXT.TXT')                                        JAS
+      OPEN(1,FILE='ATEXT.TXT',READONLY)                                 JAS
 D     WRITE(KBOUT,*) ' -- LINE 1001 FILE 1 OPENED--'                    JAS      
-CJAS  CALL ASSIGN(2,'ATEXT.DAT')
-CJAS  OPEN(2,FILE='ATEXT.DAT', ACCESS='DIRECT', RECL=74, 
-CJAS 1     STATUS='UNKNOWN', ACTION='READWRITE' )
-CJASD     TYPE *,' -- LINE 1001 FILE 2 OPENED--'      
-      DEFINE FILE 2(FILSIZ,37,U,ASCVAR)
-D     WRITE(KBOUT,*) ' -- LINE 1001 FILE 2 DEFINED--'                   JAS      
+CJAS  CALL ASSIGN(2,'ATEXT.DAT')                                        JAS
+      OPEN(2,FILE='ATEXT.DAT', ACCESS='DIRECT', RECL=74,                JAS
+     1     STATUS='UNKNOWN', ACTION='READWRITE' )                       JAS
+      ASCVAR = 1                                                        JAS
+D     WRITE(KBOUT,*) ' -- INIT FILE 2 OPENED--'                         JAS
+CJAS  DEFINE FILE 2(FILSIZ,37,U,ASCVAR)                                 JAS
+CJASD WRITE(KBOUT,*) ' -- LINE 1001 FILE 2 DEFINED--'                   JAS      
       ASCVAR = 1
       LINUSE=1
       TRVS=1
@@ -409,10 +416,13 @@ C           (11)
 C
 C  SECTIONS 1, 2, 5, 6, 10.  READ MESSAGES AND SET UP POINTERS.
 C
-1004  READ(1,1005) LOC,LINES
+CJAS1004  READ(1,1005) LOC,LINES                                        JAS
+1004  READ(TXFILE,1005) LOC,LINES                                       JAS
 1005  FORMAT(I5,36A2)
 CJAS  WRITE(2'ASCVAR) LOC,LINES                                         JAS
-      WRITE(DTFILE'ASCVAR) LOC,LINES                                    JAS
+CJAS  WRITE(DTFILE'ASCVAR) LOC,LINES                                    JAS
+      WRITE(UNIT=DTFILE,REC=ASCVAR) LOC,LINES                           JAS
+      ASCVAR = ASCVAR+1                                                 JAS
       LINUSE = ASCVAR-1
       IF(LOC .EQ. -1) GO TO 1002
       IF(LOC .EQ. OLDLOC) GO TO 1020
@@ -455,7 +465,8 @@ C  SPECIAL CONDITIONS ON TRAVEL ARE ENCODED IN THE CORRESPONDING
 C  ENTRIES OF TRVCON.  THE NEW LOCATION IS IN TRVLOC.
 C
 C
-1030  READ(1,1031)LOC,J,NEWLOC,TK
+CJAS1030  READ(1,1031)LOC,J,NEWLOC,TK                                   JAS
+1030  READ(TXFILE,1031)LOC,J,NEWLOC,TK                                  JAS
 1031  FORMAT(99I6)
       IF(LOC.EQ.-1)GOTO 1002
       IF(KEY(LOC).NE.0)GOTO 1033
@@ -478,7 +489,8 @@ C  THE CORRESPONDING WORD.  THE -1 AT THE END OF SECTION 4 IS LEFT IN KTAB
 C  AS AN END-MARKER.
 C
 1040  DO 1042 TABNDX=1,TABSIZ
-1043  READ(1,1041)KTAB(TABNDX),ATAB(TABNDX),A2TAB(TABNDX)
+CJAS1043  READ(1,1041)KTAB(TABNDX),ATAB(TABNDX),A2TAB(TABNDX)           JAS
+1043  READ(TXFILE,1041)KTAB(TABNDX),ATAB(TABNDX),A2TAB(TABNDX)          JAS
 1041  FORMAT(I6,2A2)
       IF(KTAB(TABNDX).EQ.-1)GOTO 1002
 1042  CONTINUE
@@ -488,7 +500,8 @@ C  READ IN THE INITIAL LOCATIONS FOR EACH OBJECT.  ALSO THE IMMOVABILITY INFO.
 C  PLAC CONTAINS INITIAL LOCATIONS OF OBJECTS.  FIXD IS -1 FOR IMMOVABLE
 C  OBJECTS (INCLUDING THE SNAKE), OR = SECOND LOC FOR TWO-PLACED OBJECTS.
 C
-1050  READ(1,1031)OBJ,J,K
+CJAS1050  READ(1,1031)OBJ,J,K                                           JAS
+1050  READ(TXFILE,1031)OBJ,J,K                                          JAS
       IF(OBJ.EQ.-1)GOTO 1002
       IF(OBJ.GT.100) CALL BUG(13)
       PLAC(OBJ)=J
@@ -497,7 +510,8 @@ C
 C
 C  READ DEFAULT MESSAGE NUMBERS FOR ACTION VERBS, STORE IN ACTSPK.
 C
-1060  READ(1,1031)VERB,J
+CJAS1060  READ(1,1031)VERB,J                                            JAS
+1060  READ(TXFILE,1031)VERB,J                                           JAS
       IF(VERB.EQ.-1)GOTO 1002
       IF(VERB.GT.VRBSIZ) CALL BUG(10)
       ACTSPK(VERB)=J
@@ -506,7 +520,8 @@ D     VCOUNT=MAX0(VERB,VCOUNT)
 C
 C  READ INFO ABOUT AVAILABLE LIQUIDS AND OTHER CONDITIONS, STORE IN COND.
 C
-1070  READ(1,1031)K,TK
+CJAS1070  READ(1,1031)K,TK                                              JAS
+1070  READ(TXFILE,1031)K,TK                                             JAS
       IF(K.EQ.-1)GOTO 1002
       DO 1071 I=1,20
       LOC=TK(I)
@@ -518,7 +533,8 @@ C
 C  READ DATA FOR HINTS.
 C
 1080  HNTMAX=0
-1081  READ(1,1031)K,TK
+CJAS1081  READ(1,1031)K,TK                                              JAS
+1081  READ(TXFILE,1031)K,TK                                             JAS
       IF(K.EQ.-1)GOTO 1002
       IF(K.LT.0.OR.K.GT.HNTSIZ)CALL BUG(7)
       DO 1083 I=1,4
@@ -532,8 +548,8 @@ C  FINISH CONSTRUCTING INTERNAL DATA FORMAT
 C  THEN SAVE THE RESULTS
 C
 1100  CONTINUE
-CJAS  CALL CLOSE(1)
-      CLOSE(1)
+CJAS  CALL CLOSE(1)                                                     JAS
+      CLOSE(TXFILE)                                                     JAS
       CALL SAVEGM(.FALSE.,I)
 C
 C  HAVING READ IN THE DATABASE, CERTAIN THINGS ARE NOW CONSTRUCTED.  PROPS ARE
@@ -2514,7 +2530,9 @@ C
 C
       IF(N.EQ.0)RETURN
 CJAS  READ(2'N) LOC,LINES                                               JAS
-      READ(DTFILE'N) LOC,LINES                                          JAS
+CJAS  READ(DTFILE'N) LOC,LINES                                          JAS
+      READ(UNIT=DTFILE,REC=N) LOC,LINES                                 JAS
+      ASCVAR = N + 1                                                    JAS
       IF(LINES(1).EQ.EOF)RETURN
 1     OLDLOC = LOC
       DO 3 I=36,1,-1
@@ -2525,7 +2543,9 @@ CJAS5 TYPE 2,(LINES(I),I=1,L)                                           JAS
 5     WRITE(KBOUT,2) (LINES(I),I=1,L)                                   JAS
 2     FORMAT(' ',36A2)
 CJAS  READ(2'ASCVAR) LOC,LINES                                          JAS
-      READ(DTFILE'ASCVAR) LOC,LINES                                     JAS
+CJAS  READ(DTFILE'ASCVAR) LOC,LINES                                     JAS
+      READ(UNIT=DTFILE,REC=ASCVAR) LOC,LINES                            JAS
+      ASCVAR = ASCVAR + 1                                               JAS
       IF(LOC .EQ. OLDLOC) GO TO 1
       RETURN
       END
@@ -2549,7 +2569,9 @@ C
       OLDLOC=MSG
       DO 3 I=1,SKIP+1
 CJAS1 READ(2'M)LOC,LINES                                                JAS
-1     READ(DTFILE'M)LOC,LINES                                           JAS
+CJAS1 READ(DTFILE'M)LOC,LINES                                           JAS
+1     READ(UNIT=DTFILE,REC=M) LOC,LINES                                 JAS
+      ASCVAR = M + 1                                                    JAS
       M = ASCVAR
       IF(LOC.EQ.OLDLOC) GO TO 1
       OLDLOC=LOC
@@ -2897,34 +2919,6 @@ CJAS  TYPE 1, NUM                                                       JAS
       CALL EXIT
       END
 C
-C======================================================================
-C      
-      SUBROUTINE INIRND(I,J)
-      IMPLICIT INTEGER(A-Z)
-      INTEGER*4 R3
-CJAS  COMMON /RANDOM/ R1,R2
-      COMMON /RANDOM/ R1,R2, R3
-C
-      R1=I
-      R2=J
-      R3 = R1+R2
-      RETURN
-      END
-C
-C======================================================================
-C
-      INTEGER FUNCTION RND(RANGE)
-      IMPLICIT INTEGER(A-Z)
-      INTEGER*4 R3
-      REAL RAN
-CJAS  COMMON /RANDOM/ R1,R2
-      COMMON /RANDOM/ R1,R2, R3
-C
-CJAS  RND=RAN(R1,R2) *FLOAT(RANGE)
-      RND=INT(RAN(R3) *FLOAT(RANGE))
-      RETURN
-      END
-C
 C#######################################################################
 C---ASUSP.FOR
 C  SAVE/RESTORE PROCESSOR
@@ -2978,6 +2972,7 @@ C
       COMMON /MISC2/ I,RTXSIZ,CLSMAX,MAGSIZ,LOCSIZ,CTEXT,STEXT,LTEXT,
      1SECT,TRAVEL,TRVCON,TRVLOC,TRVSIZ,TABNDX,OBJ,J,K,VERB,HNTSIZ,
      2MAXTRS,HINTED,HNTLOC,KK
+      COMMON /MS2COM/ VCOUNT                                            JAS
 C
       DIMENSION LINES(36)
       DIMENSION TRAVEL(750),TRVCON(750),TRVLOC(750)
@@ -3025,11 +3020,13 @@ C
       WRITE(SVFILE) CLOCK1,CLOCK2,CLOSNG,PANIC,CLOSED                   JAS
       WRITE(SVFILE) GAVEUP,SCORNG,ODLOC,CTEXT,STEXT,LTEXT               JAS
       WRITE(SVFILE) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC           JAS
+C--------JAS ADDED THESE FOR STATS TO BE CORRECT.                       JAS
+      WRITE(SVFILE) TABNDX, VCOUNT                                      JAS
 C
 CJAS  IF(F1) TYPE 100                                                   JAS
       IF(F1) WRITE(KBOUT,100)                                           JAS
 100   FORMAT(' Saved.')
-CJAS  CALL CLOSE(1)
+CJAS  CALL CLOSE(1)                                                     JAS
       CLOSE(SVFILE)                                                     JAS
       F2=0
       RETURN
@@ -3067,6 +3064,7 @@ C
       COMMON /MISC2/ I,RTXSIZ,CLSMAX,MAGSIZ,LOCSIZ,CTEXT,STEXT,LTEXT,
      1SECT,TRAVEL,TRVCON,TRVLOC,TRVSIZ,TABNDX,OBJ,J,K,VERB,HNTSIZ,
      2MAXTRS,HINTED,HNTLOC,KK
+      COMMON /MS2COM/ VCOUNT                                            JAS
 C
       DIMENSION LINES(36)
       DIMENSION TRAVEL(750),TRVCON(750),TRVLOC(750)
@@ -3136,6 +3134,8 @@ CJAS  READ(1) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC                 JAS
       READ(SVFILE) CLOCK1,CLOCK2,CLOSNG,PANIC,CLOSED                    JAS
       READ(SVFILE) GAVEUP,SCORNG,ODLOC,CTEXT,STEXT,LTEXT                JAS
       READ(SVFILE) TRAVEL,TRVCON,TRVLOC,MAXTRS,HINTED,HNTLOC            JAS
+C--------JAS ADDED THESE FOR STATS TO BE CORRECT.                       JAS
+      READ(SVFILE) TABNDX, VCOUNT                                       JAS
 C
 CJAS  IF(F1) TYPE 100                                                   JAS
       IF(F1) WRITE(KBOUT,100)                                           JAS
@@ -3153,5 +3153,41 @@ CJAS  CALL CLOSE(1)                                                     JAS
       F2=-1
       RETURN
       END
-C--------END
+C      
+C#######################################################################
+C--------OPERATING SYSTEM SPECIFIC
+      SUBROUTINE XDATE(I,J,K)                                           JAS
+      IMPLICIT INTEGER (A-Z)                                            JAS
+      CALL IDATE(I,J,K)                                                 JAS
+      RETURN                                                            JAS
+      END                                                               JAS
+C
+C======================================================================
+C      
+      SUBROUTINE INIRND(I,J)
+      IMPLICIT INTEGER(A-Z)
+      INTEGER*4 R3
+CJAS  COMMON /RANDOM/ R1,R2                                             JAS
+      COMMON /RANDOM/ R1,R2, R3                                         JAS
+C
+      R1=I
+      R2=J
+      R3 = R1+R2                                                        JAS
+      RETURN
+      END
+C
+C======================================================================
+C
+      INTEGER FUNCTION RND(RANGE)
+      IMPLICIT INTEGER(A-Z)
+      INTEGER*4 R3
+      REAL RAN
+CJAS  COMMON /RANDOM/ R1,R2                                             JAS
+      COMMON /RANDOM/ R1,R2, R3                                         JAS
+C
+CJAS  RND=RAN(R1,R2) *FLOAT(RANGE)                                      JAS
+      RND=INT(RAN(R3) * FLOAT(RANGE))                                   JAS
+      RETURN
+      END
+C--------END      
 C#######################################################################
