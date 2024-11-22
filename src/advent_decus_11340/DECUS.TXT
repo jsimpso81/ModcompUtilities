@@ -1,0 +1,35 @@
+110340     ADVENTURE  Version: 3, November 1978
+ 
+Submitted by: Digital Equipment Corporation
+ 
+Operating System: IAS version 2 or later, RSTS/E version 6 or later,
+RSX-11D version 6 or later, RSX-11M version 3 or later, RT-11 version
+2C or later  Source Language: FORTRAN IV, MACRO-11  Memory Required:
+28KW user space  Keywords: Games
+ 
+Abstract: Adventure is a magical, unpredictable, and often
+addicting computer game that has caught on in the United
+States in near epidemic proportions.
+ 
+It is a treasure hunt with all the trimmings-mysteries
+and challenges that grow more and more complex as the
+game unravels. Adventure is more of a puzzle than a
+game. Once solved, it's mastered. The mastering,
+however, often takes months of drawing maps and planning
+strategy.
+ 
+Adventure's sweeping popularity lies in its power to
+enchant. Players are projected into a world of fantasy,
+one that blends the heart-pounding suspense of Treasure
+Island with the magic of Alice in Wonderland.
+ 
+Notes: Improved user interface; improved documentation.
+Adventure has been successfully run on an LSI-11/03 and
+an LSI-11/23. RT-11 V3/FORTRAN IV V2 gave one warning
+when compiling AMAIN.FOR for possible modification of DO
+loop parameter "HINT". Ignoring this message caused
+no problems.
+ 
+Media (Service Charge Code): Write-Up (AA), One RX01 Diskette (KA)
+Format: RT-11, 600' Magnetic Tape (MA)  Format: DOS-11 or RT-11 MEDIA
+FORMAT MUST BE SPECIFIED ON ORDER FORM

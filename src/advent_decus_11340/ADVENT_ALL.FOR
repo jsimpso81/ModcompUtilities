@@ -83,38 +83,41 @@ C
       DIMENSION HINTLC(20),HINTED(20),HINTS(20,4)
       DIMENSION TK(20),DSEEN(6),DLOC(6),ODLOC(6)
 C
-      DATA BLANK/' '/,CYE/'YE'/,CNO/'NO'/
-      DATA EOF/'>$'/,CY/'Y'/,CN/'N'/
-      DATA CPO/'PO'/,CUR/'UR'/,CWE/'WE'/,CST/'ST'/
-      DATA CEN/'EN'/,CTE/'TE'/
+CJAS  DATA BLANK/' '/,CYE/'YE'/,CNO/'NO'/                               JAS
+CJAS  DATA EOF/'>$'/,CY/'Y'/,CN/'N'/                                    JAS
+CJAS  DATA CPO/'PO'/,CUR/'UR'/,CWE/'WE'/,CST/'ST'/                      JAS
+CJAS  DATA CEN/'EN'/,CTE/'TE'/                                          JAS
 C
-      DATA VMAJ/3/,VMIN/0/,VEDIT/'A'/
+CJAS  DATA VMAJ/3/,VMIN/0/,VEDIT/'A'/                                   JAS
 C
+C--------INITIALIZE DATA.  TO MAKE IT EASIER FOR SOME COMPILERS         JAS
+C--------THAT REQUIRE BLOCK DATA.                                       JAS
+      BLANK = ' '                                                       JAS
+      CYE = 'YE'                                                        JAS
+      CNO = 'NO'                                                        JAS
+      EOF = '>$'                                                        JAS
+      CY = 'Y'                                                          JAS
+      CN = 'N'                                                          JAS
+      CPO = 'PO'                                                        JAS
+      CUR = 'UR'                                                        JAS
+      CWE = 'WE'                                                        JAS
+      CST = 'ST'                                                        JAS
+      CEN = 'EN'                                                        JAS
+      CTE = 'TE'                                                        JAS
+      VMAJ = 3                                                          JAS
+      VMIN = 0                                                          JAS
+      VEDIT = 'A'                                                       JAS
+C--------IO FILE UNIT NUMBERS.   KBIN AND KBOUT PSEUDO STANDARD.        JAS
+C--------DTFILE MUST MATCH THE DEFINE FILE.                             JAS
+      KBIN = 5                                                          JAS
+      KBOUT = 6                                                         JAS
+      TXFILE = 1                                                        JAS
+      DTFILE = 2                                                        JAS
+      SVFILE = 3                                                        JAS
+      
       CALL INIT
       CALL MAIN
       CALL EXIT
-      END
-C
-C#######################################################################
-C---THIS ROUTINE IS NEW
-      BLOCK DATA ADV
-      IMPLICIT INTEGER (A-Z)
-      COMMON /IOCOM/ KBIN, KBOUT, TXFILE, DTFILE, SVFILE                JAS
-      COMMON /VERSN/ VMAJ,VMIN,VEDIT
-      COMMON /ALPHAS/ BLANK,EOF,CYE,CY,CNO,CN,CPO,CUR,CWE,CST,
-     1      CEN,CTE
-C
-      DATA BLANK/' '/,CYE/'YE'/,CNO/'NO'/
-      DATA EOF/'>$'/,CY/'Y'/,CN/'N'/
-      DATA CPO/'PO'/,CUR/'UR'/,CWE/'WE'/,CST/'ST'/
-      DATA CEN/'EN'/,CTE/'TE'/
-C
-      DATA VMAJ/3/,VMIN/0/,VEDIT/'A'/
-C
-C--------IO FILE UNIT NUMBERS.   KBIN AND KBOUT PSEUDO STANDARD.        JAS
-C--------DTFILE MUST MATCH THE DEFINE FILE.                             JAS
-      DATA KBIN / 5 /, KBOUT / 6 / TXFILE / 1 /, DTFILE / 2 /           JAS
-      DATA SVFILE / 3 /                                                 JAS
       END
 C
 C#######################################################################
@@ -403,7 +406,8 @@ C  START NEW DATA SECTION.  SECT IS THE SECTION NUMBER.
 C
 CJAS1002  READ(1,1003)SECT                                              JAS
 1002  READ(TXFILE,1003)SECT                                             JAS
-1003  FORMAT(I5)
+CJAS1003  FORMAT(I5)                                                    JAS
+1003  FORMAT(I)                                                         JAS
 CJASD      TYPE 930,SECT                                                JAS
 D      WRITE(KBOUT,930),SECT                                            JAS
 D930  FORMAT(' NOW LOADING SECTION',I3)
@@ -418,7 +422,8 @@ C  SECTIONS 1, 2, 5, 6, 10.  READ MESSAGES AND SET UP POINTERS.
 C
 CJAS1004  READ(1,1005) LOC,LINES                                        JAS
 1004  READ(TXFILE,1005) LOC,LINES                                       JAS
-1005  FORMAT(I5,36A2)
+CJAS1005  FORMAT(I5,36A2)                                               JAS
+1005  FORMAT(I,36A2)                                                    JAS
 CJAS  WRITE(2'ASCVAR) LOC,LINES                                         JAS
 CJAS  WRITE(DTFILE'ASCVAR) LOC,LINES                                    JAS
       WRITE(UNIT=DTFILE,REC=ASCVAR) LOC,LINES                           JAS
@@ -467,7 +472,8 @@ C
 C
 CJAS1030  READ(1,1031)LOC,J,NEWLOC,TK                                   JAS
 1030  READ(TXFILE,1031)LOC,J,NEWLOC,TK                                  JAS
-1031  FORMAT(99I6)
+CJAS1031  FORMAT(99I6)                                                  JAS
+1031  FORMAT(99I)                                                       JAS
       IF(LOC.EQ.-1)GOTO 1002
       IF(KEY(LOC).NE.0)GOTO 1033
       KEY(LOC)=TRVS
@@ -491,7 +497,8 @@ C
 1040  DO 1042 TABNDX=1,TABSIZ
 CJAS1043  READ(1,1041)KTAB(TABNDX),ATAB(TABNDX),A2TAB(TABNDX)           JAS
 1043  READ(TXFILE,1041)KTAB(TABNDX),ATAB(TABNDX),A2TAB(TABNDX)          JAS
-1041  FORMAT(I6,2A2)
+CJAS1041  FORMAT(I6,2A2)                                                JAS
+1041  FORMAT(I,2A2)                                                     JAS
       IF(KTAB(TABNDX).EQ.-1)GOTO 1002
 1042  CONTINUE
       CALL BUG(4)
@@ -758,7 +765,7 @@ C
 C
 C  FINALLY, SINCE WE'RE CLEARLY SETTING THINGS UP FOR THE FIRST TIME...
 C
-D     PAUSE 'INIT DONE'
+D     PAUSE 'INIT DONE - PRESS RETURN TO START GAME'                    JAS
 C
       RETURN
       END
@@ -2508,7 +2515,9 @@ CJAS20220 TYPE 20222                                                    JAS
 20222 FORMAT(' To achieve the next higher rating ',
      1      'would be a neat trick!'/' Congratulations!!'/)
 C
-25000 RETURN
+25000 CONTINUE                                                          JAS
+      PAUSE 'PRESS RETURN TO EXIT'                                      JAS
+      RETURN                                                            JAS
 C
 C
       END
