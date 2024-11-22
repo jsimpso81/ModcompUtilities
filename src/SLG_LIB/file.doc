@@ -1,0 +1,26 @@
+DELX,DELY-----------------------------0 ATOM(0) =1      Z8000
+
+DELX----------------------------------1 ATOM(1-2)=01    Z6000
+DELY----------------------------------1 ATOM(1-2)=10
+X,Y-----------------------------------1 ATOM(1-2)=11
+
+CHAR H AND V SPACING -----------------2 ATOM(3-4)=01    Z1800
+CHAR H AND W -------------------------2 ATOM(3-4)=10
+
+SLANT ANGLE --------------------------3 ATOM(5-6)=01    Z0600
+ORIENTATION ANGLE --------------------3 ATOM(5-6)=10
+ANOTATION ANGLE ----------------------3 ATOM(5-6)=11
+
+SYMBOL -------------------------------4 ATOM(7-8)=01    Z0180
+TEXT ---------------------------------4 ATOM(7-8)=10
+FETCH COUNT AND TONE PATTERN----------4 ATOM(7-8)=11
+
+DETERMINE TONAL ZONE -----------------5 ATOM(9-10)=01   Z0060
+
+LINE WIDTH FOR CHAR ------------------6 ATOM(11-12)=01  Z0018
+LINE WIDTH FOR PLOTTING --------------6 ATOM (11-12)=10
+LINE TYPE FOR PLOTTING ---------------6 ATOM (11-12)=11
+
+LINE MASK ----------------------------7 ATOM(13-14)=01  Z0006
+OUTPUT FILE NAME----------------------7 ATOM(13-14)=10
+BAND IS COMPLETE ---------------------7 ATOM(13-14)=11

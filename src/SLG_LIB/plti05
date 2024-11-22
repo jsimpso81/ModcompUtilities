@@ -1,0 +1,190 @@
+C        ######  #       ####### #######   ###   #######
+C        #     # #          #       #     #   #  #
+C        #     # #          #       #    #     # #
+C        ######  #          #       #    #     #  #####
+C        #       #          #       #    #     #       #
+C        #       #          #       #     #   #  #     #
+C        #       #######    #    #######   ###    #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     PLOT CURVED LINES
+C
+C  Calling sequence:
+C     CALL PLTI05(LNTYP)
+C
+C  Parameter definitions:
+C     Input:            LNTYP   I*2     ???????
+C     Output:           NONE
+C
+C  Memory commons used:
+C     /IOUNIT/  READ    LOCAL COMMON WITH I/O UNIT NUMBERS
+C     /PS2COM/  WRITE   LOCAL COMMON FOR INTERNAL PASS2
+C
+C  Disk files used:
+C     NONE
+C
+C  Non disk I/O unit numbers used:
+C     NONE
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     PLTI06
+C
+C  Machine Transportable:       yes
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C     THIS WAS ORIGINALLY (PCRV) ONE OF THE EXTERNAL PASS2 ROUTINES.
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/01/87  JAS  CREATED
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLTI05(LNTYP)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         LU1, LU2, LU3, LU4, LU5
+      INTEGER*2         NPLOT, MINX, MAXX, NDX, NDY, LTYPE, LWDTH
+      INTEGER*2         NBITS, NBTM1, NBYTE, NBYM1, NCHAR, NCHM1, MSK
+      INTEGER*2         IBT, LDX, LDY, IXT, IYT, NDLTX, NDLTY, MOVY
+      INTEGER*2         NCLOCX, LMSK, ICH, ICW, IVS, IHS, ISCAN, NSCAN
+      INTEGER*2         NWORD, IM, LNTYP, I, NRUN
+      LOGICAL*2         COND1,COND2
+      INTEGER*4         IGOA,IGOB,IGOC,IGOD,IGOE,IGOF
+      REAL*4            DEGRAD, A2, A1, SUM, B1, B2
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL COMMONS
+      COMMON /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      COMMON /PS2COM/
+     &NPLOT,MINX,MAXX,NDX,NDY,LTYPE,LWDTH,DEGRAD,
+     &NBITS,NBTM1,NBYTE,NBYM1,NCHAR,NCHM1,MSK(7),IBT(16),
+     &LDX,LDY,IXT,IYT,NDLTX,NDLTY,MOVY,NCLOCX,
+     &LMSK(16),ICH,ICW,IVS,IHS,
+     &ISCAN,NSCAN,NWORD,IM(1)
+C*****NOTE: INTEGER*2 IM(NWORD) IS TRUE DIMENSION
+C           (AS SPECIFIED IN BLOCK COMMON AND MAIN)
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+                                                                        V02.01
+      DATA      I      / 0 /,                                           V02.01
+     :          NRUN   / 0 /,                                           V02.01
+     :          COND1  / .FALSE. /,                                     V02.01
+     :          COND2  / .FALSE. /,                                     V02.01
+     :          IGOA   / 0 /,                                           V02.01
+     :          IGOB   / 0 /,                                           V02.01
+     :          IGOC   / 0 /,                                           V02.01
+     :          IGOD   / 0 /,                                           V02.01
+     :          IGOE   / 0 /,                                           V02.01
+     :          IGOF   / 0 /,                                           V02.01
+     :          A2     / 0.0 /,                                         V02.01
+     :          A1     / 0.0 /,                                         V02.01
+     :          SUM    / 0.0 /,                                         V02.01
+     :          B1     / 0.0 /,                                         V02.01
+     :          B2     / 0.0 /                                          V02.01
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+C-----THE FOLLOWING LINE IS NOT LEGAL IN MODCOMP FORTRAN, AND HAS BEEN
+C-----REPLACED BY THE THREE FOLLOWING LINES
+CCC   IF (LNTYP.GT.0.XOR.MOVY.GT.0) GO TO 110
+      COND1=LNTYP.GT.0
+      COND2=MOVY.GT.0
+      IF (COND1.AND..NOT.COND2.OR..NOT.COND1.AND.COND2) GO TO 110
+C-----CW AND +MOVY OR CCW AND -MOVY
+      I=NDLTX
+      NDLTX=NDLTY
+      NDLTY=I
+      ASSIGN 500 TO IGOA
+      ASSIGN 600 TO IGOB
+      ASSIGN 210 TO IGOC
+      ASSIGN 250 TO IGOD
+      ASSIGN 380 TO IGOE
+      ASSIGN 350 TO IGOF
+      GO TO 150
+C-----CCW AND +MOVY OR CW AND -MOVY
+110   CONTINUE
+      ASSIGN 600 TO IGOA
+      ASSIGN 500 TO IGOB
+      ASSIGN 250 TO IGOC
+      ASSIGN 210 TO IGOD
+      ASSIGN 350 TO IGOE
+      ASSIGN 380 TO IGOF
+      GO TO 150
+C-----INITIALIZE DDA ACCUMULATORS
+150   CONTINUE
+      A2=NDLTX
+      A2=A2*A2
+      A1=A2+A2
+      B1=NDLTY
+      A2=-A2*(B1+B1-1.)
+      B2=B1*B1
+      B1=B2+B2
+      NRUN=0
+      SUM=B2
+C-----GENERATE INITIAL MOVES
+200   CONTINUE
+      NRUN=NRUN+1
+      I=NBITS-MOD(NRUN,NBITS)
+      CALL PLTI06(IXT,IYT,LMSK(I))
+      GO TO IGOA,(600,500)
+210   CONTINUE
+      IF (SUM+SUM+A2.LT.0.0) GO TO 250
+      SUM=SUM+A2
+      A2=A2+A1
+      GO TO IGOB,(500,600)
+250   CONTINUE
+      B2=B2+B1
+      IF (B2+A2.GE.0.0) GO TO 300
+      SUM=SUM+B2
+      GO TO 200
+C-----GENERATE NON-INITIAL MOVES
+300   CONTINUE
+      IGOC=IGOE
+      IGOD=IGOF
+310   CONTINUE
+      NRUN=NRUN+1
+      I=NBITS-MOD(NRUN,NBITS)
+      CALL PLTI06(IXT,IYT,LMSK(I))
+      IF (A2.GE.0.0) GO TO 999
+      GO TO IGOB,(500,600)
+350   CONTINUE
+      SUM=SUM+A2
+      IF (SUM+SUM+B2.GE.0.0) GO TO 380
+      SUM=SUM+B2
+      B2=B2+B1
+      GO TO IGOA,(600,500)
+380   CONTINUE
+      A2=A2+A1
+      GO TO 310
+C-----MOVE ALONG Y
+500   CONTINUE
+      IYT=IYT+MOVY
+      GO TO IGOC,(210,250,380,350)
+C-----MOVE +X
+600   CONTINUE
+      IXT=IXT+1
+      IF (IXT.GE.NSCAN) GO TO 999
+      GO TO IGOD,(250,210,350,380)
+999   CONTINUE
+      RETURN
+      END

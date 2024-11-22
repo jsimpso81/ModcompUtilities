@@ -1,0 +1,114 @@
+C        ######  #       ####### #######   ###   #    #
+C        #     # #          #       #     #   #  #    #
+C        #     # #          #       #    #     # #    #
+C        ######  #          #       #    #     # #######
+C        #       #          #       #    #     #      #
+C        #       #          #       #     #   #       #
+C        #       #######    #    #######   ###        #
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     PUT DATA INTO THE PASS2 PLOTTING WORK FILE.
+C
+C  Calling sequence:
+C     CALL PLTI04( K, IW )
+C
+C  Parameter definitions:
+C     Input:            K       I*2     THE COMMAND WORD WHERE
+C                                       -1=REINIT THE FILE
+C                                        0=ADD A WORD TO THE FILE
+C                                        1=CLOSE THE FILE
+C                       IW      I*2     THE NEW DATA WORD TO PUT INTO
+C                                       THE FILE.
+C     Output:           NONE
+C
+C  Memory commons used:
+C     /IOUNIT/  READ    LOCAL COMMON FOR I/O UNIT NUMBERS
+C
+C  Disk files used:
+C     LU5       WRITE   PASS2 WORK FILE
+C
+C  Non disk I/O unit numbers used:
+C     NONE
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     NONE
+C
+C  Machine Transportable:       yes
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C     THIS WAS ORIGINALLY ONE OF THE EXTERNAL PASS2 ROUTINES.
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/01/87  JAS  CREATED.
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLTI04(K,IW)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         K, IW, JBLK, JBUF, LU1, LU2, LU3, LU4, LU5
+      INTEGER*2         INDEX
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+      PARAMETER         ( JBLK=126 )
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL DIMENSIONS
+      DIMENSION JBUF(JBLK)
+
+C--------LOCAL COMMONS
+      COMMON            /IOUNIT/LU1,LU2,LU3,LU4,LU5
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+                                                                        V02.01
+      DATA      INDEX  / 0 /,                                           V02.01
+     :          JBUF   / JBLK * 0 /                                     V02.01
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      IF (K) 1,2,4
+
+C--------RE-INIT THE PASS2 WORK FILE
+1     CONTINUE
+      REWIND LU5
+      INDEX=0
+      GOTO 9900
+
+C--------ADD A WORD TO THE FILE
+2     CONTINUE
+      IF (INDEX.LT.JBLK) GO TO 3
+      WRITE (LU5) JBUF
+      INDEX=0
+3     CONTINUE
+      INDEX=INDEX+1
+      JBUF(INDEX)=IW
+      GOTO 9900
+
+C--------WRITE THE BUFFER AND CLOSE THE FILE.
+4     CONTINUE
+      WRITE (LU5) JBUF
+      INDEX=0
+      ENDFILE LU5
+
+C--------BACK TO THE USER.
+9900  CONTINUE
+      RETURN
+      END

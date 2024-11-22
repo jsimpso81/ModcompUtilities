@@ -1,0 +1,105 @@
+C        ######  #       ####### #######   ###    #####
+C        #     # #          #       #     #   #  #     #
+C        #     # #          #       #    #     # #
+C        ######  #          #       #    #     # ######
+C        #       #          #       #    #     # #     #
+C        #       #          #       #     #   #  #     #
+C        #       #######    #    #######   ###    #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C
+C  Calling sequence:
+C     CALL ::::::(X,X,X,X)
+C
+C  Parameter definitions:
+C     Input:            XXXXXX  I*2   DESC.
+C     Output:           XXXXXX  I*2   DESC.
+C
+C  Memory commons used:
+C     /XXXCOM/  READ/WRITE      DESC.
+C
+C  Disk files used:
+C     XXX       READ/WRITE      DESC.
+C
+C  Non disk I/O unit numbers used:
+C     XXX       read/write      desc.
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     XXXXXX    DESC.
+C
+C  Machine Transportable:       yes/no  reason if no.
+C
+C  Station Dependent:           no/yes  system name if yes
+C
+C  Comments:
+C     THIS ROUTINE WAS ORIGINALLY (PDOT) PART OF THE EXTERNAL PASS2
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  xx/xx/xx  who  why...........
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLTI06(IX,IY,LN)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         IX, IY, LN
+      INTEGER*2         LU1, LU2, LU3, LU4, LU5
+      INTEGER*2         NPLOT, MINX, MAXX, NDX, NDY, LTYPE, LWDTH
+      INTEGER*2         NBITS, NBTM1, NBYTE, NBYM1, NCHAR, NCHM1, MSK
+      INTEGER*2         IBT, LDX, LDY, IXT, IYT, NDLTX, NDLTY, MOVY
+      INTEGER*2         NCLOCX, LMSK, ICH, ICW, IVS, IHS
+      INTEGER*2         ISCAN, NSCAN, NWORD, IM, NDW, NDB, IDUMMY
+      REAL*4            DEGRAD
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL COMMONS
+      COMMON /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      COMMON /PS2COM/
+     &NPLOT,MINX,MAXX,NDX,NDY,LTYPE,LWDTH,DEGRAD,
+     &NBITS,NBTM1,NBYTE,NBYM1,NCHAR,NCHM1,MSK(7),IBT(16),
+     &LDX,LDY,IXT,IYT,NDLTX,NDLTY,MOVY,NCLOCX,
+     &LMSK(16),ICH,ICW,IVS,IHS,
+     &ISCAN,NSCAN,NWORD,IM(30720)
+C*****NOTE: INTEGER*2 IM(NWORD) IS TRUE DIMENSION
+C           (AS SPECIFIED IN BLOCK COMMON AND MAIN)
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+                                                                        V02.01
+      DATA      NDW    / 0 /,                                           V02.01
+     :          NDB    / 0 /,                                           V02.01
+     :          IDUMMY / 0 /                                            V02.01
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+C--------IS POINT WITHIN CURRENT BAND LIMITS?
+      IF (IX.LT.0.OR.IX.GE.NSCAN) GO TO 999
+
+C--------COMPUTE WORD & BIT SUBSCRIPTS FOR DOT POSITION
+      NDW=IX*ISCAN+IY/NBITS+1
+      NDB=NBITS-MOD(IY,NBITS)
+      IDUMMY=IBT(NDB)
+      IDUMMY=IAND(IDUMMY,LN)
+      IM(NDW)=IOR(IM(NDW),IDUMMY)
+
+C--------BACK TO CALLER
+999   CONTINUE
+      RETURN
+      END

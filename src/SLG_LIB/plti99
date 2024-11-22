@@ -1,0 +1,204 @@
+C        ######  #       ####### #######  #####   #####
+C        #     # #          #       #    #     # #     #
+C        #     # #          #       #    #     # #     #
+C        ######  #          #       #     ######  ######
+C        #       #          #       #          #       #
+C        #       #          #       #    #     # #     #
+C        #       #######    #    #######  #####   #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     THIS SUBROUTINE DOES THE PRINTER I/O FOR THE INTERNAL PASS2 PLOT.
+C
+C  Calling sequence:
+C     CALL PLTI99( NW )
+C
+C  Parameter definitions:
+C     Input:            XXXXXX  I*2   DESC.
+C     Output:           XXXXXX  I*2   DESC.
+C
+C  Memory commons used:
+C     /XXXCOM/  READ/WRITE      DESC.
+C
+C  Disk files used:
+C     XXX       READ/WRITE      DESC.
+C
+C  Non disk I/O unit numbers used:
+C     XXX       read/write      desc.
+C
+C  Local variable definitions:
+C     PTYPE =
+C           5 = PRINTRONIX 150/300/600
+C
+C  Subroutines called:
+C     XXXXXX    DESC.
+C
+C  Machine Transportable:       yes/no  reason if no.
+C
+C  Station Dependent:           no/yes  system name if yes
+C
+C  Comments:
+C     THIS WAS ORIGINALLY (PRNT) FROM THE EXTERNAL PASS2
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/01/87  JAS  MODIFIED.
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLTI99(NW)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         NW, LU1, LU2, LU3, LU4, LU5, IO, I6B, KREV, LOCX
+      INTEGER*2         LNAME, NPLOT, MINX, MAXX, NDX, NDY, LTYPE, LWDTH
+      INTEGER*2         NBITS, NBTM1, NBYTE, NBYM1, NCHAR, NCHM1, MSK
+      INTEGER*2         IBT, LDX, LDY, IXT, IYT, NDLTX, NDLTY, MOVY
+      INTEGER*2         NCLOCX, LMSK, ICH, ICW, IVS, IHS, NSCAN, NWORD
+      INTEGER*2         ISCAN, IM, NAME, KPLOT, ICC, KONE, KBLNK, JJ
+      INTEGER*2         IK, KK, ILINE, I, I1, I2, LOC1, LOC2, LOC3, J
+      LOGICAL*2         OPNFLG
+      LOGICAL*2         NEWPLT,NEWNAM
+      CHARACTER*20      FNAME
+      CHARACTER*20      FBLANK
+      REAL*4            DEGRAD
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL DIMENSIONS
+      DIMENSION         IO(48),I6B(8),KREV(64),LOCX(64)
+
+C--------LOCAL COMMONS
+      COMMON            /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      COMMON            /IOCNTL/NEWPLT,NEWNAM,LNAME,NAME(10)
+      COMMON            /PS2COM/
+     &NPLOT,MINX,MAXX,NDX,NDY,LTYPE,LWDTH,DEGRAD,
+     &NBITS,NBTM1,NBYTE,NBYM1,NCHAR,NCHM1,MSK(7),IBT(16),
+     &LDX,LDY,IXT,IYT,NDLTX,NDLTY,MOVY,NCLOCX,
+     &LMSK(16),ICH,ICW,IVS,IHS,
+     &ISCAN,NSCAN,NWORD,IM(30720)
+C*****NOTE: INTEGER*2 IM(NWORD) IS TRUE DIMENSION
+C           (AS SPECIFIED IN BLOCK COMMON AND MAIN)
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+
+C--------LOCAL DATA AREAS
+      DATA KPLOT/ Z'0500'/,ICC/' '/,KONE/'0'/,KBLNK/' '/
+      DATA FNAME / '                    ' /
+      DATA FBLANK / '                    ' /
+      DATA OPNFLG/.FALSE./
+
+C-----6-BIT REVERSAL TABLE
+C
+C     THE RANGE OF THE FOLLOWING NUMBERS IS 32-95
+C     IF VALUE OF LOWER SIX BITS IS < 32 THEN 64 WAS ADDED.
+C
+      DATA KREV/64,96,80,48,72,40,88,56,
+     &          68,36,84,52,76,44,92,60,
+     &          66,34,82,50,74,42,90,58,
+     &          70,38,86,54,78,46,94,62,
+     &          65,33,81,49,73,41,89,57,
+     &          69,37,85,53,77,45,93,61,
+     &          67,35,83,51,75,43,91,59,
+     &          71,39,87,55,79,47,95,63/
+                                                                        V02.01
+      DATA IO     / 48 * 0 /,                                           V02.01
+     :     I6B    / 8 * 0 /,                                            V02.01
+     :     LOCX   / 64 * 0 /,                                           V02.01
+     :     JJ     / 0 /,                                                V02.01
+     :     IK     / 0 /,                                                V02.01
+     :     KK     / 0 /,                                                V02.01
+     :     ILINE  / 0 /,                                                V02.01
+     :     I      / 0 /,                                                V02.01
+     :     I1     / 0 /,                                                V02.01
+     :     I2     / 0 /,                                                V02.01
+     :     LOC1   / 0 /,                                                V02.01
+     :     LOC2   / 0 /,                                                V02.01
+     :     LOC3   / 0 /,                                                V02.01
+     :     J      / 0 /                                                 V02.01
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C-----TEST EJECT REQUEST
+      IF (NW.GT.0) GO TO 22
+
+C-----SET EJECT FLAG.  AND NEW PLOT.
+      IF (NW.LE.0) ICC=KONE
+      NEWPLT=.TRUE.
+      OPNFLG=.FALSE.
+      GO TO 99
+
+C-----CHECK FOR NEW PLOT/NEW DEVICE NAME.  GET DEVICE IF NONE.
+   22 CONTINUE
+      IF (.NOT.NEWPLT) GO TO 60
+      NEWPLT=.FALSE.
+      IF(.NOT.NEWNAM) GO TO 60
+      NEWNAM=.FALSE.
+      IF (LNAME.GE.0) GO TO 50
+      LNAME = 0
+
+C--------OPEN THE FILE. ( DEFAULT OR OTHERWISE )
+   50 CONTINUE
+      OPNFLG=.TRUE.
+
+C--------PERFORM THE PRINTING.
+   60 CONTINUE
+      IK=NW/ISCAN
+      KK=0
+      DO 27 ILINE=1,IK
+      DO 222 I=1,ISCAN
+      KK=KK+1
+      IO(I)=IM(KK)
+222   CONTINUE
+      I1=1
+      I2=1
+   23 CONTINUE
+C-----FETCH 3 WORDS (=3*16=48 BITS)
+      LOC1=IO(I1  )
+      LOC2=IO(I1+1)
+      LOC3=IO(I1+2)
+C-----CONVERT TO 8 6-BIT CODES (48=8*6 BITS)
+      I6B(1)=    IAND(ISHFT(LOC1,-10), 63)
+      I6B(2)=    IAND(ISHFT(LOC1,-04), 63)
+      I6B(3)=IOR(IAND(ISHFT(LOC1,+02), 60),IAND(ISHFT(LOC2,-14), 03))
+      I6B(4)=    IAND(ISHFT(LOC2,-08), 63)
+      I6B(5)=    IAND(ISHFT(LOC2,-02), 63)
+      I6B(6)=IOR(IAND(ISHFT(LOC2,+04), 48),IAND(ISHFT(LOC3,-12), 15))
+      I6B(7)=    IAND(ISHFT(LOC3,-06), 63)
+      I6B(8)=    IAND(      LOC3     , 63)
+      DO 24 I=1,7,2
+      IF (I2.GT.NCLOCX) GO TO 25
+      LOCX(I2)=IOR(KREV(I6B(I+1)+1),ISHFT(KREV(I6B(I)+1),8))
+      I2=I2+1
+   24 CONTINUE
+      I1=I1+3
+      IF (I2.LE.NCLOCX) GO TO 23
+   25 CONTINUE
+      J=NCLOCX
+      DO 26 JJ=1,NCLOCX
+      IF (LOCX(J).NE. 16448) GO TO 260
+      J=J-1
+26    CONTINUE
+      J=1
+260   CONTINUE
+      IF ( ICC .EQ. KONE ) WRITE(LU3,2604) KONE
+      ICC = KBLNK
+      WRITE (LU3,2603) ICC,KPLOT,(LOCX(I),I=1,J)
+   27 CONTINUE
+ 2603 FORMAT (2A1,64A2)
+2604  FORMAT(A1)
+C-----
+   99 CONTINUE
+      RETURN
+      END

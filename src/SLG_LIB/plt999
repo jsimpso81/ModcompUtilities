@@ -1,0 +1,686 @@
+C        ######  #       #######  #####   #####   #####
+C        #     # #          #    #     # #     # #     #
+C        #     # #          #    #     # #     # #     #
+C        ######  #          #     ######  ######  ######
+C        #       #          #          #       #       #
+C        #       #          #    #     # #     # #     #
+C        #       #######    #     #####   #####   #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     THE INTERNAL PASS2 ROUTINE FOR PLOTTING.
+C
+C  Calling sequence:
+C     CALL PLT999( UNIT, PTYPE, SUBERR )
+C
+C  Parameter definitions:
+C     Input:            UNIT    I*2     OUTPUT DEVICE I/O UNIT NUMBER
+C                       PTYPE   I*2     PRINTER TYPE WHERE:
+C                                       5=P150/P300/P600
+C     Output:           SUBERR  I*2     RETURNED ERROR CODE WHERE:
+C                                       1=NO ERROR
+C                                       2=FATAL ERROR
+C
+C  Memory commons used:
+C     /IOUNIT/  WRITE   LOCAL COMMON FOR I/O UNIT NUMBERS
+C     /CHRCOM/  READ    LOCAL COMMON FOR CHARACTER FORMATION
+C     /IOCNTL/  READ    LOCAL COMMON FOR OUTPUT FILE CONTROL
+C     /PS2COM/  WRIT    LOCAL COMMON FOR PASS2
+C
+C  Disk files used:
+C     NONE
+C
+C  Non disk I/O unit numbers used:
+C     LU2       WRITE   ERROR MESSAGE TERMINAL
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     PLTI03
+C     PLTI04
+C     PLTI90                                                            V02.02
+C
+C  Machine Transportable:       no      VERY LIKELY THE BYTE ORDER
+C                                       IS NOT THE SAME ON OTHER
+C                                       MACHINES AS THIS PROGRAM
+C                                       ASSUMES.
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C     THIS WAS ORIGINALLY (PASS2) FROM THE EXTERNAL PASS2 ROUTINE.
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/01/87  JAS  CREATED.
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C  V02.02  06/02/88  JAS  Support more than 1 printer type.             V02.02
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLT999( UNIT, PTYPE, SUBERR )
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         UNIT,PTYPE,SUBERR
+      INTEGER*2         NODE, NBD, IQUAD, IDEGC, IDEGS, LINE
+      INTEGER*2         PLTI01, PLTI02, NDW, NX1, NY1, NX2, NY2
+      INTEGER*2         NPLOT,MINX,MAXX,NDX,NDY,LTYPE,LWDTH
+      INTEGER*2         NBITS,NBTM1,NBYTE,NBYM1,NCHAR,NCHM1,MSK,IBT
+      INTEGER*2         LDX,LDY,IXT,IYT,NDLTX,NDLTY,MOVY,NCLOCX
+      INTEGER*2         LMSK,ICH,ICW,IVS,IHS, ITP, LMASK, LCH, LCW, LVS
+      INTEGER*2         ISCAN,NSCAN,NWORD,IM, LHS, NVD, J, IXXXXX, NB
+      INTEGER*2         LU1,LU2,LU3,LU4,LU5, LTYPS, LXS, LYS, LWTHS
+      INTEGER*2         KHAR, MSKD, ITRIG, NX0, NY0, KK
+      INTEGER*2         LNAME,NAME, I, K, IX0, IPP, LWTHC, NTP
+      INTEGER*2         NSPX, NSPY, NSPT, NWD, IDUMMY, M, L, NH, NW
+      INTEGER*4         LRTN
+      LOGICAL*2         NEWPLT,NEWNAM
+      REAL*4            DEGRAD, XYDOTS, ATRIG, COS1, SIN1, CAA, SAA, T
+      REAL*4            COSTAB, COA, SOA, CSA, SSA, FLCH, FLCW, FLVS
+      REAL*4            FLHS, COST, SINT, C1, S1, C2, S2, X1, Y1, X2, Y2
+      REAL*4            RNDX1, RNDY1, RNDX2, RNDY2, SLOPE, T1, T2, SPT
+      REAL*4            Y
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL DIMENSIONS
+      DIMENSION NDW(2),NBD(2),SLOPE(2),Y(2)
+      DIMENSION NX1(15),NY1(15),NX2(15),NY2(15),MSKD(7),ITP(16)
+      DIMENSION XYDOTS(2)
+      DIMENSION COSTAB(91),ITRIG(4,4),ATRIG(4,2)
+
+C--------LOCAL COMMONS
+      COMMON /PS2COM/
+     &NPLOT,MINX,MAXX,NDX,NDY,LTYPE,LWDTH,DEGRAD,
+     &NBITS,NBTM1,NBYTE,NBYM1,NCHAR,NCHM1,MSK(7),IBT(16),
+     &LDX,LDY,IXT,IYT,NDLTX,NDLTY,MOVY,NCLOCX,
+     &LMSK(16),ICH,ICW,IVS,IHS,
+     &ISCAN,NSCAN,NWORD,IM(30720)
+C*****NOTE: INTEGER*2 IM(NWORD) IS TRUE DIMENSION
+C           (AS SPECIFIED IN BLOCK COMMON AND MAIN)
+      COMMON /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      COMMON /CHRCOM/ KHAR(129),NODE(950)
+      COMMON /IOCNTL/ NEWPLT,NEWNAM,LNAME,NAME(10)
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+
+C--------LOCAL DATA AREAS
+      DATA MSKD /  8191, 2047, 511, 127, 31, 7, 1/
+      DATA XYDOTS/72.,60./
+      DATA ATRIG /+1.0,-1.0,-1.0,+1.0,  +1.0,+1.0,-1.0,-1.0/
+      DATA ITRIG /   0, 180,-180, 360,    90, -90, 270,-270,
+     &              +1,  -1,  +1,  -1,    -1,  +1,  -1,  +1/
+      DATA COS1  /0.9998476951/
+      DATA SIN1  /0.0174524064/
+                                                                        V02.01
+      DATA NDW    / 2 * 0 /,                                            V02.01
+     :     NBD    / 2 * 0 /,                                            V02.01
+     :     SLOPE  / 2 * 0.0 /,                                          V02.01
+     :     Y      / 2 * 0.0 /,                                          V02.01
+     :     NX1    / 15 * 0 /,                                           V02.01
+     :     NY1    / 15 * 0 /,                                           V02.01
+     :     NX2    / 15 * 0 /,                                           V02.01
+     :     NY2    / 15 * 0 /,                                           V02.01
+     :     ITP    / 16 * 0 /,                                           V02.01
+     :     COSTAB / 91 * 0.0 /                                          V02.01
+                                                                        V02.01
+      DATA IQUAD  / 0 /,                                                V02.01
+     :     IDEGC  / 0 /,                                                V02.01
+     :     IDEGS  / 0 /,                                                V02.01
+     :     LINE   / 0 /,                                                V02.01
+     :     LMASK  / 0 /,                                                V02.01
+     :     LCH    / 0 /,                                                V02.01
+     :     LCW    / 0 /,                                                V02.01
+     :     LVS    / 0 /,                                                V02.01
+     :     LHS    / 0 /,                                                V02.01
+     :     NVD    / 0 /,                                                V02.01
+     :     J      / 0 /,                                                V02.01
+     :     IXXXXX / 0 /,                                                V02.01
+     :     NB     / 0 /,                                                V02.01
+     :     LTYPS  / 0 /,                                                V02.01
+     :     LXS    / 0 /,                                                V02.01
+     :     LYS    / 0 /,                                                V02.01
+     :     LWTHS  / 0 /,                                                V02.01
+     :     NX0    / 0 /,                                                V02.01
+     :     NY0    / 0 /,                                                V02.01
+     :     KK     / 0 /,                                                V02.01
+     :     I      / 0 /,                                                V02.01
+     :     K      / 0 /,                                                V02.01
+     :     IX0    / 0 /,                                                V02.01
+     :     IPP    / 0 /,                                                V02.01
+     :     LWTHC  / 0 /,                                                V02.01
+     :     NTP    / 0 /,                                                V02.01
+     :     NSPX   / 0 /,                                                V02.01
+     :     NSPY   / 0 /,                                                V02.01
+     :     NSPT   / 0 /,                                                V02.01
+     :     NWD    / 0 /,                                                V02.01
+     :     IDUMMY / 0 /,                                                V02.01
+     :     M      / 0 /,                                                V02.01
+     :     L      / 0 /,                                                V02.01
+     :     NH     / 0 /,                                                V02.01
+     :     NW     / 0 /,                                                V02.01
+     :     LRTN   / 0 /                                                 V02.01
+                                                                        V02.01
+      DATA CAA    / 0.0 /,                                              V02.01
+     :     SAA    / 0.0 /,                                              V02.01
+     :     T      / 0.0 /,                                              V02.01
+     :     COA    / 0.0 /,                                              V02.01
+     :     SOA    / 0.0 /,                                              V02.01
+     :     CSA    / 0.0 /,                                              V02.01
+     :     SSA    / 0.0 /,                                              V02.01
+     :     FLCH   / 0.0 /,                                              V02.01
+     :     FLCW   / 0.0 /,                                              V02.01
+     :     FLVS   / 0.0 /,                                              V02.01
+     :     FLHS   / 0.0 /,                                              V02.01
+     :     COST   / 0.0 /,                                              V02.01
+     :     SINT   / 0.0 /,                                              V02.01
+     :     C1     / 0.0 /,                                              V02.01
+     :     S1     / 0.0 /,                                              V02.01
+     :     C2     / 0.0 /,                                              V02.01
+     :     S2     / 0.0 /,                                              V02.01
+     :     X1     / 0.0 /,                                              V02.01
+     :     Y1     / 0.0 /,                                              V02.01
+     :     X2     / 0.0 /,                                              V02.01
+     :     Y2     / 0.0 /,                                              V02.01
+     :     RNDX1  / 0.0 /,                                              V02.01
+     :     RNDY1  / 0.0 /,                                              V02.01
+     :     RNDX2  / 0.0 /,                                              V02.01
+     :     RNDY2  / 0.0 /,                                              V02.01
+     :     T1     / 0.0 /,                                              V02.01
+     :     T2     / 0.0 /,                                              V02.01
+     :     SPT    / 0.0 /                                               V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      ASSIGN 300 TO LRTN
+C--------GENERATE COSINE-TABLE
+      CAA=1.0
+      SAA=0.0
+      DO 102 I=1,90
+      COSTAB(I)=CAA
+      T=CAA
+      CAA=COS1*T-SIN1*SAA
+      SAA=SIN1*T+COS1*SAA
+102   CONTINUE
+      COSTAB(91)=0.0
+C--------INITIALIZE FILE FROM PASS 1
+      K=PLTI02(-1)
+X     WRITE(LU2,*) ' PASS2-INIT 1-2 FILE ',K
+      CALL PLTI90(0,PTYPE)                                              V02.02
+100   CONTINUE
+X     WRITE(LU2,*) ' PASS2-START OF FRAME/PLOT'
+      CALL PLTI04(-1,0)
+C--------GENERATE WORK FILE
+110   CONTINUE
+      K=PLTI02(0)
+X     WRITE(LU2,*) ' PASS2-GEN WORK 1-2 FILE ',K
+      IF (K) 9999,150,120
+120   CONTINUE
+      DO 130 I=1,K
+      CALL PLTI04(0,PLTI02(0))
+130   CONTINUE
+      GO TO 110
+C--------INITIALIZE PLOT PROCESSING PROCEDURES
+150   CONTINUE
+X     WRITE(LU2,*) ' PASS2-WORK FILE GEN COMPLETE'
+      MINX=PLTI02(0)
+X     WRITE(LU2,*) ' PASS2-MINX 1-2 FILE ',MINX
+      MAXX=PLTI02(0)
+X     WRITE(LU2,*) ' PASS2-MAXX 1-2 FILE ',MAXX
+      CALL PLTI04(1,0)
+C--------SET FOR FIRST BAND
+      IX0=0
+C--------INITIALIZE BAND
+200   CONTINUE
+      LTYPE=PLTI01(-1)
+      LDX=-9999
+      LDY=-9999
+      IPP=-1
+      LWDTH=0
+      LWTHC=0
+      NTP=1
+      ITP(1)=-1
+      LMASK=-1
+      DO 210 I=1,NBITS
+      LMSK(I)=-1
+210   CONTINUE
+C--------CLEAR THE BAND
+      DO 220 I=1,NWORD
+      IM(I)=0
+220   CONTINUE
+C--------SET CHAR CONTROLS TO DEFAULT VALUES
+      CAA=1.0
+      SAA=0.0
+      COA=1.0
+      SOA=0.0
+      CSA=1.0
+      SSA=0.0
+      LCH=ICH
+      LCW=ICW
+      LVS=IVS
+      LHS=IHS
+      FLCH=FLOAT(LCH)/XYDOTS(2)
+      FLCW=FLOAT(LCW)/XYDOTS(1)
+      FLVS=FLOAT(LVS)/XYDOTS(2)
+      FLHS=FLOAT(LHS)/XYDOTS(1)
+      GO TO 3500
+C--------FETCH ATOM
+300   CONTINUE
+      NVD=PLTI01(+1)
+      IF (IAND(NVD,IBT(16)).NE.0) GO TO 800
+C--------TRY TO DECODE ATOM
+      J=13
+      DO 340 I=1,7
+      IF (IAND(NVD,MSK(I)).GT.0) GO TO 350
+      J=J-2
+340   CONTINUE
+C--------UNABLE TO DECODE ATOM--IGNORE
+      WRITE(LU2,12348) NVD
+12348 FORMAT(' PASS2-UNIDENTIFIED ATOM',I7)
+      GO TO  300
+C--------ATOM IDENTIFIED
+350   CONTINUE
+      K=IAND(ISHFT(NVD,-J), 3)-2
+X     WRITE(LU2,2143) 'I,K,J,NVD=',I,K,J,NVD
+X2143 FORMAT(1X,A10,3I6,2X,Z4.4)
+      NVD=IAND(NVD,MSKD(I))
+      GO TO  (410,420,430,440,450,460,470), I
+C-----------------------------------------------1 ATOM
+410   CONTINUE
+      IF (K) 1000,1300,1500
+C-----------------------------------------------2 ATOM
+420   CONTINUE
+      IF (K) 2000,2300,2500
+C-----------------------------------------------3 ATOM
+430   CONTINUE
+      IQUAD=NVD/90+1
+      IDEGC=ITRIG(IQUAD,1)+ITRIG(IQUAD,3)*NVD+1
+      IDEGS=ITRIG(IQUAD,2)+ITRIG(IQUAD,4)*NVD+1
+      COST=COSTAB(IDEGC)*ATRIG(IQUAD,1)
+      SINT=COSTAB(IDEGS)*ATRIG(IQUAD,2)
+      IF (K) 3000,3100,3200
+C-----------------------------------------------4 ATOM
+440   CONTINUE
+      IF (K) 4000,4100,4700
+C-----------------------------------------------5 ATOM
+450   CONTINUE
+      IF (K) 5000,5300,5500
+C-----------------------------------------------6 ATOM
+460   CONTINUE
+      IF (K) 6000,6400,6700
+C-----------------------------------------------7 ATOM
+470   CONTINUE
+      IF (K) 7000,7300,7500
+C--------DELX,DELY------------------------------0 ATOM(0) =1
+800   CONTINUE
+X     WRITE(LU2,*) ' DELTA X, DELTA Y'
+      NDY=LDY+IAND(NVD, 127)-63
+      NDX=LDX+IAND(ISHFT(NVD,-7), 127)-63
+      LINE =IAND(NVD,IBT(15))
+      GO TO 1700
+C--------DELX-----------------------------------1 ATOM(1-2)=01
+1000  CONTINUE
+X     WRITE(LU2,*) ' DELTA X'
+      LINE=IAND(NVD,IBT(13))
+      NDX=LDX+NVD-LINE-2047
+      GO TO 1700
+C--------DELY-----------------------------------1 ATOM(1-2)=10
+1300  CONTINUE
+X     WRITE(LU2,*) ' DELTA Y'
+      LINE=IAND(NVD,IBT(13))
+      NDY=LDY+NVD-LINE-2047
+      GO TO 1700
+C--------X,Y------------------------------------1 ATOM(1-2)=11
+1500  CONTINUE
+X     WRITE(LU2,*) ' X,Y'
+      NDY=NVD
+      NVD=PLTI01(+1)
+      NDX=IAND(NVD, 32767)-IX0
+      LINE=IAND(ISHFT(NVD,-1),IBT(15))
+      GO TO 1700
+C--------POINT OR LINE?
+1700  CONTINUE
+      IF (IPP.NE.0) GO TO 1720
+C--------PLOT POINT
+      LDX=NDX
+      LDY=NDY
+      GO TO 1730
+C--------PLOT LINE
+1720  CONTINUE
+      IF (LINE.EQ.0) GO TO 1750
+1730  CONTINUE
+      CALL PLTI03
+1750  CONTINUE
+      LDX=NDX
+      LDY=NDY
+      GO TO LRTN,(300,4410)
+C--------CHAR H AND V SPACING ------------------2 ATOM(3-4)=01
+2000  CONTINUE
+X     WRITE(LU2,*) ' CHARACTER SPACING'
+      LHS=NVD
+      LVS=PLTI01(+1)
+      FLHS=FLOAT(LHS)/XYDOTS(1)
+      FLVS=FLOAT(LVS)/XYDOTS(2)
+      GO TO 3700
+C--------CHAR H AND W --------------------------2 ATOM(3-4)=10
+2300  CONTINUE
+X     WRITE(LU2,*) ' CHARACTER SIZE'
+      LCW=NVD
+      LCH=PLTI01(+1)
+      FLCW=FLOAT(LCW)/XYDOTS(1)
+      FLCH=FLOAT(LCH)/XYDOTS(2)
+      GO TO 3600
+C--------UNUSED ATOM ---------------------------2 ATOM(3-4)=11
+2500  CONTINUE
+X     WRITE(LU2,*) ' UNUSED ATOM 2 ATOM(3-4)=11'
+      GOTO 300
+C--------SLANT ANGLE ---------------------------3 ATOM(5-6)=01
+3000  CONTINUE
+X     WRITE(LU2,*) ' CHARACTER SLANT'
+      CSA=COST
+      SSA=SINT
+      GO TO 3500
+C--------ORIENTATION ANGLE ---------------------3 ATOM(5-6)=10
+3100  CONTINUE
+X     WRITE(LU2,*) ' CHARACTER ORIENTATION'
+      COA=COST
+      SOA=SINT
+      GO TO 3500
+C--------ANOTATION ANGLE -----------------------3 ATOM(5-6)=11
+3200  CONTINUE
+X     WRITE(LU2,*) ' CHARACTER ANNOTATION'
+      CAA=COST
+      SAA=SINT
+      GO TO 3500
+C--------CHAR ROTATIONS
+3500  CONTINUE
+      C1=CAA*COA-SAA*SOA
+      S1=SAA*COA+CAA*SOA
+      C2=C1*CSA-S1*SSA
+      S2=S1*CSA-C1*SSA
+C--------CHAR VIRTUAL NODES
+3600  CONTINUE
+      X1=FLCW*C1*XYDOTS(1)
+      Y1=FLCW*S1*XYDOTS(2)
+      X2=-FLCH*S2*XYDOTS(1)
+      Y2=FLCH*C2*XYDOTS(2)
+      RNDX1=0.0
+      IF (X1.NE.0.0) RNDX1=SIGN(0.5,X1)
+      RNDY1=0.0
+      IF (Y1.NE.0.0) RNDY1=SIGN(0.5,Y1)
+      RNDX2=0.0
+      IF (X2.NE.0.0) RNDX2=SIGN(0.5,X2)
+      RNDY2=0.0
+      IF (Y2.NE.0.0) RNDY2=SIGN(0.5,Y2)
+      T=0.0
+      DO 3650 I=1,15
+      NX1(I)=T*X1+RNDX1
+      NY1(I)=T*Y1+RNDY1
+      NX2(I)=T*X2+RNDX2
+      NY2(I)=T*Y2+RNDY2
+      T=T+0.083333333
+3650  CONTINUE
+C--------CHAR SPACING
+3700  CONTINUE
+      T1=ABS(COA)*FLHS+ABS(SOA)*FLVS
+      T2=ABS(SOA)*FLHS+ABS(COA)*FLVS
+      NSPX=T1*CAA*XYDOTS(1)+0.5
+      NSPY=T1*SAA*XYDOTS(2)+0.5
+      SPT=ABS(CAA)*T1+ABS(SAA)*T2
+      NSPT=SPT*XYDOTS(1)+0.5
+      GO TO 300
+C--------SYMBOL --------------------------------4 ATOM(7-8)=01
+4000  CONTINUE
+X     WRITE(LU2,*) ' SYMBOL'
+      NX0=LDX-(NX1(9)+NX2(9))
+      NY0=LDY-(NY1(9)+NY2(9))
+      K=0
+      KK=1
+      NCHAR=NVD
+      GO TO 4200
+C--------TEXT ----------------------------------4 ATOM(7-8)=10
+4100  CONTINUE
+X     WRITE(LU2,*) ' TEXT'
+      NX0=LDX-(NX1(3)+NX2(3))
+      NY0=LDY-(NY1(3)+NY2(3))
+      K=NVD
+      KK=K
+      GO TO 4200
+C--------APPLY LIMITS FOR SYMBOLS/TEXT
+4200  CONTINUE
+      IXT=NX0
+      IYT=NX0+NSPX*KK
+      IF (IXT.LE.IYT) GO TO 4220
+      I=IXT
+      IXT=IYT
+      IYT=I
+4220  CONTINUE
+      IXT=IXT-NSPT
+      IYT=IYT+NSPT
+      IF (IXT.LT.NSCAN.AND.IYT.GE.0) GO TO 4280
+      IF (K.LE.0) GO TO  300
+      K=(K-1)/NBYTE+1
+      DO 4270 I=1,K
+      J=PLTI01(+1)
+4270  CONTINUE
+      GO TO 300
+C--------PREPARE FOR CHAR/SYMBOL GENERATION
+4280  CONTINUE
+      LXS=LDX
+      LYS=LDY
+      LWTHS=LWDTH
+      LWDTH=LWTHC
+      LTYPS=LTYPE
+      DO 4290 I=1,NBITS
+      LMSK(I)=-1
+4290  CONTINUE
+      ASSIGN 4410 TO LRTN
+      IF (K.LE.0) GO TO 4330
+C--------SET WORD EMPTY
+      NB=NBYTE+1
+C--------MORE BYTES IN THIS WORD?
+4300  CONTINUE
+      IF (NB.LE.NBYTE) GO TO 4320
+C--------NO, FETCH NEXT WORD
+4310  CONTINUE
+      NVD=PLTI01(+1)
+      NB=1
+C--------GET NEXT BYTE
+4320  CONTINUE
+      IF ( NB .EQ. 1 ) THEN
+         NCHAR = ISHFT( NVD, -8 )
+      ELSE IF ( NB .EQ. 2 ) THEN
+         NCHAR = IAND( NVD, 255 )
+      ELSE
+         WRITE(LU2,12345) NB
+      ENDIF
+12345 FORMAT(' BAD BYTE INDEX = ',I5)
+      NB=NB+1
+C--------NODE COUNT AND INITIAL INDEX
+4330  CONTINUE
+      LINE=0
+      LTYPE=0
+      IXXXXX=IAND(NCHAR,NCHM1)
+      I=KHAR(IXXXXX+1)
+      J=KHAR(IXXXXX+2)-I
+C--------FETCH NODE
+4360  CONTINUE
+      NW=NODE(I)
+      NH=IAND(NW, 15)
+      NW=IAND(ISHFT(NW,-4), 15)
+C--------LINE CONTROL?
+      IF (NW.GT.0) GO TO  4400
+C--------LINE CONTROL
+      IF (NH.GT.0) GO TO 4390
+      LINE=0
+      GO TO  4430
+4390  CONTINUE
+      LTYPE=NH-2
+      GO TO  4430
+C--------MOVE TO NODE
+4400  CONTINUE
+      NDX=NX0+NX1(NW)+NX2(NH)
+      NDY=NY0+NY1(NW)+NY2(NH)
+      GO TO 1720
+4410  CONTINUE
+      LINE =-1
+C--------ADVANCE TO NEXT NODE
+4430  CONTINUE
+      I=I+1
+C--------DECREMENT NODE COUNT AND TEST
+      J=J-1
+      IF (J.GT.0) GO TO 4360
+C--------DECREMENT CHAR COUNT AND TEST
+      K=K-1
+      IF (K.LE.0) GO TO  4500
+C--------MOVE TO LOCATION OF NEXT SYMBOL
+      NX0=NX0+NSPX
+      NY0=NY0+NSPY
+C--------GET NEXT SYMBOL
+      GO TO  4300
+C--------RESTORE AFTER CHAR/TEXT OPERATIONS
+4500  CONTINUE
+      NDX=LXS
+      NDY=LYS
+      LWDTH=LWTHS
+      LTYPE=LTYPS
+      ASSIGN 300 TO LRTN
+      GO TO 7010
+C--------FETCH COUNT AND TONE PATTERN-----------4 ATOM(7-8)=11
+4700  CONTINUE
+X     WRITE(LU2,*) ' TONE PATTERN'
+      NTP=IAND(NVD, 63)
+      IF (NVD.EQ.NTP) GO TO 300
+      DO 4750 I=1,NTP
+      ITP(I)=PLTI01(+1)
+4750  CONTINUE
+      GO TO 300
+C--------DETERMINE TONAL ZONE ------------------5 ATOM(9-10)=01
+5000  CONTINUE
+X     WRITE(LU2,*) ' TONAL ZONE'
+      DO 5020 I=1,2
+      L=PLTI01(+1)-MSK(1)
+      J=PLTI01(+1)
+      M=PLTI01(+1)-MSK(1)
+      K=PLTI01(+1)
+      SLOPE(I)=0.
+      IF (K.NE.J) SLOPE(I)=FLOAT(M-L)/FLOAT(K-J)
+      Y(I)=FLOAT(L)-SLOPE(I)*FLOAT(J)+0.5
+5020  CONTINUE
+C--------DELIMIT AREA SECTION WITHIN THE BAND
+      IF (J.GE.IX0) GO TO 5050
+      IF (K.LT.IX0) GO TO 300
+      J=IX0
+5050  CONTINUE
+      L=IX0+NSCAN-1
+      IF (J.GT.L) GO TO 300
+      IF (K.GT.L) K=L
+C--------CHECK EACH SCAN LINE
+      DO 5180 IXT=J,K
+      DO 5120 I=1,2
+      IYT=SLOPE(I)*FLOAT(IXT)+Y(I)
+      NDW(I)=(IXT-IX0)*ISCAN+IYT/NBITS+1
+      NBD(I)=NBITS-MOD(IYT,NBITS)
+5120  CONTINUE
+C--------INITIALIZE FOR EACH SCAN LINE
+      IDUMMY=MOD(IXT,NTP)+1
+      L=ITP(IDUMMY)
+      IDUMMY=NBD(1)
+      M=IBT(IDUMMY)-1
+      NWD=NDW(1)
+      NB=NDW(2)
+C--------WITHIN EACH SCAN LINE, EXAMINE AREA WORDS
+      DO 5180 I=NWD,NB
+      IF (NB.GT.I) GO TO 5150
+C--------HERE FOR LAST AREA WORD
+      IDUMMY=NBD(2)
+      M=M-(IBT(IDUMMY)-1)
+C--------TONE OR CLEAR AREA?
+5150  CONTINUE
+      IF (NVD.EQ.0) GO TO 5170
+C--------HERE IF TONE
+5160  CONTINUE
+      IM(I)=IOR(IM(I),IAND(L,M))
+      GO TO 5178
+C--------HERE IF CLEAR ZONE
+5170  CONTINUE
+      IM(I)=IAND(IM(I),-1-M)
+5178  CONTINUE
+      M=-1
+5180  CONTINUE
+      GO TO 300
+C--------UNUSED ATOM ---------------------------5 ATOM(09-10)=10
+5300  CONTINUE
+X     WRITE(LU2,*) ' UNUSED ATOM 5 ATOM(09-10)=10'
+      GOTO 300
+C--------UNUSED ATOM ---------------------------5 ATOM(09-10)=11
+5500  CONTINUE
+X     WRITE(LU2,*) ' UNUSED ATOM 5 ATOM(09-10)=11'
+      GOTO 300
+C--------LINE WIDTH FOR CHAR -------------------6 ATOM(11-12)=01
+6000  CONTINUE
+X     WRITE(LU2,*) ' WIDTH FOR CHARACTERS'
+      LWTHC=NVD
+      GO TO 300
+C--------LINE WIDTH FOR PLOTTING ---------------6 ATOM (11-12)=10
+6400  CONTINUE
+X     WRITE(LU2,*) ' WIDTH FOR PLOTTING'
+      LWDTH=NVD
+      GO TO 300
+C--------LINE TYPE FOR PLOTTING ----------------6 ATOM (11-12)=11
+6700  CONTINUE
+X     WRITE(LU2,*) ' LINE TYPE'
+      LTYPE=IAND(NVD, 1)-IAND(ISHFT(NVD,-1), 1)
+      IPP=NVD-3
+      GO TO 300
+C--------LINE MASK -----------------------------7 ATOM(13-14)=01
+7000  CONTINUE
+X     WRITE(LU2,*) ' LINE MASK'
+      LMASK=PLTI01(+1)
+C--------PREPARE LINE MASKS
+7010  CONTINUE
+      DO 7050 I=1,NBITS
+      LMSK(I)=0
+      IF (IAND(ISHFT(LMASK,1-I), 1).NE.0) LMSK(I)=-1
+7050  CONTINUE
+      GO TO 1750
+C--------OUTPUT FILE NAME-----------------------7 ATOM(13-14)=10
+7300  CONTINUE
+X     WRITE(LU2,*) ' OUTPUT FILE NAME'
+      LNAME=PLTI01(+1)
+      DO 7310 I=1,10
+      NAME(I)=PLTI01(I)
+7310  CONTINUE
+      NEWNAM=.TRUE.
+      GO TO 300
+C--------BAND IS COMPLETE ----------------------7 ATOM(13-14)=11
+7500  CONTINUE
+X     WRITE(LU2,*) ' END PLOT/FRAME'
+      IF (IX0+NSCAN.GT.MAXX) GO TO 7520
+C--------INTERMEDIATE BAND IS FULL
+      CALL PLTI90(NWORD,PTYPE)                                          V02.02
+      IX0=IX0+NSCAN
+      GO TO 200
+C--------FINAL BAND (PARTIAL)
+7520  CONTINUE
+      CALL PLTI90((MAXX-IX0+1)*ISCAN,PTYPE)                             V02.02
+      IF (NVD.NE.0) CALL PLTI90(0,PTYPE)                                V02.02
+      GO TO 100
+C--------END OF PROCESSING
+9999  CONTINUE
+      SUBERR = 1
+CCC   ENDFILE LU3
+      RETURN
+      END

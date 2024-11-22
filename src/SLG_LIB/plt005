@@ -1,0 +1,466 @@
+C        ######  #       #######   ###     ###   #######
+C        #     # #          #     #   #   #   #  #
+C        #     # #          #    #     # #     # #
+C        ######  #          #    #     # #     #  #####
+C        #       #          #    #     # #     #       #
+C        #       #          #     #   #   #   #  #     #
+C        #       #######    #      ###     ###    #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     PLOT FROM 1 TO 4 POINTS VERSUS ANOTHER POINTS VALUE.
+C     THIS IS USED FOR THE HOURLY FILE.
+C
+C  Calling sequence:
+C     CALL      PLT005( CONS, TITL, NSAMP, NPTS, PID, DSC, UNT,
+C    :                  SAMP1, SAMP2, SAMP3, SAMP4, SAMP5,
+C    :                  GOOD1, GOOD2, GOOD3, GOOD4,
+C    :                  TYPE, MIN, MAX, CURV, OPT, CRVMIN, CRVMAX,
+C    :                  SDAT, STIM, EDAT, ETIM, SUBERR)
+C
+C  Parameter definitions:
+C     Input:            CONS    I*2     CONSOLE NUMBER
+C                       TITL(16)I*2     TITLE OF PLOT
+C                       NSAMP   I*2     THE NUMBER OF SAMPLES
+C                       NPTS    I*2     THE NUMBER OF POINTS TO PLOT
+C                                       1-4
+C                       PID(3,5) I*2    THE EXTERNAL DATA POINT IDS
+C                       DSC(16,5) I*2   THE POINT DESCRIPTIONS
+C                       UNT(3,5) I*2    THE POINT'S VALUE UNITS
+C                       SAMP1(NSAMP) R*4 THE SAMPLES FOR POINT 1
+C                       SAMP2(NSAMP) R*4 THE SAMPLES FOR POINT 2
+C                       SAMP3(NSAMP) R*4 THE SAMPLES FOR POINT 3
+C                       SAMP4(NSAMP) R*4 THE SAMPLES FOR POINT 4
+C                       SAMP5(NSAMP) R*4 THE SAMPLES FOR POINT 5
+C                                        (THE INDEPENDENT VARIABLE)
+C                       GOOD1(NSAMP) I*2 INDICATOR THAT EACH SAMPLE IS
+C                                        VALID. 1=GOOD, 0=BAD (POINT 1)
+C                       GOOD2(NSAMP) I*2     "      "         (POINT 2)
+C                       GOOD3(NSAMP) I*2     "      "         (POINT 3)
+C                       GOOD4(NSAMP) I*2     "      "         (POINT 4)
+C                       TYPE(5) I*2     DATA TYPE WHERE:
+C                                       1-AVERAGE
+C                                       2-MINIMUM
+C                                       3-MAXIMUM
+C                                       5-DIGITAL
+C                       MIN(5)  R*4     THE MINUMUM SCALE VALUE.
+C                       MAX(5)  R*4     THE MAXIMUM SCALE VALUE.  IF
+C                                       THE MINUMUM AND MAXIUMUM ARE
+C                                       ZERO THEN SCALE VALUES WILL
+C                                       BE COMPUTED AUTOMATICALLY.
+C                       CURV(10,NPTS) R*4 COEFICIENTS FOR THE CURVE FIT.
+C                                       INDEX 1 IS THE ZERO ORDER TERM
+C                                       AND INDEX 10 IS THE NINTH ORDER
+C                                       TERM.
+C                       OPT     I*2     PLOTTING OPTION WHERE:
+C                                       1-PLOT POINTS ONLY
+C                                       2-PLOT CURVE ONLY
+C                                       3-PLOT BOTH POINTS AND CURVE.
+C                       CRVMIN(NPTS) R*4 THE LOWEST VALUE OF THE INDEP.
+C                                       VARIABLE THAT THE CURVE IS GOOD
+C                                       FOR.
+C                       CRVMAX(NPTS) R*4 THE LARGEST VALUE OF THE INDEP.
+C                                       VARIABLE THAT THE CURVE IS GOOD
+C                                       FOR.
+C                       SDAT    I*4     COMPRESSED STARTING DATE
+C                       STIM    I*4     COMPRESSED STARTING TIME
+C                       EDAT    I*4     COMPRESSED ENDING DATE
+C                       ETIM    I*4     COMPRESSED ENDING TIME
+C     Output:           SUBERR  I*2     RETURNED ERROR CODE WHERE:
+C                                       1=NO ERROR
+C                                       2=OTHER FATAL ERROR
+C                                       3=INVALID NUMBER OF POINTS
+C                                       4=INVALID PLOT OPTION
+C
+C  Memory commons used:
+C     /MESCOM/  WRITE   LOCAL COMMON FOR ERROR MESSAGES
+C
+C  Disk files used:
+C     NONE
+C
+C  Non disk I/O unit numbers used:
+C     NONE
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     AXIS
+C     COPMEM
+C     FMTDAT
+C     FMTTIM
+C     LINE
+C     MODE
+C     NUMBER
+C     PLOT
+C     SCALE
+C     SYMBOL
+C     SYSMES
+C
+C  Machine Transportable:       yes
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/16/88  JAS  CREATED.
+C  V02.01  04/10/89  JAS  CLAMP ALL THE PLOT VALUES                     V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLT005( CONS, TITL, NSAMP, NPTS, PID, DSC, UNT,
+     :                          SAMP1, SAMP2, SAMP3, SAMP4, SAMP5,
+     :                          GOOD1, GOOD2, GOOD3, GOOD4, TYPE,
+     :                          MIN, MAX, CURV, OPT, CRVMIN, CRVMAX,
+     :                          SDAT, STIM, EDAT, ETIM, SUBERR)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         CONS, TITL(16), NSAMP, NPTS, STAT, OPT
+      INTEGER*2         PID(3,5), DSC(16,5), UNT(3,5)
+      INTEGER*2         IUP, IDOWN, ISYM(4), J, J1, NUMB
+      INTEGER*2         SUBERR, BUFFR1(28), BUFFR2(14), BUFFR3(30)
+      INTEGER*2         GOOD1(NSAMP), GOOD2(NSAMP), GOOD3(NSAMP)
+      INTEGER*2         GOOD4(NSAMP), NUMTIC, TYPE(5)
+      INTEGER*4         SDAT, STIM, EDAT, ETIM, TLAB(3,5)
+      REAL*4            SAMP1(NSAMP), FSTV(5), DELV(5), XTIC, XVALU
+      REAL*4            SAME, SYMSIZ, X, Y, DELX, MIN(5), MAX(5)
+      REAL*4            SAMP2(NSAMP), SAMP3(NSAMP), SAMP4(NSAMP)
+      REAL*4            SAMP5(NSAMP), RNTIC, INCTIC, CRVMIN(NPTS)
+      REAL*4            XLENM, YLENM, CURV(10,NPTS), CRVMAX(NPTS)
+      REAL*4            XCV(103), YCV(103), TEMP
+      REAL*4            LMAX(5), LMIN(5)                                V02.01
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+      PARAMETER         ( NUMTIC = 10 )
+      PARAMETER         ( XLENM = 10.0 )
+      PARAMETER         ( YLENM = 6.0 )
+      PARAMETER         ( RNTIC = NUMTIC )
+      PARAMETER         ( SAME = 9999.0 )
+      PARAMETER         ( IUP = 3 )
+      PARAMETER         ( IDOWN = 2 )
+      PARAMETER         ( SYMSIZ = 0.10 )
+      PARAMETER         ( XTIC = XLENM / RNTIC )
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL COMMONS
+      INCLUDE           INC/MESCOM,N
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+
+C--------LOCAL DATA
+      DATA              ISYM / 0, 2,12,14 /
+      DATA              XCV  / 103 * 0.0 /
+      DATA              YCV  / 103 * 0.0 /
+      DATA              BUFFR1 / 28 * '  ' /
+      DATA              BUFFR2 / 14 * '  ' /
+      DATA              STAT   / 0 /,
+     :                  J      / 0 /,
+     :                  X      / 0.0 /,
+     :                  Y      / 0.0 /
+      DATA              BUFFR3  / 'SA','MP','LE',' D','AT','A ',
+     :                            'FR','OM', 11*'  ','TO', 10*'  ' /
+      DATA              TLAB / ' - A','VERA','GE  ',
+     :                         ' - M','INIM','UM  ',
+     :                         ' - M','AXIM','UM  ',
+     :                         '----','----','----',
+     :                         ' - D','IGIT','AL  ' /
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+C--------CHECK THE NUMBER OF POINTS.  IT MUST BE 1-4
+      SUBERR = 3
+      IF ( NPTS .GT. 4 .OR. NPTS .LT. 1 ) GOTO 9900
+
+C--------CHECK THE PLOT OPTION
+      SUBERR = 4
+      IF ( OPT .LT. 1 .OR. OPT .GT. 3 ) GOTO 9900
+
+C--------SET GENERAL ERROR
+      SUBERR = 2
+
+C=======================================================================
+C--------SCALE THE Y/ VALUES
+      IF ( MIN(1) .EQ. 0.0 .AND. MAX(1) .EQ. 0.0 ) THEN
+         CALL SCALE( SAMP1, YLENM, NSAMP, 1 )
+         FSTV(1) = SAMP1(NSAMP+1)
+         DELV(1) = SAMP1(NSAMP+2)
+         LMIN(1) = FSTV(1)                                              V02.01
+         LMAX(1) = DELV(1)*YLENM + LMIN(1)                              V02.01
+      ELSE
+         FSTV(1) = MIN(1)
+         DELV(1) = ( MAX(1)-MIN(1) )/YLENM
+         LMIN(1) = MIN(1)                                               V02.01
+         LMAX(1) = MAX(1)                                               V02.01
+      ENDIF
+                                                                        V02.01
+      IF ( NPTS .GE. 2 ) THEN                                           V02.01
+         IF ( MIN(2) .EQ. 0.0 .AND. MAX(2) .EQ. 0.0 ) THEN              V02.01
+            CALL SCALE( SAMP2, YLENM, NSAMP, 1 )                        V02.01
+            FSTV(2) = SAMP2(NSAMP+1)                                    V02.01
+            DELV(2) = SAMP2(NSAMP+2)                                    V02.01
+            LMIN(2) = FSTV(2)                                           V02.01
+            LMAX(2) = DELV(2)*YLENM + LMIN(2)                           V02.01
+         ELSE                                                           V02.01
+            FSTV(2) = MIN(2)                                            V02.01
+            DELV(2) = ( MAX(2)-MIN(2) )/YLENM                           V02.01
+            LMIN(2) = MIN(2)                                            V02.01
+            LMAX(2) = MAX(2)                                            V02.01
+         ENDIF                                                          V02.01
+      ENDIF                                                             V02.01
+                                                                        V02.01
+      IF ( NPTS .GE. 3 ) THEN                                           V02.01
+         IF ( MIN(3) .EQ. 0.0 .AND. MAX(3) .EQ. 0.0 ) THEN              V02.01
+            CALL SCALE( SAMP3, YLENM, NSAMP, 1 )                        V02.01
+            FSTV(3) = SAMP3(NSAMP+1)                                    V02.01
+            DELV(3) = SAMP3(NSAMP+2)                                    V02.01
+            LMIN(3) = FSTV(3)                                           V02.01
+            LMAX(3) = DELV(3)*YLENM + LMIN(3)                           V02.01
+         ELSE                                                           V02.01
+            FSTV(3) = MIN(3)                                            V02.01
+            DELV(3) = ( MAX(3)-MIN(3) )/YLENM                           V02.01
+            LMIN(3) = MIN(3)                                            V02.01
+            LMAX(3) = MAX(3)                                            V02.01
+         ENDIF                                                          V02.01
+      ENDIF                                                             V02.01
+                                                                        V02.01
+      IF ( NPTS .EQ. 4 ) THEN                                           V02.01
+         IF ( MIN(4) .EQ. 0.0 .AND. MAX(4) .EQ. 0.0 ) THEN              V02.01
+            CALL SCALE( SAMP4, YLENM, NSAMP, 1 )                        V02.01
+            FSTV(4) = SAMP4(NSAMP+1)                                    V02.01
+            DELV(4) = SAMP4(NSAMP+2)                                    V02.01
+            LMIN(4) = FSTV(4)                                           V02.01
+            LMAX(4) = DELV(4)*YLENM + LMIN(4)                           V02.01
+         ELSE                                                           V02.01
+            FSTV(4) = MIN(4)                                            V02.01
+            DELV(4) = ( MAX(4)-MIN(4) )/YLENM                           V02.01
+            LMIN(4) = MIN(4)                                            V02.01
+            LMAX(4) = MAX(4)                                            V02.01
+         ENDIF                                                          V02.01
+      ENDIF                                                             V02.01
+                                                                        V02.01
+      IF ( MIN(5) .EQ. 0.0 .AND. MAX(5) .EQ. 0.0 ) THEN
+         CALL SCALE( SAMP5, XLENM, NSAMP, 1 )
+         FSTV(5) = SAMP5(NSAMP+1)
+         DELV(5) = SAMP5(NSAMP+2)
+         LMIN(5) = FSTV(5)                                              V02.01
+         LMAX(5) = DELV(5)*YLENM + LMIN(5)                              V02.01
+      ELSE
+         FSTV(5) = MIN(5)
+         DELV(5) = ( MAX(5)-MIN(5) )/XLENM
+         LMIN(5) = MIN(5)                                               V02.01
+         LMAX(5) = MAX(5)                                               V02.01
+      ENDIF
+
+C--------GET INITIAL SCALE INCREMENT
+      INCTIC = DELV(5) * XLENM / RNTIC
+
+C=======================================================================
+C--------CHANGE THE PLOT SOFTWARE ORIGIN.  TO MAKE THINGS EASIER.
+      CALL MODE( 2,  3.0, -7.0, SAME )
+      CALL MODE( 3, 10.8, -2.2, SAME )
+
+C--------THE PLOT TITLES
+      CALL SYMBOL( -6.5, 1.0, 0.15, TITL, 90.0, 32 )
+      CALL FMTDAT( SDAT, BUFFR3(10), STAT )
+      IF ( STAT .NE. 1 ) GOTO 9900
+      CALL FMTTIM( STIM, BUFFR3(15), STAT )
+      IF ( STAT .NE. 1 ) GOTO 9900
+      CALL FMTDAT( EDAT, BUFFR3(22), STAT )
+      IF ( STAT .NE. 1 ) GOTO 9900
+      CALL FMTTIM( ETIM, BUFFR3(27), STAT )
+      IF ( STAT .NE. 1 ) GOTO 9900
+      CALL SYMBOL( -6.15, 1.0, 0.12, BUFFR3, 90.0, 60 )
+
+C--------THE X AXIS.
+      CALL PLOT( 0.0, 0.0, IUP )
+      CALL PLOT( 0.0, XLENM, IDOWN )
+      DO 800 J=0,NUMTIC
+         CALL PLOT( 0.0,  FLOAT(J)*XTIC, IUP )
+         CALL PLOT( 0.07, FLOAT(J)*XTIC, IDOWN )
+800   CONTINUE
+
+C--------PRINT THE VALUES ALONG THE X AXIS
+      X = 0.205
+      XVALU = FSTV(5)
+      DO 900 J=0,NUMTIC
+         Y = FLOAT(J)*XTIC - 0.105
+         CALL NUMBER( X, Y, 0.105, XVALU, 90.0, 2 )
+         XVALU = XVALU + INCTIC
+900   CONTINUE
+
+C--------FOR ALL DEFINED POINTS, PRINT THE Y AXIS AND THE LEGEND ON
+C--------BOTH AXIS.
+      X = 1.0 + 0.2 * FLOAT(NPTS-1)
+      Y = 0.0
+      BUFFR2(2) = '  '
+      BUFFR2(6) = '  '
+      DO 1020 J=NPTS,1,-1
+         CALL COPMEM( PID(1,J), BUFFR1(1), 3 )
+         CALL COPMEM( DSC(1,J), BUFFR1(4), 16 )
+         CALL COPMEM( UNT(1,J), BUFFR1(21), 3 )
+         CALL COPMEM( TLAB(1,TYPE(J)), BUFFR1(24), 5 )
+         CALL COPMEM( PID(1,J), BUFFR2(3), 3 )
+         CALL COPMEM( UNT(1,J), BUFFR2(7), 3 )
+         CALL COPMEM( TLAB(1,TYPE(J)), BUFFR2(10), 5 )
+         CALL SYMBOL( X, 0.0, 0.16, ISYM(J), 90.0, 0 )
+         CALL SYMBOL( X, 0.2, 0.14, BUFFR1, 90.0, 56 )
+         IF ( TYPE(J) .EQ. 5 ) THEN
+            BUFFR1(20) = ' %'
+            BUFFR2(6)  = ' %'
+         ELSE
+            BUFFR1(20) = '  '
+            BUFFR2(6)  = '  '
+         ENDIF
+         X = X - 0.2
+         BUFFR2(1) = ISHFT(ISYM(J),8) + 32
+         CALL AXIS( 0.0, Y, BUFFR2, 28, 6.0, 180.0, FSTV(J), DELV(J) )
+         Y = Y - 0.60
+1020  CONTINUE
+
+C--------PRINT THE X AXIS TITLE
+      CALL COPMEM( PID(1,5), BUFFR1(1), 3 )
+      CALL COPMEM( DSC(1,5), BUFFR1(4), 16 )
+      CALL COPMEM( UNT(1,5), BUFFR1(21), 3 )
+      CALL COPMEM( TLAB(1,TYPE(5)), BUFFR1(24), 5 )
+      CALL SYMBOL( 0.5, 3.0, 0.14, BUFFR1, 90.0, 56 )
+
+C=======================================================================
+C--------BUILD THE GRID ON THE GRAPH...  SET THE LINE MASK TO:
+C--------00110011001100110011.
+      CALL MODE(10, 13107.0, SAME, SAME )
+
+      DO 1100 J=-1,-6,-1
+         CALL PLOT(  FLOAT(J),  0.0,  IUP )
+         CALL PLOT(  FLOAT(J), XLENM,  IDOWN )
+1100  CONTINUE
+
+      DO 1200 J=0,NUMTIC
+         CALL PLOT(   0.0, FLOAT(J)*XTIC,  IUP )
+         CALL PLOT(  -YLENM, FLOAT(J)*XTIC,  IDOWN )
+1200  CONTINUE
+
+      CALL MODE(10, -1.0, SAME, SAME )
+
+C=======================================================================
+C--------PLOT THE POINTS  IF THE OPTION SAYS TO.
+
+C--------PLOT VALUES FOR ALL DEFINED POINTS
+      IF ( OPT .EQ. 1 .OR. OPT .EQ. 3 ) THEN
+         DELX = -1.0/DELV(1)
+         DO 2000 J=1,NSAMP
+            IF ( GOOD1(J) .NE. 0 ) THEN
+               IF ( SAMP5(J).GE.LMIN(5).AND.SAMP5(J).LE.LMAX(5).AND.    V02.01
+     :              SAMP1(J).GE.LMIN(1).AND.SAMP1(J).LE.LMAX(1))THEN    V02.01
+                  Y = ( SAMP5(J) - FSTV(5) ) / DELV(5)                  V02.01
+                  X = ( SAMP1(J) - FSTV(1) ) * DELX                     V02.01
+                  CALL SYMBOL( X, Y, SYMSIZ, ISYM(1), 90.0, -1 )        V02.01
+               ENDIF                                                    V02.01
+            ENDIF
+2000     CONTINUE
+         IF ( NPTS .GE. 2 ) THEN
+            DELX = -1.0/DELV(2)
+            DO 2010 J=1,NSAMP
+               IF ( GOOD2(J) .NE. 0 ) THEN
+                  IF ( SAMP5(J).GE.LMIN(5).AND.SAMP5(J).LE.LMAX(5).AND. V02.01
+     :                 SAMP2(J).GE.LMIN(2).AND.SAMP2(J).LE.LMAX(2))THEN V02.01
+                     Y = ( SAMP5(J) - FSTV(5) ) / DELV(5)               V02.01
+                     X = ( SAMP2(J) - FSTV(2) ) * DELX                  V02.01
+                     CALL SYMBOL( X, Y, SYMSIZ, ISYM(2), 90.0, -1 )     V02.01
+                  ENDIF                                                 V02.01
+               ENDIF
+2010        CONTINUE
+         ENDIF
+         IF ( NPTS .GE. 3 ) THEN
+            DELX = -1.0/DELV(3)
+            DO 2020 J=1,NSAMP
+               IF ( GOOD3(J) .NE. 0 ) THEN
+                  IF ( SAMP5(J).GE.LMIN(5).AND.SAMP5(J).LE.LMAX(5).AND. V02.01
+     :                 SAMP3(J).GE.LMIN(3).AND.SAMP3(J).LE.LMAX(3))THEN V02.01
+                     Y = ( SAMP5(J) - FSTV(5) ) / DELV(5)               V02.01
+                     X = ( SAMP3(J) - FSTV(3) ) * DELX                  V02.01
+                     CALL SYMBOL( X, Y, SYMSIZ, ISYM(3), 90.0, -1 )     V02.01
+                  ENDIF                                                 V02.01
+               ENDIF
+2020        CONTINUE
+         ENDIF
+         IF ( NPTS .GE. 4 ) THEN
+            DELX = -1.0/DELV(4)
+            DO 2030 J=1,NSAMP
+               IF ( GOOD4(J) .NE. 0 ) THEN
+                  IF ( SAMP5(J).GE.LMIN(5).AND.SAMP5(J).LE.LMAX(5).AND. V02.01
+     :                 SAMP4(J).GE.LMIN(4).AND.SAMP4(J).LE.LMAX(4))THEN V02.01
+                     Y = ( SAMP5(J) - FSTV(5) ) / DELV(5)               V02.01
+                     X = ( SAMP4(J) - FSTV(4) ) * DELX                  V02.01
+                     CALL SYMBOL( X, Y, SYMSIZ, ISYM(4), 90.0, -1 )     V02.01
+                  ENDIF                                                 V02.01
+               ENDIF
+2030        CONTINUE
+         ENDIF
+      ENDIF
+
+C=======================================================================
+C--------PLOT THE LINE IF THE OPTION SAYS TO.
+      IF ( OPT .EQ. 2 .OR. OPT .EQ. 3 ) THEN
+
+C-------FOR ALL POINTS CALCULATE UP TO 101 SAMPLES ACCROS THE CURVE
+C-------AND PLOT.  ONLY USE VALUES >=MIN AND <=MAX FROM ORIGINAL
+C-------SAMPLE SET.
+         DO 3000 J=1,NPTS
+            NUMB = 0
+            DO 2800 J1=0,XLENM*10
+               TEMP = FSTV(5) + FLOAT(J1)*DELV(5)*0.10
+               IF ( TEMP .GE. CRVMIN(J) .AND. TEMP .LE. CRVMAX(J) .AND. V02.01
+     :              TEMP .GE. LMIN(5)   .AND. TEMP .LE. LMAX(5)  ) THEN V02.01
+                  NUMB = NUMB + 1
+                  XCV(NUMB) = TEMP
+                  YCV(NUMB) = CURV(1,J) +
+     :                   XCV(NUMB)*( CURV(2,J)+XCV(NUMB)*( CURV(3,J)+
+     :                   XCV(NUMB)*( CURV(4,J)+XCV(NUMB)*( CURV(5,J)+
+     :                   XCV(NUMB)*( CURV(6,J)+XCV(NUMB)*( CURV(7,J)+
+     :                   XCV(NUMB)*( CURV(8,J)+XCV(NUMB)*( CURV(9,J)+
+     :                   XCV(NUMB)*CURV(10,J) ))))))))
+                  IF ( YCV(NUMB) .LT. LMIN(J) ) YCV(NUMB) = LMIN(J)     V02.01
+                  IF ( YCV(NUMB) .GT. LMAX(J) ) YCV(NUMB) = LMAX(J)     V02.01
+               ENDIF
+2800        CONTINUE
+            IF ( NUMB .GT. 0 ) THEN
+               XCV(NUMB+1) = FSTV(5)
+               XCV(NUMB+2) = DELV(5)
+               YCV(NUMB+1) = FSTV(J)
+               YCV(NUMB+2) = -DELV(J)
+C--------YES X AND Y ARE BACKWARDS ON PURPOSE.
+               CALL LINE(YCV,XCV,NUMB,1,0,0)
+            ENDIF
+3000     CONTINUE
+         CLOSE(998)
+      ENDIF
+
+C=======================================================================
+C--------END OF PLOT AND JOB
+      CALL PLOT( 0.0, 0.0, 999 )
+      CALL PLOT( 0.0, 0.0, 9999 )
+
+C--------SET ERROR IS GOOD
+      SUBERR = 1
+
+C--------GENERAL RETURN
+9900  CONTINUE
+      IF ( SUBERR .NE. 1 ) THEN
+         WRITE(MESCOM,90000) SUBERR
+         CALL SYSMES(MESCOM,STAT)
+      ENDIF
+      RETURN
+90000 FORMAT('Subroutine: PLT005  ERR=',I6,'.')
+      END

@@ -1,0 +1,222 @@
+C        ######  #       ####### #######  #####   #####
+C        #     # #          #       #    #     # #     #
+C        #     # #          #       #    #     # #     #
+C        ######  #          #       #     ######  #####
+C        #       #          #       #          # #     #
+C        #       #          #       #    #     # #     #
+C        #       #######    #    #######  #####   #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     THIS SUBROUTINE DOES THE PRINTER I/O FOR THE INTERNAL PASS2 PLOT.
+C     THIS ROUTINE WORKS FOR OKIDATA PACEMARK 2410 PRINTERS ONLY.
+C
+C  Calling sequence:
+C     CALL PLTI98( NW )
+C
+C  Parameter definitions:
+C     Input:            XXXXXX  I*2   DESC.
+C     Output:           XXXXXX  I*2   DESC.
+C
+C  Memory commons used:
+C     /XXXCOM/  READ/WRITE      DESC.
+C
+C  Disk files used:
+C     XXX       READ/WRITE      DESC.
+C
+C  Non disk I/O unit numbers used:
+C     XXX       read/write      desc.
+C
+C  Local variable definitions:
+C     PTYPE =
+C           2 = OKIDATA PACEMARK 2410
+C
+C  Subroutines called:
+C     XXXXXX    DESC.
+C
+C  Machine Transportable:       yes/no  reason if no.
+C
+C  Station Dependent:           no/yes  system name if yes
+C
+C  Comments:
+C     THIS WAS ORIGINALLY (PRNT) FROM THE EXTERNAL PASS2
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  06/01/88  JAS  CREATED.
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLTI98(NW)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         LU1, LU2, LU3, LU4, LU5
+
+      INTEGER*2         LNAME, NAME
+      LOGICAL*2         NEWPLT,NEWNAM
+
+      INTEGER*2         NPLOT, MINX, MAXX, NDX, NDY, LTYPE, LWDTH
+      INTEGER*2         NBITS, NBTM1, NBYTE, NBYM1, NCHAR, NCHM1, MSK
+      INTEGER*2         IBT, LDX, LDY, IXT, IYT, NDLTX, NDLTY, MOVY
+      INTEGER*2         NCLOCX, LMSK, ICH, ICW, IVS, IHS, NSCAN, NWORD
+      INTEGER*2         ISCAN, IM
+      REAL*4            DEGRAD
+
+      INTEGER*2         NW
+      INTEGER*2         IK, K, KK, J, J1, J2, BITCTR, BITVAL(16)        V02.01
+      INTEGER*2         PRTBIT(7), UFT(13), OPT2, OPT7                  V02.01
+      INTEGER*2         TOGRA, TOTXT(2)
+      INTEGER*4                BUFADR, IADR32                           V02.01
+      LOGICAL*2         TEXTM                                           V02.01
+      CHARACTER*1       PRTLIN(768)                                     V02.01
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+      PARAMETER               ( OPT2 = Z'1100' )                        V02.01
+      PARAMETER               ( OPT7 = 0 )                              V02.01
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL DIMENSIONS
+
+C--------LOCAL COMMONS
+      COMMON            /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      COMMON            /IOCNTL/NEWPLT,NEWNAM,LNAME,NAME(10)
+      COMMON            /PS2COM/
+     &NPLOT,MINX,MAXX,NDX,NDY,LTYPE,LWDTH,DEGRAD,
+     &NBITS,NBTM1,NBYTE,NBYM1,NCHAR,NCHM1,MSK(7),IBT(16),
+     &LDX,LDY,IXT,IYT,NDLTX,NDLTY,MOVY,NCLOCX,
+     &LMSK(16),ICH,ICW,IVS,IHS,
+     &ISCAN,NSCAN,NWORD,IM(30720)
+C*****NOTE: INTEGER*2 IM(NWORD) IS TRUE DIMENSION
+C           (AS SPECIFIED IN BLOCK COMMON AND MAIN)
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+      EQUIVALENCE       ( UFT(11), BUFADR )
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+
+C--------LOCAL DATA AREAS
+      DATA IK     / 0 /,                                                V02.01
+     :     KK     / 0 /,                                                V02.01
+     :     K      / 0 /,                                                V02.01
+     :     J      / 0 /                                                 V02.01
+      DATA BITVAL / Z'8000', Z'4000', Z'2000', Z'1000',                 V02.01
+     :              Z'0800', Z'0400', Z'0200', Z'0100',                 V02.01
+     :              Z'0080', Z'0040', Z'0020', Z'0010',                 V02.01
+     :              Z'0008', Z'0004', Z'0002', Z'0001' /                V02.01
+      DATA PRTBIT / Z'0001', Z'0002', Z'0004', Z'0008',                 V02.01
+     :              Z'0010', Z'0020', Z'0040' /                         V02.01
+      DATA TEXTM  / .TRUE. /                                            V02.01
+      DATA UFT    / 0, 0, OPT2, 0, 0, 0, 0, OPT7, 0, 0, 0, 0, 0 /
+      DATA TOGRA  / Z'0D03' /
+      DATA TOTXT  / Z'0302', Z'0D0A' /
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C-----TEST EJECT REQUEST
+      IF (NW.GT.0) GO TO 22
+
+C--------SEE IF OLD INFO NEEDS PRINTED.                                 V02.01
+      IF ( BITCTR .GT. 0 ) THEN                                         V02.01
+         CALL PLTI89( PRTLIN )                                          V02.01
+      ENDIF                                                             V02.01
+
+C--------SET EJECT FLAG.  AND NEW PLOT.
+C--------SET THE BIT_NUMBER_COUNTER = 0                                 V02.01
+      BITCTR = 0
+      NEWPLT=.TRUE.
+                                                                        V02.01
+C--------INIT THE UFT FOR CHANGE TEXT/GRAPHICS MODE                     V02.01
+      UFT(1) = 0
+      UFT(2) = LU3
+                                                                        V02.01
+C--------CHANGE TO GRAPHICS MODE.                                       V02.01
+      IF ( TEXTM ) THEN                                                 V02.01
+         BUFADR = IADR32( TOGRA )
+         UFT(13) = 2
+         TEXTM = .FALSE.                                                V02.01
+         DO 900 J=1,768
+            PRTLIN(J) = CHAR(0)
+900      CONTINUE
+                                                                        V02.01
+C--------CHANGE TO TEXT MODE.                                           V02.01
+      ELSE                                                              V02.01
+         BUFADR = IADR32( TOTXT )
+         UFT(13) = 4
+         TEXTM = .TRUE.
+      ENDIF                                                             V02.01
+                                                                        V02.01
+C--------WRITE THE NEW COMMAND.                                         V02.01
+      CALL WRIT32( UFT )
+      IF ( UFT(1) .LT. 0 ) THEN
+         WRITE(LU2,*) UFT(1)
+         PAUSE
+      ENDIF
+      GO TO 99
+
+C-----CHECK FOR NEW PLOT/NEW DEVICE NAME.  GET DEVICE IF NONE.
+   22 CONTINUE
+      IF (.NOT.NEWPLT) GO TO 60
+      NEWPLT=.FALSE.
+      IF(.NOT.NEWNAM) GO TO 60
+      NEWNAM=.FALSE.
+      IF (LNAME.GE.0) GO TO 50
+      LNAME = 0
+
+C--------OPEN THE FILE. ( DEFAULT OR OTHERWISE )
+   50 CONTINUE
+
+C--------PERFORM THE PRINTING.
+   60 CONTINUE
+                                                                        V02.01
+C--------SEE IF IN GRAPHICS MODE.                                       V02.01
+      IF ( TEXTM ) THEN                                                 V02.01
+         WRITE(LU2,*) 'IN TEXT MODE??'                                  V02.01
+         PAUSE
+      ENDIF                                                             V02.01
+
+C--------CALCULATE THE NUMBER OF DOT LINES TO PROCESS.
+      IK=NW/ISCAN
+      KK=0
+
+C--------LOOP OVER ALL DOT LINES TO PROCESS.
+      DO 2300 J=1,IK
+         BITCTR = BITCTR + 1
+
+C--------LOOP OVER ALL WORDS IN EACH DOT LINE
+         K = 0                                                          V02.01
+         DO 2200 J1=1,ISCAN
+            KK = KK + 1
+
+C--------LOOP OVER ALL BITS IN EACH WORD OF EACH SCAN LINE
+C--------IF THE CORRESPONDING BIT IS SET THEN SET THE CORRECT
+C--------BIT FOR THE PRINTER COMMAND.
+            DO 2100 J2=1,16
+               K = K + 1                                                V02.01
+               IF ( IAND(IM(KK),BITVAL(J2)) .NE. 0 ) THEN
+                  PRTLIN(K) = CHAR( IOR( ICHAR(PRTLIN(K)),              V02.01
+     :                                   PRTBIT(BITCTR)) )              V02.01
+               ENDIF
+2100        CONTINUE
+2200     CONTINUE
+
+C--------END OF PROCESSING FOR THIS LINE.  SEE IF THIS IS THE LAST
+C--------LINE OF COMMANDS.  IF SO THEN PRINT OUT THE LINE. OTHERWISE
+C--------JUST INCREMENT THE PRINT COMMAND BIT NUMBER.
+         IF ( BITCTR .GE. 7 ) THEN
+            CALL PLTI89( PRTLIN )                                       V02.01
+            BITCTR = 0
+         ENDIF
+2300  CONTINUE
+
+C-----
+   99 CONTINUE
+      RETURN
+      END

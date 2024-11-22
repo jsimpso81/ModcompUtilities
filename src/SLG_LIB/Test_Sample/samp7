@@ -1,0 +1,15 @@
+C-----SAMP7.FOR
+C     OVERLAPPING SHADED AREAS
+      PROGRAM SAMP7
+      DIMENSION X(7), Y(7), NE(2)
+      COMMON /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      DATA X /1. ,5. ,6. ,0. ,5. ,3. ,7. /
+      DATA Y /2. ,2.6,7. ,5. ,1. ,4. ,4. /
+      DATA NE/4,3/
+      WRITE (LU2,1101)
+1101  FORMAT(' OVERLAPPING SHADED AREAS')
+      CALL TONE(X,Y,NE,2)
+      CALL DRAW(0.,0.,1,9000)
+      CALL DRAW(0.0,0.0,0,9999)
+      CALL EXIT
+      END

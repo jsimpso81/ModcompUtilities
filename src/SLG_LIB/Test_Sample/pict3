@@ -1,0 +1,20 @@
+ PROGRAM PICTUR
+        DIMENSION POINT(50,50)
+        DATA A,TAU,BETA,B,RMAX / 1., .10, .5, .06,30.0 /
+        DO 100 J=-24,25
+        DO 100 J1=-24,25
+        R =  J
+        R1 = J1
+        D = (R*R1)/COS(R*R1)+1.0
+ D1= R/5.0
+ ID1= D1
+ IF(ID1 .EQ. D1)P=-1.0
+ IF(ID1 .NE. D1)P=1.0
+        POINT(J+25,J1+25)=COS(D)+SIN(D**2.0)+D
+        TYPE *, J, J1, POINT(J+25,J1+25)
+100 CONTINUE
+        CALL SOLID(POINT,50,50,10.0,10.0)
+        CALL DRAW(0.0,0.0,1,9000)
+ CALL DRAW(0.0,0.0,0,9999)
+        CALL EXIT
+        END

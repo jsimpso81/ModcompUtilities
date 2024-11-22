@@ -1,0 +1,109 @@
+C        ######  #       ####### #######  #####    ###
+C        #     # #          #       #    #     #  #   #
+C        #     # #          #       #    #     # #     #
+C        ######  #          #       #     ###### #     #
+C        #       #          #       #          # #     #
+C        #       #          #       #    #     #  #   #
+C        #       #######    #    #######  #####    ###
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     PRODUCE PRINTER PLOT.
+C
+C  Calling sequence:
+C     CALL PLTI90( NW, PTYPE )
+C
+C  Parameter definitions:
+C     Input:            NW      I*2     ?????
+C                       PTYPE   I*2     PRINTER TYPE WHERE:
+C                                       1 DIABLO 1610
+C                                       2 OKIDATA PACEMARK 2410
+C                                       3 DEC LA100
+C                                       4 TELETYPE MODEL 40
+C                                       5 PRINTRONIX P150/P300/P600
+C
+C  Memory commons used:
+C     NONE
+C
+C  Disk files used:
+C     NONE
+C
+C  Non disk I/O unit numbers used:
+C     NONE
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     PLTI98    OKIDATA PLOT ROUTINE
+C     PLTI99    PRINTRONIX PLOT ROUTINE
+C     SYSMES
+C
+C  Machine Transportable:       yes
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  06/02/88  JAS  CREATED.
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLTI90( NW, PTYPE )
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         NW, PTYPE, STAT
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL DIMENSIONS
+
+C--------GLOBAL DIMENSIONS
+
+C--------LOCAL COMMONS
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+
+C--------LOCAL DATA
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+C--------DEBUG
+X     WRITE(900,*) 'PLTI90 CALLED NW=',NW
+
+C--------DISTRIBUTE ACCORDING TO PRINTER TYPE.
+      GOTO ( 9000, 1200, 9000, 9000, 1500 ), PTYPE
+      GOTO 9000
+
+C--------OKIDATA PM 2410
+1200  CONTINUE
+      CALL PLTI98( NW )
+      GOTO 9900
+
+C--------PRINTRONIX
+1500  CONTINUE
+      CALL PLTI99( NW )
+      GOTO 9900
+
+C--------NOT SUPPORTED.
+9000  CONTINUE
+      CALL SYSMES('Subroutine: PLTI90  Printer type not supported.',
+     :            STAT)
+
+C--------GENERAL RETURN
+9900  CONTINUE
+      RETURN
+      END

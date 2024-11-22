@@ -1,0 +1,97 @@
+C        ######  #       #######   ###     ###    #####
+C        #     # #          #     #   #   #   #  #     #
+C        #     # #          #    #     # #     #       #
+C        ######  #          #    #     # #     #  #####
+C        #       #          #    #     # #     # #
+C        #       #          #     #   #   #   #  #
+C        #       #######    #      ###     ###   #######
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     CLOSE AND DESTROY THE TEMPORARY PLOTTING DISK FILES.
+C
+C  Calling sequence:
+C     CALL PLT002( SUBERR )
+C
+C  Parameter definitions:
+C     Input:            NONE
+C     Output:           SUBERR  I*2     RETURNED ERROR CODE WHERE:
+C                                       1=NO ERROR
+C                                       2=FATAL ERROR
+C
+C  Memory commons used:
+C     /IOUNIT/  WRITE   LOCAL COMMON FOR I/O UNIT NUMBERS
+C
+C  Disk files used:
+C     LU4       DESTROY WORK FILE FOR PASS1 TO PASS2 DATA
+C     LU5       DESTROY WORK FILE FOR PASS2.
+C
+C  Non disk I/O unit numbers used:
+C     NONE
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     SYSMES
+C
+C  Machine Transportable:       yes
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/01/87  JAS  CREATED.
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLT002( SUBERR )
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         LU1, LU2, LU3, LU4, LU5, SUBERR, STAT
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL COMMONS
+      COMMON            /IOUNIT/ LU1, LU2, LU3, LU4, LU5
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+                                                                        V02.01
+      DATA              STAT   / 0 /                                    V02.01
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+C--------SET RETURN ERROR AS BAD
+      SUBERR = 2
+
+C--------CLOSE AND DELETE FILES.
+      CLOSE(LU4,STATUS='DELETE',ERR=9900)
+      CLOSE(LU5,STATUS='DELETE',ERR=9900)
+
+C--------RESET THE PLOT I/O UNIT
+      LU3 = 3
+
+C--------SET STATUS AS GOOD
+      SUBERR = 1
+
+C--------GENERAL RETURN
+9900  CONTINUE
+      IF ( SUBERR .NE. 1 ) THEN
+         CALL SYSMES('Subroutine: PLT002  ERR=2.',STAT)
+      ENDIF
+      RETURN
+      END

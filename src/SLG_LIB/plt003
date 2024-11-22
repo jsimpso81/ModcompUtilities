@@ -1,0 +1,444 @@
+C        ######  #       #######   ###     ###    #####
+C        #     # #          #     #   #   #   #  #     #
+C        #     # #          #    #     # #     #       #
+C        ######  #          #    #     # #     #  #####
+C        #       #          #    #     # #     #       #
+C        #       #          #     #   #   #   #  #     #
+C        #       #######    #      ###     ###    #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     GIVEN THE DATA POINTS AND VALUES PRODUCE A PLOT ON THE PRINTER.
+C
+C  Calling sequence:
+C     CALL SUBROUTINE PLT003( CONS, TITL, NSAMP, NPTS,
+C    :                        PID, DSC, UNT, SAMP1, SAMP2, SAMP3,
+C    :                        SAMP4, GOOD1, GOOD2, GOOD3, GOOD4,
+C    :                        TYPE, MIN, MAX,                           V02.01
+C    :                        SDAT, STIM, EDAT, ETIM, SUBERR)
+C
+C  Parameter definitions:
+C     Input:            CONS    I*2     CONSOLE NUMBER
+C                       TITL(16)I*2     TITLE OF PLOT
+C                       NSAMP   I*2     THE NUMBER OF SAMPLES
+C                       NPTS    I*2     THE NUMBER OF POINTS TO PLOT
+C                                       1-4
+C                       PID(3,NPTS) I*2 THE EXTERNAL DATA POINT IDS
+C                       DSC(16,NPTS) I*2  THE POINT DESCRIPTIONS
+C                       UNT(3,NPTS) I*2 THE POINT'S VALUE UNITS -
+C                                       FOR DIGITAL POINTS THIS CONTAINS
+C                                       THE CLOSED STATE NAME.
+C                       SAMP1(NSAMP) R*4 THE SAMPLES FOR POINT 1
+C                       SAMP2(NSAMP) R*4 THE SAMPLES FOR POINT 2
+C                       SAMP3(NSAMP) R*4 THE SAMPLES FOR POINT 3
+C                       SAMP4(NSAMP) R*4 THE SAMPLES FOR POINT 4
+C                       GOOD1(NSAMP) I*2 INDICATOR THAT EACH SAMPLE IS
+C                                        VALID. 1=GOOD, 0=BAD (POINT 1)
+C                       GOOD2(NSAMP) I*2     "      "         (POINT 2)
+C                       GOOD3(NSAMP) I*2     "      "         (POINT 3)
+C                       GOOD4(NSAMP) I*2     "      "         (POINT 4)
+C                       TYPE(NPTS) I*2  THE TYPE OF DATA WHERE:
+C                                       1-AVERAGE
+C                                       2-MINIMUM
+C                                       3-MAXIMUM
+C                                       4-SNAPSHOT (NOT USED)
+C                                       5-DIGITAL
+C                       MIN(NPTS) R*4   THE MINIMUM SCALE VALUE         V02.01
+C                       MAX(NPTS) R*4   THE MAXIMUM SCALE VALUE         V02.01
+C                                       IF MIN AND MAX ARE 0 THEN       V02.01
+C                                       AUTOMATIC SCALING WILL BE DONE. V02.01
+C                       SDAT    I*4     COMPRESSED STARTING DATE
+C                       STIM    I*4     COMPRESSED STARTING TIME
+C                       EDAT    I*4     COMPRESSED ENDING DATE
+C                       ETIM    I*4     COMPRESSED ENDING TIME
+C     Output:           SUBERR  I*2     RETURNED ERROR CODE WHERE:
+C                                       1=NO ERROR
+C                                       2=INVALID NUMBER OF POINTS
+C                                       3=STARTING TIME NOT ON THE
+C                                         MINUTE
+C                                       4=ENDING TIME NOT ON THE MINUTE
+C                                       5=ENDING TIME/DATE IS LESS OR
+C                                         EQUAL TO STARTING TIME/DATE.
+C                                       6=INTERNAL ERROR!
+C                                       7=FMTTIM ERROR
+C                                       8=ADDTIM ERROR
+C                                       9=FMTDAT ERROR
+C
+C  Memory commons used:
+C     /MESCOM/  WRITE   LOCAL COMMON FOR ERROR MESSAGES
+C
+C  Disk files used:
+C     NONE
+C
+C  Non disk I/O unit numbers used:
+C     NONE
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     ADDTIM
+C     AXIS
+C     COPMEM
+C     DIFTIM
+C     FMTDAT
+C     FMTTIM
+C     MODE
+C     PLOT
+C     SCALE                                                             V02.01
+C     SYMBOL
+C     SYSMES
+C
+C  Machine Transportable:       yes
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  07/12/88  JAS  CREATED.
+C  V02.01  08/12/88  JAS  Some improvements.                            V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLT003( CONS, TITL, NSAMP, NPTS,
+     :                          PID, DSC, UNT, SAMP1, SAMP2, SAMP3,
+     :                          SAMP4, GOOD1, GOOD2, GOOD3, GOOD4,
+     :                          TYPE, MIN, MAX,                         V02.01
+     :                          SDAT, STIM, EDAT, ETIM, SUBERR)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         CONS, TITL(16), NSAMP, NPTS, STAT
+      INTEGER*2         PID(3,NPTS), DSC(16,NPTS), UNT(3,NPTS), DY2TIC
+      INTEGER*2         IUP, IDOWN, ISYM(4), J, J1, NUMTIC
+      INTEGER*2         SUBERR, BUFFR1(28), BUFFR2(14), TDAT
+      INTEGER*2         GOOD1(NSAMP), GOOD2(NSAMP), GOOD3(NSAMP)
+      INTEGER*2         GOOD4(NSAMP), TYPE(NPTS), K, OLDK(4)
+      INTEGER*4         SDAT, STIM, EDAT, ETIM, TDAT4, LDAT4
+      INTEGER*4         SXTY00, TTIM, ONE, MINDAY, MINTIC, DAYTIC       V02.01
+      INTEGER*4         TLAB(3,5)
+      REAL*4            SAMP1(NSAMP), FSTV(4), DELV(4), YLEN, XTIC      V02.01
+      REAL*4            SAME, SYMSIZ, X, Y, DELX, DELY, YTIC
+      REAL*4            SAMP2(NSAMP), SAMP3(NSAMP), SAMP4(NSAMP)
+      REAL*4            RNTIC, YSYMI, MIN(4), MAX(4)                    V02.01
+      REAL*4            XLENM, YLENM                                    V02.01
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+      PARAMETER         ( XLENM = 10.0 )                                V02.01
+      PARAMETER         ( YLENM = 6.0 )                                 V02.01
+      PARAMETER         ( NUMTIC = 8 )
+      PARAMETER         ( RNTIC = NUMTIC )                              V02.01
+      PARAMETER         ( SAME = 9999.0 )
+      PARAMETER         ( IUP = 3 )
+      PARAMETER         ( IDOWN = 2 )
+      PARAMETER         ( SYMSIZ = 0.16 )
+      PARAMETER         ( SXTY00 = 60000 )
+      PARAMETER         ( ONE = 1 )
+      PARAMETER         ( MINDAY = 1440 )
+      PARAMETER         ( XTIC = XLENM / RNTIC )                        V02.01
+      PARAMETER         ( YSYMI = XTIC / 5.0 )                          V02.01
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL COMMONS
+      INCLUDE           INC/MESCOM,N
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+
+C--------LOCAL DATA
+      DATA              ISYM / 0, 2,12,14 /
+      DATA              BUFFR1 / 28 * '  ' /
+      DATA              BUFFR2 / 14 * '  ' /
+      DATA              STAT   / 0 /,
+     :                  J      / 0 /,
+     :                  J1     / 0 /,
+     :                  TDAT   / 0 /,
+     :                  TDAT4  / 0 /,
+     :                  TTIM   / 0 /,
+     :                  MINTIC / 0 /,
+     :                  YLEN   / 0.0 /,
+     :                  X      / 0.0 /,
+     :                  Y      / 0.0 /,
+     :                  DELX   / 0.0 /,
+     :                  DELY   / 0.0 /,
+     :                  YTIC   / 0.0 /
+      DATA TLAB         / ' - A','VERA','GE  ',
+     :                    ' - M','INIM','UM  ',
+     :                    ' - M','AXIM','UM  ',
+     :                    '----','----','----',
+     :                    ' - D','IGIT','AL  ' /
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+
+C--------CHECK THE NUMBER OF POINTS.  IT MUST BE 1-4
+      SUBERR = 2
+      IF ( NPTS .GT. 4 .OR. NPTS .LT. 1 ) GOTO 9900
+
+C=======================================================================
+C--------STARTING AND ENDING TIMES MUST BE RIGHT ON THE MINUTE
+      SUBERR = 3
+      IF ( MOD(STIM,SXTY00) .NE. 0 ) GOTO 9900
+      SUBERR = 4
+      IF ( MOD(ETIM,SXTY00) .NE. 0 ) GOTO 9900
+
+C--------GET THE DIFFERENCE IN TIMES.
+      CALL DIFTIM( ETIM, EDAT, STIM, SDAT, TTIM, TDAT, STAT )
+      SUBERR = 5
+      IF ( STAT .NE. 1 ) GOTO 9900
+
+C-------THE DIFFERENCE MUST BE FREE OF SECONDS AND MILLISECONDS
+      SUBERR = 6
+      IF ( MOD(TTIM,SXTY00) .NE. 0 ) GOTO 9900
+
+C--------CONVERT TO MINUTES.
+      TTIM = TTIM/SXTY00
+
+C--------ADD IN DAYS IF NEEDED.
+      IF ( TDAT .GT. 0 ) THEN
+         TDAT4 = TDAT
+         TTIM = TTIM + MINDAY * TDAT4
+      ENDIF
+
+C--------GET INITIAL SCALE
+      MINTIC = TTIM/INT4(NUMTIC)                                        V02.01
+      IF ( MOD(TTIM,INT4(NUMTIC)) .NE. 0 ) THEN                         V02.01
+         MINTIC = MINTIC + ONE
+         YLEN = FLOAT( TTIM ) / FLOAT(MINTIC) * XTIC
+      ELSE
+         YLEN = XLENM                                                   V02.01
+      ENDIF
+
+C--------CONVERT TO COMPRESSED
+      DAYTIC = MINTIC/MINDAY
+      MINTIC = MINTIC - DAYTIC*MINDAY
+      MINTIC = MINTIC * SXTY00
+      DY2TIC = DAYTIC
+                                                                        V02.01
+C=======================================================================V02.01
+C--------SCALE THE Y VALUES.                                            V02.01
+      IF ( MIN(1) .EQ. 0.0 .AND. MAX(1) .EQ. 0.0 ) THEN                 V02.01
+         CALL SCALE( SAMP1, YLENM, NSAMP, 1 )                           V02.01
+         FSTV(1) = SAMP1(NSAMP+1)                                       V02.01
+         DELV(1) = SAMP1(NSAMP+2)                                       V02.01
+      ELSE                                                              V02.01
+         FSTV(1) = MIN(1)                                               V02.01
+         DELV(1) = ( MAX(1)-MIN(1) )/YLENM                              V02.01
+      ENDIF                                                             V02.01
+      IF ( NPTS .GE. 2 ) THEN                                           V02.01
+         IF ( MIN(2) .EQ. 0.0 .AND. MAX(2) .EQ. 0.0 ) THEN              V02.01
+            CALL SCALE( SAMP2, YLENM, NSAMP, 1 )                        V02.01
+            FSTV(2) = SAMP2(NSAMP+1)                                    V02.01
+            DELV(2) = SAMP2(NSAMP+2)                                    V02.01
+         ELSE                                                           V02.01
+            FSTV(2) = MIN(2)                                            V02.01
+            DELV(2) = ( MAX(2)-MIN(2) )/YLENM                           V02.01
+         ENDIF                                                          V02.01
+      ENDIF                                                             V02.01
+      IF ( NPTS .GE. 3 ) THEN                                           V02.01
+         IF ( MIN(3) .EQ. 0.0 .AND. MAX(3) .EQ. 0.0 ) THEN              V02.01
+            CALL SCALE( SAMP3, YLENM, NSAMP, 1 )                        V02.01
+            FSTV(3) = SAMP3(NSAMP+1)                                    V02.01
+            DELV(3) = SAMP3(NSAMP+2)                                    V02.01
+         ELSE                                                           V02.01
+            FSTV(3) = MIN(3)                                            V02.01
+            DELV(3) = ( MAX(3)-MIN(3) )/YLENM                           V02.01
+         ENDIF                                                          V02.01
+      ENDIF                                                             V02.01
+      IF ( NPTS .GE. 4 ) THEN                                           V02.01
+         IF ( MIN(4) .EQ. 0.0 .AND. MAX(4) .EQ. 0.0 ) THEN              V02.01
+            CALL SCALE( SAMP4, YLENM, NSAMP, 1 )                        V02.01
+            FSTV(4) = SAMP4(NSAMP+1)                                    V02.01
+            DELV(4) = SAMP4(NSAMP+2)                                    V02.01
+         ELSE                                                           V02.01
+            FSTV(4) = MIN(4)                                            V02.01
+            DELV(4) = ( MAX(4)-MIN(4) )/YLENM                           V02.01
+         ENDIF                                                          V02.01
+      ENDIF                                                             V02.01
+
+C=======================================================================
+C--------CHANGE THE PLOT SOFTWARE ORIGIN.  TO MAKE THINGS EASIER.
+      CALL MODE( 2,  3.0, -7.0, SAME )
+      CALL MODE( 3, 10.8, -2.2, SAME )
+
+C--------THE PLOT TITLE.
+      CALL SYMBOL( -6.5, 1.0, 0.15, TITL, 90.0, 32 )
+
+C--------THE X AXIS.
+      CALL PLOT( 0.0, 0.0, IUP )
+      CALL PLOT( 0.0, XLENM, IDOWN )                                    V02.01
+      DO 800 J=0,NUMTIC
+         CALL PLOT( 0.0,  FLOAT(J)*XTIC, IUP )
+         CALL PLOT( 0.07, FLOAT(J)*XTIC, IDOWN )
+800   CONTINUE
+      CALL SYMBOL( 0.65, 3.6, 0.14, 'TIME - HH:MM', 90.0, 12 )
+
+C--------PRINT THE TIMES ALONG THE AXIS
+      X = 0.205
+      TTIM = STIM
+      TDAT4 = SDAT
+      LDAT4 = -1
+      DO 900 J=0,NUMTIC
+         Y = FLOAT(J)*XTIC - 0.105
+         CALL FMTTIM( TTIM, BUFFR2, STAT )
+         SUBERR = 7
+         IF ( STAT .NE. 1 ) GOTO 9900
+         CALL SYMBOL( X, Y, 0.105, BUFFR2, 90.0, 5 )
+         IF ( J .EQ. NUMTIC .OR. TDAT4 .NE. LDAT4 ) THEN
+            CALL FMTDAT( TDAT4, BUFFR2, STAT )
+            SUBERR = 9
+            IF ( STAT .NE. 1 ) GOTO 9900
+            CALL SYMBOL( 0.38,Y-0.210,0.105,BUFFR2,90.0,8)
+            LDAT4 = TDAT4
+         ENDIF
+         IF ( J .LT. NUMTIC ) THEN
+            CALL ADDTIM( MINTIC, DY2TIC, TTIM, TDAT4, STAT )
+            SUBERR = 8
+            IF ( STAT .NE. 1 ) GOTO 9900
+         ENDIF
+900   CONTINUE
+
+C--------FOR ALL DEFINED POINTS, PRINT THE Y AXIS AND THE LEGEND.
+      X = 1.0 + 0.2 * FLOAT(NPTS-1)
+      Y = 0.0
+      BUFFR2(2) = '  '
+      BUFFR2(6) = '  '
+      DO 1020 J=NPTS,1,-1
+         CALL COPMEM( PID(1,J), BUFFR1(1), 3  )
+         CALL COPMEM( DSC(1,J), BUFFR1(4), 16 )
+         CALL COPMEM( UNT(1,J), BUFFR1(21), 3 )
+         CALL COPMEM( TLAB(1,TYPE(J)), BUFFR1(24), 5 )
+
+         CALL COPMEM( PID(1,J), BUFFR2(3), 3  )
+         CALL COPMEM( UNT(1,J), BUFFR2(7), 3  )
+         CALL COPMEM( TLAB(1,TYPE(J)), BUFFR2(10), 5 )
+
+         IF ( TYPE(J) .EQ. 5 ) THEN
+            BUFFR1(20) = ' %'
+            BUFFR2(6)  = ' %'
+         ELSE
+            BUFFR1(20) = '  '
+            BUFFR2(6)  = '  '
+         ENDIF
+
+         CALL SYMBOL( X, 0.0, SYMSIZ, ISYM(J), 90.0, 0 )
+         CALL SYMBOL( X, 0.2, 0.14, BUFFR1, 90.0, 56 )
+         X = X - 0.2
+         BUFFR2(1) = ISHFT(ISYM(J),8) + 32
+         CALL AXIS( 0.0, Y, BUFFR2, 28, 6.0, 180.0, FSTV(J), DELV(J) )
+         Y = Y - 0.60
+1020  CONTINUE
+
+C=======================================================================
+C--------BUILD THE GRID ON THE GRAPH...  SET THE LINE MASK TO:
+C--------00110011001100110011.
+      CALL MODE(10, 13107.0, SAME, SAME )
+
+      DO 1100 J=-1,-6,-1
+         CALL PLOT(  FLOAT(J),  0.0,  IUP )
+         CALL PLOT(  FLOAT(J), XLENM,  IDOWN )                          V02.01
+1100  CONTINUE
+
+      DO 1200 J=0,NUMTIC
+         CALL PLOT(   0.0, FLOAT(J)*XTIC,  IUP )
+         CALL PLOT(  -YLENM, FLOAT(J)*XTIC,  IDOWN )                    V02.01
+1200  CONTINUE
+
+      CALL MODE(10, -1.0, SAME, SAME )
+
+C=======================================================================
+C--------DELY = LENGTH/(SAMPLE-1)
+      DELY = YLEN/FLOAT(NSAMP-1)
+
+C--------PLOT VALUES FOR ALL DEFINED POINTS
+      DO 2010 J=1,NPTS
+
+C--------DELX = -1/(USER_UNITS/INCH)
+         DELX = -1.0/DELV(J)
+
+C--------SET THE CURSOR POSITION AND PLOT THE FIRST POINT TO PLOT
+         Y = 0.0
+         YTIC = YSYMI * FLOAT(J)                                        V02.01
+         IF ( J .EQ. 1 ) THEN
+            X = ( SAMP1(1) - FSTV(1) ) * DELX
+            OLDK(J) = GOOD1(1)
+         ELSE IF ( J .EQ. 2 ) THEN
+            X = ( SAMP2(1) - FSTV(2) ) * DELX
+            OLDK(J) = GOOD2(1)
+         ELSE IF ( J .EQ. 3 ) THEN
+            X = ( SAMP3(1) - FSTV(3) ) * DELX
+            OLDK(J) = GOOD3(1)
+         ELSE IF ( J .EQ. 4 ) THEN
+            X = ( SAMP4(1) - FSTV(4) ) * DELX
+            OLDK(J) = GOOD4(1)
+         ENDIF
+         IF ( X .GT. 0.0 ) THEN
+            X = 0.0
+         ELSE IF ( X .LT. -YLENM ) THEN                                 V02.01
+            X = -YLENM                                                  V02.01
+         ENDIF
+         CALL PLOT( X, Y, IUP )
+
+C--------PLOT THE REMAINING VALUES.
+         DO 2000 J1=2,NSAMP
+            Y = Y + DELY
+            IF ( J .EQ. 1 ) THEN
+               X = ( SAMP1(J1) - FSTV(1) ) * DELX
+               K = GOOD1(J1)
+            ELSE IF ( J .EQ. 2 ) THEN
+               X = ( SAMP2(J1) - FSTV(2) ) * DELX
+               K = GOOD2(J1)
+            ELSE IF ( J .EQ. 3 ) THEN
+               X = ( SAMP3(J1) - FSTV(3) ) * DELX
+               K = GOOD3(J1)
+            ELSE IF ( J .EQ. 4 ) THEN
+               X = ( SAMP4(J1) - FSTV(4) ) * DELX
+               K = GOOD3(J1)
+            ENDIF
+            IF ( X .GT. 0.0 ) THEN
+               X = 0.0
+            ELSE IF ( X .LT. -YLENM ) THEN                              V02.01
+               X = -YLENM                                               V02.01
+            ENDIF
+            IF ( K .NE. 0 ) THEN
+               IF ( OLDK(J) .EQ. 0 ) THEN
+                  CALL PLOT( X, Y-DELY, IUP )
+               ENDIF
+               IF ( Y .GE. YTIC ) THEN
+                  CALL SYMBOL( X, Y, SYMSIZ, ISYM(J), 90.0, -2 )
+                  YTIC = YTIC + XTIC
+               ELSE
+                  CALL PLOT( X,Y,IDOWN )
+               ENDIF
+            ENDIF
+            OLDK(J) = K
+2000     CONTINUE
+2010  CONTINUE
+
+C=======================================================================
+C--------END OF PLOT AND JOB
+      CALL PLOT( 0.0, 0.0, 999 )
+      CALL PLOT( 0.0, 0.0, 9999 )
+
+C--------SET ERROR IS GOOD
+      SUBERR = 1
+
+C--------GENERAL RETURN
+9900  CONTINUE
+      IF ( SUBERR .NE. 1 ) THEN
+         WRITE(MESCOM,90000) SUBERR
+         CALL SYSMES(MESCOM,STAT)
+      ENDIF
+      RETURN
+90000 FORMAT('Subroutine: PLT003  ERR=',I6,'.')
+      END

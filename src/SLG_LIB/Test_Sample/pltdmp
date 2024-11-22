@@ -1,0 +1,259 @@
+C-----PLTDMP.FOR                                                        V01.01
+CCC   V01.01  4/12/85  RTB  CHANGES FOR MODCOMP SYSTEM                  V01.01
+      PROGRAM PLTDMP                                                    V01.01
+      IMPLICIT INTEGER(A-Z)
+      DIMENSION TEXT(64),PAT(16)
+      REAL R1,R2,R3,R4
+      COMMON /XY/ X,Y
+      CALL INIT
+    1 WD=GETWD(Q)
+CCC   IF (IAND(WD,"100000).EQ.0) GO TO 2                                V01.01
+      IF (IAND(WD, 4Z8000).EQ.0) GO TO 2                                V01.01
+      LINE=0
+CCC   IF (IAND(WD,"40000).NE.0) LINE=1                                  V01.01
+      IF (IAND(WD, 16384).NE.0) LINE=1                                  V01.01
+CCC   DELX=IAND(ISHFT(WD,-7),"177)-63                                   V01.01
+      DELX=IAND(ISHFT(WD,-7), 127)-63                                   V01.01
+      R1=FLOAT(DELX)/72.
+CCC   DELY=IAND(WD,"177)-63                                             V01.01
+      DELY=IAND(WD, 127)-63                                             V01.01
+      R2=FLOAT(DELY)/60.
+      X=X+DELX
+      Y=Y+DELY
+      R3=FLOAT(X)/72.
+      R4=FLOAT(Y)/60.
+      WRITE (6,100) LINE,DELX,R1,DELY,R2,X,R3,Y,R4
+  100 FORMAT (1X,'DELTA X, DELTA Y:  LINE = ',I1,
+     &' DELTA X = ',I6,' (',F8.3,') DELTA Y = ',I6,' (',F8.3,
+     &') X = ',I6,' (',F8.3,') Y = ',I6,' (',F8.3,')')
+      GO TO 1
+CCC 2 IF (IAND(WD,"60000).NE."20000) GO TO 3                            V01.01
+    2 IF (IAND(WD, 24576).NE.  8192) GO TO 3                            V01.01
+      LINE=0
+CCC   IF (IAND(WD,"10000).NE.0) LINE=1                                  V01.01
+      IF (IAND(WD,  4096).NE.0) LINE=1                                  V01.01
+CCC   DELX=IAND(WD,"7777)-2047                                          V01.01
+      DELX=IAND(WD, 4095)-2047                                          V01.01
+      R1=FLOAT(DELX)/72.
+      X=X+DELX
+      R3=FLOAT(X)/72.
+      WRITE (6,200) LINE,DELX,R1,X,R3
+  200 FORMAT (1X,'DELTA X:  LINE = ',I1,' DELTA X = ',I4,' (',F8.3,
+     &') X = ',I6,' (',F8.3,')')
+      GO TO 1
+CCC 3 IF (IAND(WD,"60000).NE."40000) GO TO 4                            V01.01
+    3 IF (IAND(WD, 24576).NE. 16384) GO TO 4                            V01.01
+      LINE=0
+CCC   IF (IAND(WD,"10000).NE.0) LINE=1                                  V01.01
+      IF (IAND(WD,  4096).NE.0) LINE=1                                  V01.01
+CCC   DELY=IAND(WD,"7777)-2047                                          V01.01
+      DELY=IAND(WD, 4095)-2047                                          V01.01
+      R2=FLOAT(DELY)/60.
+      Y=Y+DELY
+      R4=FLOAT(Y)/60.
+      WRITE (6,300) LINE,DELY,R2,Y,R4
+CC300 FORMAT (1X,'DELTA Y:  LINE = 'I1,' DELTA Y = ',I4,' (',F8.3,      V01.01
+CCC  &') Y = ',I6,' ('F8.3,')')                                         V01.01
+  300 FORMAT (1X,'DELTA Y:  LINE = ',I1,' DELTA Y = ',I4,' (',F8.3,     V01.01
+     &') Y = ',I6,' (',F8.3,')')                                        V01.01
+      GO TO 1
+CCC 4 IF (IAND(WD,"60000).NE."60000) GO TO 5                            V01.01
+    4 IF (IAND(WD, 24576).NE. 24576) GO TO 5                            V01.01
+CCC   Y=IAND(WD,"17777)                                                 V01.01
+      Y=IAND(WD,  8191)                                                 V01.01
+      R2=FLOAT(Y)/60.
+      WD=GETWD(Q)
+CCC   X=IAND(WD,"77777)                                                 V01.01
+      X=IAND(WD, 32767)                                                 V01.01
+      R1=FLOAT(X)/72.
+      LINE=0
+CCC   IF (IAND(WD,"100000).NE.0) LINE=1                                 V01.01
+      IF (IAND(WD, 4Z8000).NE.0) LINE=1                                 V01.01
+      WRITE (6,400) LINE,X,R1,Y,R2
+  400 FORMAT (1X,'X, Y:  LINE = ',I1,' X = ',I6,' (',F8.3,
+     &') Y = ',I6,' (',F8.3,')')
+      GO TO 1
+CCC 5 IF (IAND(WD,"14000).NE."4000) GO TO 6                             V01.01
+    5 IF (IAND(WD,  6144).NE. 2048) GO TO 6                             V01.01
+CCC   CHS=IAND(WD,"3777)                                                V01.01
+      CHS=IAND(WD, 2047)                                                V01.01
+      R1=FLOAT(CHS)/72.
+      CVS=GETWD(Q)
+      R2=FLOAT(CVS)/60.
+      WRITE (6,500) CHS,R1,CVS,R2
+  500 FORMAT (1X,'CHARACTER SPACING:  HORIZONTAL = ',I6,' (',F8.3,
+     &') VERTICAL = ',I6,' (',F8.3,')')
+      GO TO 1
+CCC 6 IF (IAND(WD,"14000).NE."10000) GO TO 7                            V01.01
+    6 IF (IAND(WD,  6144).NE.  4096) GO TO 7                            V01.01
+CCC   CW=IAND(WD,"3777)                                                 V01.01
+      CW=IAND(WD, 2047)                                                 V01.01
+      R1=FLOAT(CW)/72.
+      CH=GETWD(Q)
+      R2=FLOAT(CH)/60.
+      WRITE (6,600) CW,R1,CH,R2
+  600 FORMAT (1X,'CHARACTER SIZE:  WIDTH = ',I6,' (',F8.3,
+     &') HEIGHT = ',I6,' (',F8.3,')')
+      GO TO 1
+CCC 7 IF (IAND(WD,"14000).NE."14000) GO TO 8                            V01.01
+    7 IF (IAND(WD,  6144).NE.  6144) GO TO 8                            V01.01
+      WRITE (6,700) WD
+CC700 FORMAT (1X,'UNUSEF ATOM:  ',O6)                                   V01.01
+  700 FORMAT (1X,'UNUSEF ATOM:  ',I6)                                   V01.01
+      GO TO 1
+CCC 8 IF (IAND(WD,"3000).NE."2000) GO TO 9                              V01.01
+    8 IF (IAND(WD, 1536).NE. 1024) GO TO 9                              V01.01
+CCC   ANGLE=IAND(WD,"777)                                               V01.01
+      ANGLE=IAND(WD, 511)                                               V01.01
+      WRITE (6,800) ANGLE
+  800 FORMAT (1X,'CHARACTER SLANT:  ANGLE = ',I3)
+      GO TO 1
+CCC 9 IF (IAND(WD,"3000).NE."2000) GO TO 10                             V01.01
+    9 IF (IAND(WD, 1536).NE. 1024) GO TO 10                             V01.01
+CCC   ANGLE=IAND(WD,"777)                                               V01.01
+      ANGLE=IAND(WD, 511)                                               V01.01
+      WRITE (6,900) ANGLE
+  900 FORMAT (1X,'CHARACTER ORIENTATION:  ANGLE = ',I3)
+      GO TO 1
+CCC10 IF (IAND(WD,"3000).NE."3000) GO TO 11                             V01.01
+   10 IF (IAND(WD, 1536).NE. 1536) GO TO 11                             V01.01
+CCC   ANGLE=IAND(WD,"777)                                               V01.01
+      ANGLE=IAND(WD, 511)                                               V01.01
+      WRITE (6,1000) ANGLE
+ 1000 FORMAT (1X,'CHARACTER ANNOTATION:  ANGLE = ',I3)
+      GO TO 1
+CCC11 IF (IAND(WD,"600).NE."200) GO TO 12                               V01.01
+   11 IF (IAND(WD, 384).NE. 128) GO TO 12                               V01.01
+CCC   SYMBOL=IAND(WD,"177)                                              V01.01
+      SYMBOL=IAND(WD, 127)                                              V01.01
+      WRITE (6,1100) SYMBOL
+ 1100 FORMAT (1X,'SYMBOL:  ',I3)
+      GO TO 1
+CCC12 IF (IAND(WD,"600).NE."400) GO TO 13                               V01.01
+   12 IF (IAND(WD, 384).NE. 256) GO TO 13                               V01.01
+CCC   NB=IAND(WD,"177)                                                  V01.01
+      NB=IAND(WD, 127)                                                  V01.01
+      NW=(NB+1)/2
+      WRITE (6,1200) NB
+ 1200 FORMAT (1X,'TEXT:  NUMBER OF BYTES = ',I3)
+      IF (NW.LE.0) GO TO 1
+      DO 121 I=1,NW
+  121 TEXT(I)=GETWD(Q)
+      WRITE (6,1201) (TEXT(I),I=1,NW)
+ 1201 FORMAT (1X,64A2)
+      GO TO 1
+CCC13 IF (IAND(WD,"600).NE."600) GO TO 14                               V01.01
+   13 IF (IAND(WD, 384).NE. 384) GO TO 14                               V01.01
+CCC   TPL=IAND(WD,"77)                                                  V01.01
+      TPL=IAND(WD, 63)                                                  V01.01
+      WRITE (6,1300) TPL
+ 1300 FORMAT (1X,'TONE PATTERN:  LENGTH = ',I2)
+CCC   IF (IAND(WD,"100).EQ.0.OR.TPL.EQ.0) GO TO 1                       V01.01
+      IF (IAND(WD,  64).EQ.0.OR.TPL.EQ.0) GO TO 1                       V01.01
+      WRITE (6,1301)
+ 1301 FORMAT (1X,15X,'PATTERN FOLLOWS: ')
+      DO 131 I=1,TPL
+      WD=GETWD(Q)
+      DO 132 J=1,16
+      PAT(J)=0
+CCC   IF (IAND(WD,"100000).NE.0) PAT(J)=1                               V01.01
+      IF (IAND(WD, 4Z8000).NE.0) PAT(J)=1                               V01.01
+  132 WD=ISHFT(WD,1)
+      WRITE (6,1302) PAT
+ 1302 FORMAT (1X,15X,16I1)
+  131 CONTINUE
+      GO TO 1
+CCC14 IF (IAND(WD,"140).NE."40) GO TO 15                                V01.01
+   14 IF (IAND(WD,  96).NE. 32) GO TO 15                                V01.01
+CCC   IF (IAND(WD,"37).NE.0) GO TO 141                                  V01.01
+      IF (IAND(WD, 31).NE.0) GO TO 141                                  V01.01
+      WRITE (6,1400)
+ 1400 FORMAT (1X,'CLEAR TONAL ZONE:  ZONE FOLLOWS:')
+      GO TO 1
+  141 WRITE (6,1401)
+ 1401 FORMAT (1X,'TONE TONAL ZONE:  ZONE FOLLOWS:')
+      GO TO 1
+CCC15 IF (IAND(WD,"140).NE."100) GO TO 16                               V01.01
+   15 IF (IAND(WD,  96).NE.  64) GO TO 16                               V01.01
+      WRITE (6,1500) WD
+C1500 FORMAT (1X,'UNUSED ATOM:  ',O6)                                   V01.01
+ 1500 FORMAT (1X,'UNUSED ATOM:  ',I6)                                   V01.01
+      GO TO 1
+CCC16 IF (IAND(WD,"140).NE."140) GO TO 17                               V01.01
+   16 IF (IAND(WD,  96).NE.  96) GO TO 17                               V01.01
+      WRITE (6,1600) WD
+C1600 FORMAT (1X,'UNUSED ATOM:  ',O6)                                   V01.01
+ 1600 FORMAT (1X,'UNUSED ATOM:  ',I6)                                   V01.01
+      GO TO 1
+CCC17 IF (IAND(WD,"30).NE."10) GO TO 18                                 V01.01
+   17 IF (IAND(WD, 24).NE.  8) GO TO 18                                 V01.01
+CCC   LW=IAND(WD,"7)+1                                                  V01.01
+      LW=IAND(WD, 7)+1                                                  V01.01
+      WRITE (6,1700) LW
+ 1700 FORMAT (1X,'LINE WIDTH FOR CHARACTERS:  WIDTH = ',I1)
+      GO TO 1
+CCC18 IF (IAND(WD,"30).NE."20) GO TO 19                                 V01.01
+   18 IF (IAND(WD, 24).NE. 16) GO TO 19                                 V01.01
+CCC   LW=IAND(WD,"7)+1                                                  V01.01
+      LW=IAND(WD, 7)+1                                                  V01.01
+      WRITE (6,1800) LW
+ 1800 FORMAT (1X,'LINE WIDTH FOR PLOTTING:  WIDTH = ',I1)
+      GO TO 1
+CCC19 IF (IAND(WD,"30).NE."30) GO TO 20                                 V01.01
+   19 IF (IAND(WD, 24).NE. 24) GO TO 20                                 V01.01
+CCC   LT=IAND(WD,"7)+1                                                  V01.01
+      LT=IAND(WD, 7)+1                                                  V01.01
+      IF (LT.GT.4) GO TO 195
+      GO TO(191,192,193,194),LT
+  191 WRITE (6,1901)
+ 1901 FORMAT (1X,'LINE TYPE:  STRAIGHT')
+      GO TO 1
+  192 WRITE (6,1902)
+ 1902 FORMAT (1X,'LINE TYPE:  CLOCKWISE ELLIPTICAL')
+      GO TO 1
+  193 WRITE (6,1903)
+ 1903 FORMAT (1X,'LINE TYPE:  COUNTERCLOCKWISE ELLIPTICAL')
+      GO TO 1
+  194 WRITE (6,1904)
+ 1904 FORMAT (1X,'LINE TYPE:  POINT')
+      GO TO 1
+  195 WRITE (6,1905) WD
+C1905 FORMAT (1X,'LINE TYPE:  UNKNOWN, ATOM = ',O6)                     V01.01
+ 1905 FORMAT (1X,'LINE TYPE:  UNKNOWN, ATOM = ',I6)                     V01.01
+      GO TO 1
+CCC20 IF (IAND(WD,"6).NE."2) GO TO 21                                   V01.01
+   20 IF (IAND(WD, 6).NE. 2) GO TO 21                                   V01.01
+      WD=GETWD(Q)
+      DO 201 I=1,16
+      PAT(I)=0
+CCC   IF (IAND(WD,"100000).NE.0) PAT(I)=1                               V01.01
+      IF (IAND(WD, 4Z8000).NE.0) PAT(I)=1                               V01.01
+  201 WD=ISHFT(WD,1)
+      WRITE (6,2000) PAT
+ 2000 FORMAT (1X,'LINE MASK:  MASK = ',16I1)
+      GO TO 1
+CCC21 IF (IAND(WD,"6).NE."4) GO TO 22                                   V01.01
+   21 IF (IAND(WD, 6).NE. 4) GO TO 22                                   V01.01
+      WD=GETWD(Q)
+      DO 211 I=1,10
+  211 TEXT(I)=GETWD(Q)
+      WRITE (6,2100) WD,(TEXT(I),I=1,10)
+ 2100 FORMAT (1X,'NEW OUTPUT FILE NAME.  LENGTH = ',I2,'.  NAME = ',
+     &10A2,'.')
+      GO TO 1
+CCC22 IF (IAND(WD,"6).NE."6) GO TO 23                                   V01.01
+   22 IF (IAND(WD, 6).NE. 6) GO TO 23                                   V01.01
+CCC   IF (IAND(WD,"1).NE.0) GO TO 221                                   V01.01
+      IF (IAND(WD, 1).NE.0) GO TO 221                                   V01.01
+      WRITE (6,2200)
+ 2200 FORMAT (1X,'END OF FRAME')
+      GO TO 1
+  221 WRITE (6,2201)
+ 2201 FORMAT (1X,'END OF PLOT')
+      GO TO 1
+   23 WRITE (6,2300) WD
+C2300 FORMAT (1X,'UNUSED ATOM:  ',O6)                                   V01.01
+ 2300 FORMAT (1X,'UNUSED ATOM:  ',I6)                                   V01.01
+      GO TO 1
+      CALL EXIT                                                         V01.01
+      END

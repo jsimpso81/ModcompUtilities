@@ -1,0 +1,131 @@
+C        ######  #       ####### #######  #####   #####
+C        #     # #          #       #    #     # #     #
+C        #     # #          #       #    #     # #     #
+C        ######  #          #       #     #####   ######
+C        #       #          #       #    #     #       #
+C        #       #          #       #    #     # #     #
+C        #       #######    #    #######  #####   #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     THIS SUBROUTINE DOES THE PRINTER I/O FOR THE INTERNAL PASS2 PLOT.
+C     THIS ROUTINE WORKS FOR OKIDATA PACEMARK 2410 PRINTERS ONLY.
+C
+C  Calling sequence:
+C     CALL PLTI89( PRTLIN )
+C
+C  Parameter definitions:
+C     Input:            XXXXXX  I*2   DESC.
+C     Output:           XXXXXX  I*2   DESC.
+C
+C  Memory commons used:
+C     /XXXCOM/  READ/WRITE      DESC.
+C
+C  Disk files used:
+C     XXX       READ/WRITE      DESC.
+C
+C  Non disk I/O unit numbers used:
+C     XXX       read/write      desc.
+C
+C  Local variable definitions:
+C     PTYPE =
+C           2 = OKIDATA PACEMARK 2410
+C
+C  Subroutines called:
+C     XXXXXX    DESC.
+C
+C  Machine Transportable:       yes/no  reason if no.
+C
+C  Station Dependent:           no/yes  system name if yes
+C
+C  Comments:
+C     THIS WAS ORIGINALLY (PRNT) FROM THE EXTERNAL PASS2
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  06/01/88  JAS  CREATED.
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLTI89(PRTLIN)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         LU1, LU2, LU3, LU4, LU5
+
+
+
+      INTEGER*2         J,         UFT(13), OPT2, OPT7, INX, INX1       V02.01
+      INTEGER*4                BUFADR, IADR32                           V02.01
+      CHARACTER*1       PRTLIN(768), PRT2(1540), CETX                   V02.01
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+      PARAMETER               ( OPT2 = Z'1100' )                        V02.01
+      PARAMETER               ( OPT7 = 0 )                              V02.01
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL DIMENSIONS
+
+C--------LOCAL COMMONS
+      COMMON            /IOUNIT/LU1,LU2,LU3,LU4,LU5
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+      EQUIVALENCE       ( UFT(11), BUFADR )
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+
+C--------LOCAL DATA AREAS
+      DATA UFT    / 0, 0, OPT2, 0, 0, 0, 0, OPT7, 0, 0, 0, 0, 0 /
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      INX = 0
+      CETX = CHAR(3)
+
+C--------LOOP OVER ALL THE CHARACTERS TO FIND THE #03.  PUT AN #03 IN
+C--------FRONT OF IT TO MAKE SURE IT PRINTS.
+      DO 10100 J=1,768
+         IF ( PRTLIN(J) .EQ. CETX ) THEN
+            INX = INX + 1
+            PRT2(INX) = CETX
+         ENDIF
+         INX = INX + 1
+         PRT2(INX) = PRTLIN(J)
+10100 CONTINUE
+      INX = INX + 1
+      PRT2(INX) = CHAR(3)
+      INX = INX + 1
+      PRT2(INX) = CHAR(14)
+                                                                        V02.01
+C--------WRITE THE LINE.  BLOCKS OF 64 WORDS.                           V02.01
+      INX1 = 1
+10200 CONTINUE
+      UFT(1) = 0
+      UFT(2) = LU3
+      IF ( INX-INX1+1 .GT. 128 ) THEN
+         UFT(13) = 128
+      ELSE
+         UFT(13) = INX-INX1+1
+      ENDIF
+      BUFADR = IADR32( PRT2(INX1) )
+      INX1 = INX1 + 128
+      CALL WRIT32( UFT )
+      IF ( UFT(1) .LT. 0 ) THEN
+         WRITE(LU2,*) UFT(1)
+         PAUSE
+      ENDIF
+      IF ( INX .GE. INX1 ) GOTO 10200
+      DO 10300 J=1,768
+         PRTLIN(J) = CHAR(0)
+10300 CONTINUE
+
+C-----
+      RETURN
+      END

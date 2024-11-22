@@ -1,0 +1,20 @@
+      INTEGER FUNCTION GETWD(Q)
+      IMPLICIT INTEGER(A-Z)
+      REAL R1,R2
+      DATA COUNT/0/
+    2 IF (COUNT.GT.0) GO TO 4
+      COUNT=GW(Q)
+      IF (COUNT.NE.0) GO TO 3
+      MINX=GW(Q)
+      MAXX=GW(Q)
+      R1=FLOAT(MINX)/72.
+      R2=FLOAT(MAXX)/72.
+      WRITE (6,200) MINX,R1,MAXX,R2
+  200 FORMAT (1X,'MINIMUM X VALUE = ',I6,' (',F8.3,
+     &') MAXIMUM X VALUE = ',I6,' (',F8.3,')')
+    3 IF (COUNT.LT.0) CALL EXIT
+      GO TO 2
+    4 GETWD=GW(Q)
+      COUNT=COUNT-1
+      RETURN
+      END

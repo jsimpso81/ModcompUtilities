@@ -1,0 +1,38 @@
+C-----SAMP1.FOR
+C     CHARACTER SUMMARY
+      PROGRAM SAMP1
+      COMMON /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      DATA SAME/9999.0/
+      DATA NCHAR/128/
+      WRITE (LU2,1101)
+ 1101 FORMAT (' CHARACTER SUMMARY')
+      CALL MODE(2,11.,0.,0.)
+      CALL MODE(3,7.7,0.,0.)
+      DO 100 N=1,NCHAR,64
+C-----PLOT CHARACTER/SYMBOLS
+      NC=N-1
+      CALL MODE(4,.96,.64,90.)
+      X=.64
+      DO 60 I=1,8
+      Y=.48
+      DO 50 J=1,8
+      CALL NOTE(X,Y,NC,-1)
+      NC=NC+1
+   50 Y=Y+.96
+   60 X=X+1.28
+C-----PLOT SYMBOL NUMBERS
+      CALL MODE(4,.0828,.0552,SAME)
+      X=1.25
+      NC=N-1
+      DO 80 I=1,8
+      Y=.65
+      DO 70 J=1,8
+      CALL NOTE(X,Y,NC,0)
+      NC=NC+1
+   70 Y=Y+.96
+   80 X=X+1.28
+      CALL FORM(8,1.28,8,.96)
+  100 CALL DRAW(0.,0.,1,9000)
+      CALL DRAW(0,0,0,9999)
+      CALL EXIT
+      END

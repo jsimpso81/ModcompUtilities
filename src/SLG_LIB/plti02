@@ -1,0 +1,106 @@
+C        ######  #       ####### #######   ###    #####
+C        #     # #          #       #     #   #  #     #
+C        #     # #          #       #    #     #       #
+C        ######  #          #       #    #     #  #####
+C        #       #          #       #    #     # #
+C        #       #          #       #     #   #  #
+C        #       #######    #    #######   ###   #######
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     GET VALUES FROM THE PASS1 WORK FILE.
+C
+C  Calling sequence:
+C     IDTAT = PLTI02( KEY )
+C
+C  Parameter definitions:
+C     Input:            KEY     I*2     COMMAND WORD WHERE:
+C                                       <0 = RESET FILE
+C                                       >=0 = GET NEXT WORD.
+C     Output:           IDATA   I*2     THE NEXT PASS1 DATA WORD
+C
+C  Memory commons used:
+C     /IOUNIT/  READ    LOCAL COMMON CONTAINING I/O UNIT NUMBERS
+C
+C  Disk files used:
+C     LU4       READ    PASS1 TO PASS2 WORK FILE.
+C
+C  Non disk I/O unit numbers used:
+C     NONE
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     NONE
+C
+C  Machine Transportable:       yes
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C     THIS WAS ORIGINALLY PART OF THE EXTERNAL PASS2 ROUTINE
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/01/87  JAS  CREATED.
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      FUNCTION          PLTI02(K)
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         PLTI02, JBLK, K, LU1, LU2, LU3, LU4, LU5, INDEX
+      INTEGER*2         JBUF
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+      PARAMETER         ( JBLK=126 )
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL DIMENSIONS
+      DIMENSION         JBUF(JBLK)
+
+C--------LOCAL COMMONS
+      COMMON            /IOUNIT/LU1,LU2,LU3,LU4,LU5
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+                                                                        V02.01
+      DATA   INDEX  / 0 /,                                              V02.01
+     :       JBUF   / JBLK * 0 /                                        V02.01
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      IF (K.GE.0) GO TO 1
+
+C--------RESET FILE
+      REWIND LU4
+      INDEX=JBLK
+      PLTI02=0
+      GOTO 9900
+
+C--------GET NEXT ATOM.  READ THE DISK IF NEEDED.
+1     CONTINUE
+      INDEX=INDEX+1
+      IF (INDEX.LE.JBLK) GO TO 2
+      READ (LU4) JBUF
+      INDEX=1
+
+C--------GET THE WORD
+2     CONTINUE
+      PLTI02=JBUF(INDEX)
+
+C--------BACK TO CALLER.
+9900  CONTINUE
+      RETURN
+      END

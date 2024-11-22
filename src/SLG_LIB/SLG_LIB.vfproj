@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeStaticLibrary" ProjectCreator="Intel Fortran" Keyword="Static Library" Version="11.0" ProjectIdGuid="{2756DBC2-BC39-4FD8-987A-7D45A11D49D9}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" WarnInterfaces="true" IntegerKIND="integerKIND2" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
+				<Tool Name="VFLibrarianTool"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/></Configuration>
+		<Configuration Name="Debug|x64" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" WarnInterfaces="true" IntegerKIND="integerKIND2" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
+				<Tool Name="VFLibrarianTool"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/></Configuration>
+		<Configuration Name="Release|Win32" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLibrarianTool"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/></Configuration>
+		<Configuration Name="Release|x64" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLibrarianTool"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="fi;fd"/>
+		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+		<File RelativePath=".\afix.for"/>
+		<File RelativePath=".\axes.for"/>
+		<File RelativePath=".\axis.for"/>
+		<File RelativePath=".\blkd1.for">
+			<FileConfiguration Name="Debug|Win32">
+				<Tool Name="VFFortranCompilerTool" F66Semantics="true"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" F66Semantics="true"/></FileConfiguration></File>
+		<File RelativePath=".\blkd2.for"/>
+		<File RelativePath=".\blkps2.for"/>
+		<File RelativePath=".\draw.for"/>
+		<File RelativePath=".\factor.for"/>
+		<File RelativePath=".\find.for"/>
+		<File RelativePath=".\form.for"/>
+		<File RelativePath=".\getwd.for"/>
+		<File RelativePath=".\gw.for"/>
+		<File RelativePath=".\init.for"/>
+		<File RelativePath=".\intgrz.for"/>
+		<File RelativePath=".\jfix.for"/>
+		<File RelativePath=".\lg1grz.for"/>
+		<File RelativePath=".\line.for"/>
+		<File RelativePath=".\mode.for"/>
+		<File RelativePath=".\newpen.for"/>
+		<File RelativePath=".\note.for"/>
+		<File RelativePath=".\number.for"/>
+		<File RelativePath=".\nxta.for"/>
+		<File RelativePath=".\nxtw.for"/>
+		<File RelativePath=".\pass2.for"/>
+		<File RelativePath=".\pcrv.for"/>
+		<File RelativePath=".\pdot.for"/>
+		<File RelativePath=".\plin.for"/>
+		<File RelativePath=".\plot.for"/>
+		<File RelativePath=".\plots.for"/>
+		<File RelativePath=".\pout.for"/>
+		<File RelativePath=".\pput.for"/>
+		<File RelativePath=".\prnt.for"/>
+		<File RelativePath=".\putw.for"/>
+		<File RelativePath=".\scale.for"/>
+		<File RelativePath=".\scan.for"/>
+		<File RelativePath=".\semilg.for"/>
+		<File RelativePath=".\solid.for"/>
+		<File RelativePath=".\sym1.for"/>
+		<File RelativePath=".\symbol.for"/>
+		<File RelativePath=".\table.for"/>
+		<File RelativePath=".\tone.for"/>
+		<File RelativePath=".\where.for"/></Filter></Files>
+	<Globals/></VisualStudioProject>

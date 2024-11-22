@@ -1,0 +1,19 @@
+        PROGRAM SAMP9
+        DIMENSION POINT(75,75)
+        COMMON /IOUNIT/LU1,LU2
+        DATA A,TAU,BETA,B,RMAX / 1.0, 0.10, .5, 0.00, 30.0 /
+        WRITE(LU2,*) 'SHADED 3-D SOLID'
+        DO 100 J=-37,37
+        R0 =  J
+        RR = R0 * R0
+        DO 100 J1=-37,37
+        R1 = J1
+        R = ( R1*R1 + RR )**.5
+        POINT(J1+38,J+38) = A * EXP(-TAU*R) * COS( BETA*R) + B  *
+     :        ( RMAX - ABS(R) )
+100     CONTINUE
+        CALL SOLID(POINT,75,75,10.0,10.0)
+        CALL DRAW(0.0,0.0,1,9000)
+        CALL DRAW(0.0,0.0,0,9999)
+        CALL EXIT
+        END

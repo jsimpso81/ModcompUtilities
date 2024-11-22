@@ -1,0 +1,305 @@
+C        ######  #       ####### #######   ###    #####
+C        #     # #          #       #     #   #  #     #
+C        #     # #          #       #    #     #       #
+C        ######  #          #       #    #     #  #####
+C        #       #          #       #    #     #       #
+C        #       #          #       #     #   #  #     #
+C        #       #######    #    #######   ###    #####
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     PLOT LINES FOR THE INTERNAL PASS2
+C
+C  Calling sequence:
+C     CALL PLTI03
+C
+C  Parameter definitions:
+C     Input:            NONE
+C     Output:           NONE
+C
+C  Memory commons used:
+C     /IOUNIT/  READ    I/O UNIT NUMBER COMMON
+C     /PS2COM/  READ    PASS2 LOCAL COMMON
+C
+C  Disk files used:
+C     NONE
+C
+C  Non disk I/O unit numbers used:
+C     NONE
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     PLTI05
+C     PLTI06
+C
+C  Machine Transportable:       yes
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C     THIS WAS ORIGINALLY (PLIN) FROM THE EXTERNAL PASS2 ROUTINE.
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/01/87  JAS  CREATED.
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLTI03
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         MDOTS, IPAD, IPX, IPY, LU1, LU2, LU3, LU4, LU5
+      INTEGER*2         NPLOT, MINX, MAXX, NDX, NDY, LTYPE, LWDTH
+      INTEGER*2         NBITS, NBT1, NBYTE, NBYM1, NCHAR, NCHM1
+      INTEGER*2         MSK, IBT, LDX, LDY, IXT, IYT, NDLTX, NDLTY, MOVY
+      INTEGER*2         NCLOCX, LMSK, ICH, ICW, IVS, IHS, ISCAN, NSCAN
+      INTEGER*2         NWORD, IM, NBTM1, IX1, IX2, IY1, IY2, LNTYP, MD
+      INTEGER*2         MDY, MAJ, NDLY, NDW, NRUN, ISUM, NDB
+      LOGICAL*2         YPLUS,XMAJ,MA
+      REAL*4            DEGRAD
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL DIMENSIONS
+      DIMENSION         MDOTS(7),IPAD(7),IPX(44),IPY(44)
+
+C--------LOCAL COMMONS
+      COMMON /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      COMMON /PS2COM/
+     &NPLOT,MINX,MAXX,NDX,NDY,LTYPE,LWDTH,DEGRAD,
+     &NBITS,NBTM1,NBYTE,NBYM1,NCHAR,NCHM1,MSK(7),IBT(16),
+     &LDX,LDY,IXT,IYT,NDLTX,NDLTY,MOVY,NCLOCX,
+     &LMSK(16),ICH,ICW,IVS,IHS,
+     &ISCAN,NSCAN,NWORD,IM(30720)
+C*****NOTE: INTEGER*2 IM(NWORD) IS TRUE DIMENSION
+C           (AS SPECIFIED IN BLOCK COMMON AND MAIN)
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+
+C--------LOCAL DATA
+      DATA MDOTS/+1,-2,+3,-4,+5,-6,+7/,IPAD/1,5,12,21,26,37,44/
+      DATA IPX/0,-1, 1, 1,-1,-1, 0, 2, 1, 0, 0,-1, 0,-1,-1,-1,
+     &         0, 0, 1, 1, 1, 1, 1, 0, 0,-1,-1,-1,-1,-1,-1, 0,
+     &         0, 1, 1, 1, 1, 1, 1, 1, 0, 0,-1,-1/
+      DATA IPY/0, 0, 1,-1,-1, 0, 2, 0, 0,-1,-1, 0,-1, 0, 0, 1,
+     &         1, 1, 1, 0, 0, 0,-1,-1,-1,-1,-1, 0, 0, 1, 1, 1,
+     &         1, 1, 1, 0, 0, 0,-1,-1,-1,-1,-1,-1/
+                                                                        V02.01
+      DATA NBT1   / 0 /,                                                V02.01
+     :     IX1    / 0 /,                                                V02.01
+     :     IX2    / 0 /,                                                V02.01
+     :     IY1    / 0 /,                                                V02.01
+     :     IY2    / 0 /,                                                V02.01
+     :     LNTYP  / 0 /,                                                V02.01
+     :     MD     / 0 /,                                                V02.01
+     :     MDY    / 0 /,                                                V02.01
+     :     MAJ    / 0 /,                                                V02.01
+     :     NDLY   / 0 /,                                                V02.01
+     :     NDW    / 0 /,                                                V02.01
+     :     NRUN   / 0 /,                                                V02.01
+     :     ISUM   / 0 /,                                                V02.01
+     :     NDB    / 0 /                                                 V02.01
+                                                                        V02.01
+      DATA YPLUS  / .FALSE. /,                                          V02.01
+     :     XMAJ   / .FALSE. /,                                          V02.01
+     :     MA     / .FALSE. /                                           V02.01
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+C-----INSURE NON-X DIRECTION OF LINE SEGMENT
+      IF (NDX.LE.LDX) GO TO 40
+      IX1=LDX
+      IY1=LDY
+      IX2=NDX
+      IY2=NDY
+      LNTYP=LTYPE
+      GO TO 80
+40    CONTINUE
+      IX1=NDX
+      IY1=NDY
+      IX2=LDX
+      IY2=LDY
+      LNTYP=-LTYPE
+80    CONTINUE
+      MD=0
+      MDY=IY2-IY1
+      IF (MDY.EQ.0) LNTYP=0
+      YPLUS=MDY.GE.0
+      MAJ=IX2-IX1-IABS(MDY)
+      XMAJ=MAJ.GE.0
+C-----DOES LINE CROSS THE BAND?
+100   CONTINUE
+      IF (IX2.LT.0.OR.IX1.GE.NSCAN) GO TO 800
+C-----YES, LINE SEGMENT CROSSES
+      IXT=IX1
+      IYT=IY1
+      NDLTX=IX2-IX1
+      NDLY=IY2-IY1
+      NDLTY=IABS(NDLY)
+      MOVY=0
+      IF (NDLY.EQ.0) GO TO 300
+      MOVY=ISIGN(1,NDLY)
+      IF (LNTYP.EQ.0.OR.NDLTX.EQ.0) GO TO 300
+C-----USE ELLIPTICAL CURVE
+250   CONTINUE
+      CALL PLTI05(LNTYP)
+      GO TO 800
+C-----STRAIGHT LINE
+C-----RESET DDA
+300   CONTINUE
+      NDW=0
+      NRUN=MAX0(NDLTX,NDLTY)
+      ISUM=NRUN/2
+      MA=NDLTX.GE.NDLTY
+      GO TO 400
+C-----CHECK COORDINATES VS. BAND LIMITS
+400   CONTINUE
+      IF (IXT.GE.0) GO TO 500
+410   CONTINUE
+      NRUN=NRUN-1
+      IF (MA) GO TO 450
+C-----MAJOR Y MOVES
+      IYT=IYT+MOVY
+      ISUM=ISUM-NDLTX
+      IF (ISUM.GE.0) GO TO 410
+      ISUM=ISUM+NDLTY
+      GO TO 470
+C-----MAJOR X MOVES
+450   CONTINUE
+      ISUM=ISUM-NDLTY
+      IF (ISUM.GE.0) GO TO 470
+      ISUM=ISUM+NDLTX
+      IYT=IYT+MOVY
+      GO TO 470
+470   CONTINUE
+      IXT=IXT+1
+      GO TO 400
+500   CONTINUE
+      NDW=IXT*ISCAN+IYT/NBITS+1
+      NDB=NBITS-MOD(IYT,NBITS)
+      IYT=MOVY
+550   CONTINUE
+      IXT=NBITS-MOD(NRUN,NBITS)
+X     WRITE(LU2,*) 'SET BIT IN WORD',NDB,NDW
+      IM(NDW)=IOR(IM(NDW),IAND(IBT(NDB),LMSK(IXT)))
+      IF (NRUN.LE.0) GO TO 800
+C-----COMPUTE MOVES CROSSING BAND
+      NRUN=NRUN-1
+      IF (MA) GO TO 580
+C-----MAJOR Y-MOVES
+      ISUM=ISUM-NDLTX
+      IF (ISUM.GE.0) GO TO 610
+      ISUM=ISUM+NDLTY
+      GO TO 600
+C-----MAJOR X-MOVES
+580   CONTINUE
+      ISUM=ISUM-NDLTY
+      IF (ISUM.GE.0) GO TO 590
+      IYT=MOVY
+      ISUM=ISUM+NDLTX
+      GO TO 600
+590   CONTINUE
+      IYT=0
+      GO TO 600
+C-----INDEX FOR +X-MOVES
+600   CONTINUE
+      NDW=NDW+ISCAN
+      IF (NDW.GT.NWORD) GO TO 800
+C-----INDEX FOR Y-MOVES
+610   CONTINUE
+      IF (IYT) 620,690,640
+C-----INDEX FOR -Y-MOVES
+620   CONTINUE
+      NDB=NDB+1
+      IF (NDB.LE.NBITS) GO TO 690
+      NDW=NDW-1
+      NDB=1
+      IF (NDW.LE.0) GO TO 800
+      GO TO 690
+C-----INDEX FOR +Y-MOVES
+640   CONTINUE
+      NDB=NDB-1
+      IF (NDB.GT.0) GO TO 690
+      NDW=NDW+1
+      NDB=NBITS
+690   CONTINUE
+      GO TO 550
+C-----IS LINE WIDE ENOUGH YET?
+800   CONTINUE
+      IF (MD.GE.LWDTH) GO TO 900
+C-----NO, WIDEN IT
+      MD=MD+1
+      NDB=MDOTS(MD)
+      IF (LNTYP) 850,820,870
+C-----MULTI-DOT STRAIGHT LINES
+820   CONTINUE
+      IF (XMAJ) GO TO 840
+C-----MAJOR Y-MOVE
+      IX1=IX1+NDB
+      IX2=IX2+NDB
+      GO TO 899
+C-----MAJOR +X-MOVE
+840   CONTINUE
+      IY1=IY1+NDB
+      IY2=IY2+NDB
+      GO TO 899
+C-----MULTI DOT CCW CURVE
+850   CONTINUE
+      IF (YPLUS) GO TO 860
+C-----(-Y MOVE)
+      IX1=IX1+NDB
+      IY2=IY2+NDB
+      GO TO 899
+C-----(+Y MOVE)
+860   CONTINUE
+      IY1=IY1+NDB
+      IX2=IX2+NDB
+      GO TO 899
+C-----MULTI-DOT CW CURVE
+870   CONTINUE
+      IF (YPLUS) GO TO 890
+C-----(-Y MOVE)
+      IY1=IY1-NDB
+      IX2=IX2-NDB
+      GO TO 899
+C-----(+Y MOVE)
+890   CONTINUE
+      IX1=IX1+NDB
+      IY2=IY2-NDB
+      GO TO 899
+C-----GO BACK AND PLOT A WIDENING LINE
+899   CONTINUE
+      GO TO 100
+C-----MULTI-DOT LINE PADDING (SIMULATE ROUND-TIPPED PEN POINT)
+900   CONTINUE
+      IF (LWDTH.LE.0) GO TO 999
+      IX1=LDX
+      IY1=LDY
+      IX2=NDX
+      IY2=NDY
+      NDB=IPAD(LWDTH)
+      DO 920 NDW=1,NDB
+      IX1=IX1+IPX(NDW)
+      IY1=IY1+IPY(NDW)
+      CALL PLTI06(IX1,IY1,-1)
+      IX2=IX2+IPX(NDW)
+      IY2=IY2+IPY(NDW)
+      CALL PLTI06(IX2,IY2,-1)
+920   CONTINUE
+999   CONTINUE
+      RETURN
+      END

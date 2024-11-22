@@ -1,0 +1,131 @@
+C        ######  #       #######   ###     ###     ##
+C        #     # #          #     #   #   #   #   # #
+C        #     # #          #    #     # #     #    #
+C        ######  #          #    #     # #     #    #
+C        #       #          #    #     # #     #    #
+C        #       #          #     #   #   #   #     #
+C        #       #######    #      ###     ###   #######
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  Function:
+C     Open scratch disk files for plotting use.  Also assign the
+C     output unit number.
+C
+C  Calling sequence:
+C     CALL PLT001( LP, SUBERR )
+C
+C  Parameter definitions:
+C     Input:            LP      I*2     THE UNIT NUMBER OF THE OUTPUT
+C                                       DEVICE
+C     Output:           SUBERR  I*2     RETURNED ERROR CODE:
+C                                       1=no error
+C                                       2=fatal error occured.
+C
+C  Memory commons used:
+C     /IOUNIT/  WRITE   LOCAL COMMON FOR I/O UNIT NUMBERS
+C
+C  Disk files used:
+C     LU4       WRITE   WORK FILE FOR PASS1 TO PASS2
+C     LU5       WRITE   WORK FILE FOR PASS2
+C
+C  Non disk I/O unit numbers used:
+C     LU3       WRITE   PLOT OUTPUT FILE (LP SPOOLER)
+C
+C  Local variable definitions:
+C     XXXXXX    I*2     DESC.
+C
+C  Subroutines called:
+C     GETASK
+C     SYSMES
+C
+C  Machine Transportable:       no      THE FILENAMES ARE MACHINE
+C                                       DEPENDENT.
+C
+C  Station Dependent:           no
+C
+C  Comments:
+C
+CCCCCCCCCCCCCCCCCCCCC  Modification History  CCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C  V02.00  08/01/87  JAS  CREATED.
+C  V02.01  03/08/88  HEB  Initialize local variables in DATA.           V02.01
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      SUBROUTINE        PLT001( LP, SUBERR )
+
+      IMPLICIT          NONE
+
+C--------LOCAL VARIABLE TYPES
+      INTEGER*2         LU1, LU2, LU3, LU4, LU5, SUBERR, STAT
+      INTEGER*2         ITASK(3), IOVER(3), LP, ASCNAM(3)               V02.02
+      CHARACTER*6       CTASK
+      CHARACTER*3       PTRNAM                                          V02.02
+
+C--------GLOBAL DATA BASE VARIABLE TYPES
+
+C--------LOCAL PARAMETERS
+
+C--------GLOBAL DATA BASE PARAMETERS
+
+C--------LOCAL COMMONS
+      COMMON            /IOUNIT/ LU1, LU2, LU3, LU4, LU5
+
+C--------GLOBAL DATA BASE COMMONS
+
+C--------LOCAL EQUIVALENCES
+
+C--------GLOBAL DATA BASE EQUIVALENCES
+                                                                        V02.01
+      DATA              STAT   / 0 /,                                   V02.01
+     :                  ITASK  / 3 * 0 /,                               V02.01
+     :                  IOVER  / 3 * 0 /,                               V02.01
+     :                  CTASK  / '      ' /                             V02.01
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+C--------SET SUBROUTINE ERROR TO BAD.
+      SUBERR = 2
+
+C--------GET THE NAME OF THE TASK
+      CALL GETASK( ITASK, IOVER, STAT )
+      IF ( STAT .NE. 1 ) GOTO 9900
+
+C--------CONVERT THE TASK NAME TO A CHARACTER VARIABLE SO WE CAN
+C--------USE IT FOR THE FILE NAME.
+      CTASK(1:1) = CHAR( ISHFT( ITASK(1), -8 ) )
+      CTASK(2:2) = CHAR( IAND( ITASK(1), 255 ) )
+      CTASK(3:3) = CHAR( ISHFT( ITASK(2), -8 ) )
+      CTASK(4:4) = CHAR( IAND( ITASK(2), 255 ) )
+      CTASK(5:5) = CHAR( ISHFT( ITASK(3), -8 ) )
+      CTASK(6:6) = CHAR( IAND( ITASK(3), 255 ) )
+
+C--------OPEN THE FILES ON THE DEFAULT DISK
+      OPEN(LU4,FILE='*/LU4'//CTASK,STATUS='UNKNOWN',
+     :     ACCESS='SEQUENTIAL',FORM='UNFORMATTED',ERR=9900)
+      OPEN(LU5,FILE='*/LU5'//CTASK,STATUS='UNKNOWN',
+     :     ACCESS='SEQUENTIAL',FORM='UNFORMATTED',ERR=9900)
+
+C--------GET THE ASCII NAME OF THE DEVICE SO IT CAN BE OPENED.          V02.02
+      CALL CTA32( LP, ASCNAM, STAT)                                     V02.02
+      IF ( STAT .NE. 1 ) GOTO 9900                                      V02.02
+      ASCNAM(1) = ISHFT(ASCNAM(1), -8)                                  V02.02
+      ASCNAM(2) = ISHFT(ASCNAM(2), -8)                                  V02.02
+      ASCNAM(3) = ISHFT(ASCNAM(3), -8)                                  V02.02
+      PTRNAM = CHAR(ASCNAM(1))//CHAR(ASCNAM(2))//CHAR(ASCNAM(3))        V02.02
+
+C--------SET THE UNIT OF PLOTTING
+      LU3 = LP
+      OPEN(LU3,FILE=PTRNAM)
+
+C--------SET STATUS IS GOOD
+      SUBERR = 1
+
+C--------GENERAL RETURN
+9900  CONTINUE
+      IF ( SUBERR .NE. 1 ) THEN
+         CALL SYSMES('Subroutine: PLT001  ERR=2',STAT)
+      ENDIF
+      RETURN
+      END

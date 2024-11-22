@@ -1,0 +1,30 @@
+C      TEST.FOR       CIRCLES
+       PROGRAM TEST
+       DIMENSION X(1600),Y(1600)
+       DATA SAME/9999.0/
+       CALL MODE(3,7.25,SAME,SAME)
+       CALL MODE(7,SAME,7.,SAME)
+       DO 20 IV=50,100,5
+               C=2.71828**((4.0*3.14159*8.54E-12*IV)/3.46E-9)
+               Z=12.0
+               R=(2.0*Z*(SQRT(C)))/(C-1.0)
+               H=(Z*(C+1.0))/(C-1)
+               PRINT *
+               PRINT *,R,'  ',H
+               PRINT *
+                       DO 10 IA=1,360,3
+                               KOUNT = KOUNT + 1
+                               A=FLOAT(IA)*3.14159265/180.0
+                               X(KOUNT)=H+R*COS(A)
+                               Y(KOUNT)=R*SIN(A)
+                               PRINT *,X(KOUNT),'   ',Y(KOUNT)
+10                     CONTINUE
+20     CONTINUE
+       CALL SCAN(X,Y,-KOUNT,441)
+       CALL MODE(5,SAME,SAME,441.)
+       CALL NOTE(X,Y,18,-KOUNT)
+       CALL AXES(6.1,'X AXIS',6.2,'Y AXIS')
+       CALL DRAW(X,Y,1,9000)
+       CALL DRAW(X,Y,0.,9999)
+       CALL EXIT
+       END

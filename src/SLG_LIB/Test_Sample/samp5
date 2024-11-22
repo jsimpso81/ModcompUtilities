@@ -1,0 +1,28 @@
+C-----SAMP5.FOR
+C     DAMPED SUNUSOID THRU POINTS
+      PROGRAM SAMP5                                                     V01.01
+      DIMENSION X(151),Y(151)
+      COMMON /IOUNIT/LU1,LU2,LU3,LU4,LU5
+      DATA LMASK/ O'10421' /
+      DATA SAME/9999.0/
+      DATA NE/151/
+      DATA D/.07/
+      DATA PI/3.14159265/
+      WRITE (LU2,1101)
+ 1101 FORMAT(' DAMPED SINUSOID THRU POINTS')
+      CALL MODE(3,7.25,SAME,SAME)
+      CALL MODE(7,SAME,7.,SAME)
+      DO 21 I=1,NE
+      XARG=FLOAT(I-1)*D
+      X(I)=XARG
+   21 Y(I)=(1.+EXP(-XARG))*SIN(PI*XARG)
+      CALL SCAN(X,Y,-NE,440)
+      CALL MODE(5,SAME,SAME,441.)
+      CALL NOTE(X,Y,18,-NE)
+      CALL AXES(6.1,'X AXIS',6.2,'Y AXIS')
+      CALL MODE(10,FLOAT(LMASK),SAME,SAME)
+      CALL FORM(7,1.,7,1.)
+      CALL DRAW(0.,0.,1,9000)
+      CALL DRAW(0.,0.,0,9999)
+      CALL EXIT
+      END
