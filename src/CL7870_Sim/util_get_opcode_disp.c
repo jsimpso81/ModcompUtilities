@@ -1194,11 +1194,11 @@ void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size
 			switch (loc_inst.parts.src_reg) {
 
 			case 0:		// SUI  --  SUI  --  Subtract Memory (Immediate) from Register       
-				strcpy_s(op_buffer, buf_size, "----");
+				strcpy_s(op_buffer, buf_size, "SUI");
 				break;
 
 			case 1:		// CRI  --  CRI  --  Compare Register with Memory (Immediate)       
-				strcpy_s(op_buffer, buf_size, "----");
+				strcpy_s(op_buffer, buf_size, "CRI");
 				break;
 
 			default:

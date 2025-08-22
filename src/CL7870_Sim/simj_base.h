@@ -51,6 +51,7 @@
 
 #include <windows.h>
 #include <synchapi.h>
+#pragma comment(lib, "ws2_32.lib") // Link with ws2_32.lib
 
 // ---------- simulator data types.
 // -- 8 bit unsigned integer
@@ -324,7 +325,8 @@ void cmd_process_parse(char* cmd_line, int max_len, char* cmd_line_parse[], int 
 void user_cmd_config_execute(char* input_file_name);
 bool user_cmd_parse_u16(char* in_str, SIMJ_U16* out_val, SIMJ_U16 min_val, SIMJ_U16 max_val);
 bool user_cmd_parse_device_type(char* in_device, SIMJ_U16* out_device_type);
-void user_cmd_attach_device(SIMJ_U16 device_type, SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, SIMJ_U16 extra_count, char* extra1, char* extra2);
+void user_cmd_attach_device(SIMJ_U16 device_type, SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp,
+	SIMJ_U16 extra_count, char* extra1, char* extra2, char* extra3);
 
 // -------- iop
 void iop_init_data();
@@ -339,6 +341,13 @@ int device_common_serial_close(HANDLE com_handle, DWORD* last_error);
 int device_common_serial_open(char* com_port, HANDLE* com_handle, DWORD* last_error);
 void device_common_serial_print_settings(DCB this_dcb);
 int device_common_serial_set_params(HANDLE hCom, DWORD* last_error, bool USE_HDWR_OUTPUT_HANDSHAKE);
+
+int device_common_raw_socket_open(SIMJ_U16 port, SOCKET* tcp_socket, DWORD* last_error);
+int device_common_raw_socket_close(SOCKET tcp_socket, DWORD* last_error);
+int device_common_raw_socket_read(SOCKET tcp_socket, DWORD desired_read_bytes,
+	SIMJ_U8* loc_read_data, DWORD* actual_read_bytes, DWORD* last_error);
+int device_common_raw_socket_write(SOCKET tcp_socket, DWORD desired_write_bytes,
+	SIMJ_U8* loc_write_data, DWORD* actual_written_bytes, DWORD* last_error);
 
 void device_common_buffer_init(volatile DEVICE_BUFFER* buff);
 bool device_common_buffer_isempty(volatile DEVICE_BUFFER* buff);
@@ -359,7 +368,8 @@ void device_common_capture_console_close();
 
 // -------- specific devices
 void device_null_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
-void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
+void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, char* filename);
+void device_console_tcp_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, SIMJ_U16 port);
 
 // -------- generic queue routines
 void que_uword_init(volatile QUEUE_UWORD* que);

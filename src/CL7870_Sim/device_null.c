@@ -403,6 +403,8 @@ void device_null_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ
 		strcpy_s(device_data->info, 40, "Null (console)");
 
 		// --------data specific to this device.
+		strcpy_s(device_data->filename, 255, "");
+		device_data->ipport = 0;
 		device_common_buffer_init(&device_data->in_buff);
 		device_common_buffer_init(&device_data->out_buff);
 

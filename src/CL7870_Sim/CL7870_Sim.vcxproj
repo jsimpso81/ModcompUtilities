@@ -136,6 +136,11 @@
     <ClCompile Include="cpu_do_run.c" />
     <ClCompile Include="cpu_do_step.c" />
     <ClCompile Include="device_common_capture_console.c" />
+    <ClCompile Include="device_common_raw_socket_close.c" />
+    <ClCompile Include="device_common_raw_socket_open.c" />
+    <ClCompile Include="device_common_raw_socket_read.c" />
+    <ClCompile Include="device_common_raw_socket_write.c" />
+    <ClCompile Include="device_console_tcp.c" />
     <ClCompile Include="disp_instruction_trace.c" />
     <ClCompile Include="disp_interrupts.c" />
     <ClCompile Include="disp_virtual_map.c" />

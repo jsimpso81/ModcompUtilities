@@ -158,27 +158,33 @@ void process_user_commands(FILE* cmd_src) {
 							SIMJ_U16 bus;
 							SIMJ_U16 prio;
 							SIMJ_U16 dmp;
+							// --------string of the device type
 							good1 = user_cmd_parse_device_type(cmd_data->cmd_line_parsed[2], &device_type);
+							// --------device address 0-#3f (probably should be 1-3f)
 							good2 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[3], &dev_addr, 0, 0x3f);
 							if (!good2) {
 								printf(" *** ERROR *** Not a valid device address: %s\n", cmd_data->cmd_line_parsed[3]);
 							}
+							// --------IO bus 0-3
 							good3 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[4], &bus, 0, 3);
 							if (!good3) {
 								printf(" *** ERROR *** Not a valid I/O bus: %s\n", cmd_data->cmd_line_parsed[4]);
 							}
+							// --------priority 0-#f
 							good4 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[5], &prio, 0, 15);
 							if (!good4) {
 								printf(" *** ERROR *** Not a valid priority: %s\n", cmd_data->cmd_line_parsed[5]);
 							}
+							// --------dmp 0-#3f
 							good5 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[6], &dmp, 0, 0x3f);
 							if (!good5) {
 								printf(" *** ERROR *** Not a valid DMP: %s\n", cmd_data->cmd_line_parsed[6]);
 							}
 							// -------- if all good try and initialize this device.
+							// -------- individual devices will parse extra parameters as needed.
 							if (good1 && good2 && good3 && good4 && good5 ) {
-								user_cmd_attach_device(device_type, dev_addr, bus, prio, dmp, cmd_count_found - 6,
-									cmd_data->cmd_line_parsed[7], cmd_data->cmd_line_parsed[8]);
+								user_cmd_attach_device(device_type, dev_addr, bus, prio, dmp, cmd_count_found - 7,
+									cmd_data->cmd_line_parsed[7], cmd_data->cmd_line_parsed[8], cmd_data->cmd_line_parsed[9]);
 							}
 						}
 					}

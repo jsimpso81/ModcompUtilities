@@ -1347,22 +1347,30 @@ void cpu_classic_7860() {
 //
 
 
-
+// -------- GET THE HOP OFFSET FROM THE INSTRUCTION.
 #define GET_HOP_OFFSET ( ( instruction.all & 0x0040 ) ? (SIMJ_U16)((instruction.all & 0x007f) | 0xff80) : (SIMJ_U16)(instruction.all & 0x007f) )
 
-
+// -------- CALCULATE THE NEXT PROGRAM COUNTER WHEN HOP INSTRUCTION BRANCHES.
 #define GET_NEXT_PROGRAM_COUNTER_HOP  ( (SIMJ_U16)(program_counter + GET_HOP_OFFSET) )
 
+// -------- SET THE NEXT PROGRAM COUNTER VALUE.
 #define SET_NEXT_PROGRAM_COUNTER(A)	{\
 					program_counter = (A);\
 					}
 
+// -------- CALCULATE NEXT PROGRAM COUNTER FOR ONE WORD INSTRUCTIONS
 #define PROGRAM_COUNTER_ONE_WORD_INSTRUCT ( program_counter+1 )
+
+// -------- CALCULATE NEXT PROGRAM COUNTER FOR TWO WORD INSTRUCTIONS
 #define PROGRAM_COUNTER_TWO_WORD_INSTRUCT ( program_counter+2 )
+
+// -------- CALCULATE NEXT PROGRAM COUNTER FOR THREE WORD INSTRUCTIONS
 #define PROGRAM_COUNTER_THREE_WORD_INSTRUCT ( program_counter+3 )
+
+// -------- CALCULATE NEXT PROGRAM COUNTER FOR FOUR WORD INSTRUCTIONS
 #define PROGRAM_COUNTER_FOUR_WORD_INSTRUCT ( program_counter+4 )
 
-
+// -------- SET NEXT PROGRAM COUNTER FOR BRANCHING INSTRUCTIONS.
 #define CONDITIONAL_BRANCH( TEST_VALUE,  BRANCH_PC, NO_BRANCH_PC ) {\
 					if ( (TEST_VALUE) ) {\
 						SET_NEXT_PROGRAM_COUNTER( BRANCH_PC );\
@@ -1398,7 +1406,13 @@ void cpu_classic_7860() {
 #define RIE_ALLOWED_NOT	( ~0x13ff )		// -- not allowed to reset enable 0, 1, 2, 4, 5 	
 #define RIR_ALLOWED_NOT ( ~0xffff )
 
+// -------- CHECK FOR A NEW INTERRUPT WITHIN AN INSTRUCTION.
 // TODO: Is it really necessary to sync interrupt requests.
+// -------- TAKE RESOURCE
+// -------- OR IN THE INTERRUPT REUEST
+// -------- RESET EXTERNAL INTERRUPT REQUEST 
+// -------- GIVE BACK RESOURCE.
+// -------- CHECK IF THERE IS A NEW INTERRUPT.
 #define IS_THERE_A_NEW_INTERRUPT {\
 					TAKE_RESOURCE(ResourceInterruptRequest);\
 					cpu_interrupt_request |= cpu_interrupt_request_external;\
@@ -1406,6 +1420,8 @@ void cpu_classic_7860() {
 					GIVE_RESOURCE(ResourceInterruptRequest);\
 					if (((cpu_interrupt_request & cpu_interrupt_enabled & cpu_interrupt_active_mask) > (cpu_interrupt_active & cpu_interrupt_active_mask))) {\
 					}
+
+// -------- END OF CHECKING FOR A NEW INTERRUPT REQUEST WITHIN INSTRUCTION.
 #define END_IS_THERE_A_NEW_INTERRUPT {\
 						goto end_instruction;\
 					}\
@@ -1752,7 +1768,7 @@ void cpu_classic_7860() {
 					fprintf(stderr, "       start offset: 0x%08x \n", tmp32_val4.uval);
 					fprintf(stderr, "       length:       0x%08x \n", tmp32_val6.uval);
 					// --------END DEBUG
-					// TODO: Make instruction abortable and restartable
+					// TODO: Make instruction abortable and restartable  -- DONE
 					if (instruction.parts.op_code != cpu_inst_intr_opcode || program_counter != cpu_inst_intr_pc) {
 						cpu_inst_next_start = 0;
 					}
@@ -1806,7 +1822,7 @@ void cpu_classic_7860() {
 					if (instruction.parts.op_code != cpu_inst_intr_opcode || program_counter != cpu_inst_intr_pc) {
 						cpu_inst_next_start = 0;
 					}
-					// TODO: Make instruction abortable and restartable
+					// TODO: Make instruction abortable and restartable -- DONE
 					for (j = cpu_inst_next_start; j < tmp32_val6.sval; j++) {
 						cpu_virtual_mem_map[tmp16_val2.uval].entry[tmp32_val4.uval + j].all = 0;
 						// --------see if time to check interrupts.

@@ -40,13 +40,21 @@ void user_cmd_print_help() {
 #endif
 	printf("\n   Command line parameters:\n");
 	printf("        -c <config file>  load configuration file\n");
-	printf("        -h       print help message and exit\n");
-	printf("        -?       print help message and exit\n");
+	printf("        -h       print help message\n");
+	printf("        -?       print help message\n");
 	printf("        -v       verbose debug messages.\n");
 	printf("\n   Commands:\n");
 
-	printf("      attach device console <dev addr> <bus> <prio> <dmp>\n");
+	printf("      attach device a4808 <dev addr> <bus> <prio> <dmp> <start_port>\n");
+	printf("      attach device a4811 <dev addr> <bus> <prio> <dmp> <start_port>\n");
+	printf("      attach device console <dev addr> <bus> <prio> <dmp> <port COM1>\n");
+	printf("      attach device consoletcp <dev addr> <bus> <prio> <dmp> <port 3000>\n");
+	printf("      attach device disk_ips <dev addr> <bus> <prio> <dmp> <unit> <filename>\n");
+	printf("      attach device disk_lx <dev addr> <bus> <prio> <dmp> <unit> <filename>\n");
+	printf("      attach device modacs1600 <dev addr> <bus> <prio> <dmp> <card_\n");
+	printf("      attach device modacsIII <dev addr> <bus> <prio> <dmp>\n");
 	printf("      attach device null    <dev addr> <bus> <prio> <dmp>\n");
+	printf("      attach device tape <dev addr> <bus> <prio> <dmp> <unit> <filename>\n");
 
 	printf("\n");
 

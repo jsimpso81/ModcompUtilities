@@ -24,17 +24,19 @@
 
 #include "simj_base.h"
 
-#include <stdio.h>
+// -------- close an open com port, 0 = no error
+int device_common_raw_socket_close(SOCKET tcp_socket, DWORD* last_error) {
 
+	int status;
 
-void disp_instruction_use(FILE* io_unit) {
+	// -------- 7. close socket
+	status = closesocket(tcp_socket);
 
-	SIMJ_U16 j = 0;
-	char opcode[100];
-
-	// TODO: fix for augments !!!!
-	for (j = 0; j < 256; j++) {
-		util_get_opcode_disp(j<<8, opcode, 100);
-		fprintf(io_unit, " 0x%04x %s %d\n", j<<8, opcode, cpu_inst_used[j]);
+	if (status != 0) {
+	 	*last_error = WSAGetLastError();
+	 	return 1;
 	}
+
+	*last_error = 0;
+	return 0;
 }

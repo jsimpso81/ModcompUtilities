@@ -24,17 +24,25 @@
 
 #include "simj_base.h"
 
-#include <stdio.h>
+// -------- write data on a raw tcp socket port.  This function waits., 0 = no error
+int device_common_raw_socket_write(SOCKET tcp_socket, DWORD desired_write_bytes,
+	SIMJ_U8* loc_write_data, DWORD* actual_written_bytes, DWORD* last_error) {
 
+	// BOOL read_status = false;
+	int bytesWritten = 0;
+	int buffer_size = 0;
 
-void disp_instruction_use(FILE* io_unit) {
+	buffer_size = desired_write_bytes;
+	bytesWritten = send(tcp_socket, loc_write_data, desired_write_bytes, 0);
 
-	SIMJ_U16 j = 0;
-	char opcode[100];
-
-	// TODO: fix for augments !!!!
-	for (j = 0; j < 256; j++) {
-		util_get_opcode_disp(j<<8, opcode, 100);
-		fprintf(io_unit, " 0x%04x %s %d\n", j<<8, opcode, cpu_inst_used[j]);
+	// -------- check for error or socket closure.
+	if (bytesWritten == 0 || ( bytesWritten == SOCKET_ERROR) ) {
+		*last_error = WSAGetLastError();
+		*actual_written_bytes = 0;
+		return 1;
 	}
+
+	*actual_written_bytes = bytesWritten;
+	*last_error = 0;
+	return 0;
 }

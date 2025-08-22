@@ -174,6 +174,21 @@
     <ClCompile Include="disp_virtual_map.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="device_common_raw_socket_open.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_raw_socket_close.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_console_tcp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_raw_socket_read.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_raw_socket_write.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_globals.h">

@@ -62,18 +62,20 @@ void device_console_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* devic
 // ============================================================================================================================
 void  device_console_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 
+	// --------get the pointer to the data buffer
 	DEVICE_CONSOLE_DATA* databuffer = (DEVICE_CONSOLE_DATA*)iop_device_buffer[device_address];
 
+	// --------just the low byte of the data word is used.
 	SIMJ_U8 junk = data_value & 0x00ff;
 	// -------- just some diagnostics.
 	// SIMJ_U8 junk2 = (SIMJ_U8)((data_value >> 8) & 0x00ff);
 	// if (junk2 != 0) {
 	// 	fprintf(stderr, " Console output data, high byte not zero: 0x%04x\n", data_value);
 	// }
-
+	// -------add the byte to the data buffer.
 	device_common_buffer_put(&databuffer->out_buff, junk);
 
-	// --------if writing and buffer isn't empty
+	// --------if writing and buffer isn't empty, set data not ready in status word...
 	if (databuffer->write_in_progress && !device_common_buffer_isempty(&databuffer->out_buff)) {
 
 		// -------- Request ownership of the resource.
@@ -88,7 +90,7 @@ void  device_console_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 	databuffer->ctrl_wake++;
 	WakeByAddressSingle((PVOID) & (databuffer->ctrl_wake));
 
-	// --------allow other threads to run
+	// --------allow other threads to run -- WHY IS THIS COMMENTED OUT!!!
 	// SwitchToThread();
 
 }
@@ -132,7 +134,7 @@ SIMJ_U16  device_console_input_data(SIMJ_U16 device_address) {
 
 	// fprintf(stderr," device_console input data -- called - 0x%04x, index %d, new: %s \n", ourvalue, databuffer->in_buff.last_byte_read_index, (new_data ? "New  " : "Empty"));
 
-	// --------wake up comm thread.
+	// --------wake up comm thread.  WHY
 	databuffer->ctrl_wake++;
 	WakeByAddressSingle( (PVOID) & (databuffer->ctrl_wake));
 
@@ -146,7 +148,6 @@ SIMJ_U16  device_console_input_status(SIMJ_U16 device_address) {
 
 	SIMJ_U16 loc_status;
 	SIMJ_U16 loc_status1;
-
 
 	// --------allow other threads to run
 	// SwitchToThread();
@@ -192,6 +193,7 @@ SIMJ_U16  device_console_input_status(SIMJ_U16 device_address) {
 
 
 // ============================================================================================================================
+// --------this routine interacts with the local computer com device.
 DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
 	SIMJ_U16 loc_device_addr = 0;
@@ -210,19 +212,82 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 	DWORD j = 0;
 	BOOL status;
 
+	int open_status = 1;
+	HANDLE loc_com_device = NULL;
+	DWORD last_error = 0;
+	int set_param_status = 1;
+	int loc_stop_request = 0;
 
+	// -------------------------------------------------------------------------------------------------------------
+	// --------initializtion
+	// 
+	// 
 
 	// -------- get local device address from calling parameter to this routine 
 	loc_device_addr = *(SIMJ_U16*)lpParam;
-
-
 	printf(" Starting device console communications thread at device address %d\n", loc_device_addr);
 	if (loc_device_addr == 0) {
 		printf(" Console device thread didn't get device address \n");
+		loc_stop_request = 1;
+		iop_thread_stop_request[loc_device_addr] = 1;
 	}
 
 	// -------- get pointer to device data.
 	device_data = (DEVICE_CONSOLE_DATA*)(iop_device_buffer[loc_device_addr]);
+
+	// --------Open com port
+	open_status = device_common_serial_open(device_data->filename, &loc_com_device, &last_error);
+
+	// -------- if com port was opened..
+	if (open_status == 0) {
+
+		// --------set global com handle for other thread.
+		device_data->com_handle = loc_com_device;
+
+		// -------- set com port parameters
+		set_param_status = device_common_serial_set_params(loc_com_device, &last_error, true);
+
+		if (set_param_status != 0) {
+			printf(" *** ERROR ***  Trouble setting com port parameters.\n");
+		}
+
+		// -------- Configure read and write operations to time out after 100 ms.
+		COMMTIMEOUTS timeouts = { 0 };
+		timeouts.ReadIntervalTimeout = 0;
+		timeouts.ReadTotalTimeoutConstant = 50;	// ms -- too large on purpose to help half duplex turn around.
+		timeouts.ReadTotalTimeoutMultiplier = 0;
+		timeouts.WriteTotalTimeoutConstant = 1200;	// ms
+		timeouts.WriteTotalTimeoutMultiplier = 0;
+
+		BOOL success = SetCommTimeouts(loc_com_device, &timeouts);
+		if (!success) {
+			printf(" *** ERROR ***  Failed to set serial timeouts\n");
+			// CloseHandle(port);
+			// return INVALID_HANDLE_VALUE;
+		}
+
+		// -------- set comm port driver buffer sizes.
+		success = SetupComm(loc_com_device, 16384, 50);
+		if (!success) {
+			printf(" *** ERROR ***  Failed to set serial port buffers\n");
+		}
+
+		// Flush away any bytes previously read or written.
+		success = FlushFileBuffers(loc_com_device);
+		if (!success) {
+			printf(" *** ERROR ***  Failed to flush serial port\n");
+			//CloseHandle(port);
+			//return INVALID_HANDLE_VALUE;
+		}
+	}
+	// -------- error opening com port, stop thread...
+	else {
+		printf(" *** ERROR ***  Trouble opening com port: %s  Device being terminated.\n", device_data->filename);
+		loc_stop_request = 1;
+		iop_thread_stop_request[loc_device_addr] = 1;
+	}
+
+
 
 	// -------- raise the priority of this thread.
 	status = SetThreadPriority( (HANDLE)iop_device_thread_handle2[loc_device_addr], THREAD_PRIORITY_ABOVE_NORMAL);
@@ -232,8 +297,6 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
 	// -------- get local comm handle
 	loc_comm_handle = device_data->com_handle;
-
-	int loc_stop_request = 0;
 
 	// TODO: Serial comm -- THis is way to crude with too many data copies potentially high latency.  Fix.
 
@@ -268,7 +331,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 				while (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 500) {
 					if (device_common_buffer_get(&device_data->out_buff, &loc_write_data[bytes_to_write])) {
 						// --------DEBUG
-						fprintf(stderr,"%c", loc_write_data[bytes_to_write]);
+						// fprintf(stderr,"%c", loc_write_data[bytes_to_write]);
 						// --------END DEBUG
 						bytes_to_write++;
 					}
@@ -310,7 +373,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 				// --------if read in progress, do a read.  --- only do a read if buffer is empty.  This way interrupts can keep up!
 				if ( device_data->read_in_progress  && device_common_buffer_isempty( &device_data->in_buff ) ) {
 
-					// --------do a read.
+					// --------do a read. -- non blocking...
 					desired_read_bytes = 1;			// 50;
 					actual_read_bytes = 0;
 					read_status = ReadFile(loc_comm_handle, &loc_read_data,
@@ -367,6 +430,10 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 		}
 	}
 
+	// --------try to close com port
+	if (loc_com_device != NULL)
+		device_common_serial_close(loc_com_device, &last_error);
+
 	// --------unset global values and deallocate memory
 	iop_thread_stop_request2[loc_device_addr] = 0;
 
@@ -382,6 +449,7 @@ DWORD WINAPI device_console_comm_worker_thread(LPVOID lpParam) {
 
 
 // ============================================================================================================================
+// --------this routine processes command output values.
 DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 
 	SIMJ_U16 loc_device_addr = 0;
@@ -398,17 +466,14 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 	// SIMJ_U16 loc_cmd = 0;
 
 
-	DWORD last_error = 0;
-	int open_status = 1;
-	int set_param_status = 1;
-
 	DWORD comm_thread_id = 0;
 	uintptr_t comm_thread_handle = 0;
 
-	HANDLE loc_com_device = NULL;
 	BOOL status;
 
 
+	// -------------------------------------------------------------------------------------------------------------
+	// --------initializtion
 	// -------- get local device address from calling parameter to this routine 
 	loc_device_addr = *(SIMJ_U16*)lpParam;
 	printf(" Starting device console at device address %d\n", loc_device_addr);
@@ -434,75 +499,25 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 	device_common_buffer_set_empty(&device_data->in_buff);  // for now don't clear the input buffer.
 	device_common_buffer_set_empty(&device_data->out_buff);
 
-	// --------Open com port
-	open_status = device_common_serial_open("COM1", &loc_com_device, &last_error);
-
-	// -------- if com port was opened..
-	if (open_status == 0) {
-
-		// --------set global com handle for other thread.
-		device_data->com_handle = loc_com_device;
-
-		// -------- set com port parameters
-		set_param_status = device_common_serial_set_params(loc_com_device, &last_error, true);
-
-		if (set_param_status != 0) {
-			printf(" *** ERROR ***  Trouble setting com port parameters.\n");
-		}
-
-		// -------- Configure read and write operations to time out after 100 ms.
-		COMMTIMEOUTS timeouts = { 0 };
-		timeouts.ReadIntervalTimeout = 0;
-		timeouts.ReadTotalTimeoutConstant = 50;	// ms -- too large on purpose to help half duplex turn around.
-		timeouts.ReadTotalTimeoutMultiplier = 0;
-		timeouts.WriteTotalTimeoutConstant = 1200;	// ms
-		timeouts.WriteTotalTimeoutMultiplier = 0;
-
-		BOOL success = SetCommTimeouts(loc_com_device, &timeouts);
-		if (!success) {
-			printf(" *** ERROR ***  Failed to set serial timeouts\n");
-			// CloseHandle(port);
-			// return INVALID_HANDLE_VALUE;
-		}
-
-		// -------- set comm port driver buffer sizes.
-		success = SetupComm(loc_com_device, 16384, 50);
-		if (!success) {
-			printf(" *** ERROR ***  Failed to set serial port buffers\n");
-		}
-
-		// Flush away any bytes previously read or written.
-		success = FlushFileBuffers(loc_com_device);
-		if (!success) {
-			printf(" *** ERROR ***  Failed to flush serial port\n");
-			//CloseHandle(port);
-			//return INVALID_HANDLE_VALUE;
-		}
+	// --------MOVED COM PORT OPEN TO COM WORKER THREAD...
 
 
-		// --------initialize comm worker thread.
-		comm_thread_handle = device_common_start_thread((LPVOID)device_data,
-			device_console_comm_worker_thread,
-			&comm_thread_id);
+	// --------initialize comm worker thread.
+	comm_thread_handle = device_common_start_thread((LPVOID)device_data,
+		device_console_comm_worker_thread,
+		&comm_thread_id);
 
-		// -------- comm thread created, fill in information.
-		if (comm_thread_handle != 0) {
-			printf(" Console device at device address  %02x communications thread created.\n", loc_device_addr);
-			iop_device_thread_handle2[loc_device_addr] = comm_thread_handle;
-			iop_device_thread_id2[loc_device_addr] = comm_thread_id;
-		}
-		// --------trouble creating comm worker thread.
-		else {
-			printf("\n *** ERROR *** Trouble creating communications worker thread for device %02x.  Device not created.\n", loc_device_addr);
-
-			// -------- ask worker thread to stop
-			iop_thread_stop_request[loc_device_addr] = 1;
-
-		}
+	// -------- comm thread created, fill in information.
+	if (comm_thread_handle != 0) {
+		printf(" Console device at device address  %02x communications thread created.\n", loc_device_addr);
+		iop_device_thread_handle2[loc_device_addr] = comm_thread_handle;
+		iop_device_thread_id2[loc_device_addr] = comm_thread_id;
 	}
-	// -------- error opening com port, stop thread...
+	// --------trouble creating comm worker thread.
 	else {
-		printf(" *** ERROR ***  Trouble opening com port.  Device being terminated.\n");
+		printf("\n *** ERROR *** Trouble creating communications worker thread for device %02x.  Device not created.\n", loc_device_addr);
+
+		// -------- ask worker thread to stop
 		iop_thread_stop_request[loc_device_addr] = 1;
 	}
 
@@ -555,8 +570,8 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 		//	printf("\n Device console status updated 0x%04x\n", our_status);
 
 		// --------wait for timeout or a new request.
-		//  WaitOnAddress(&(device_data->ctrl_wake), &last_wake, sizeof(last_wake), (DWORD)200);
-		Sleep(100);
+		WaitOnAddress(&(device_data->ctrl_wake), &last_wake, sizeof(last_wake), (DWORD)100);
+		//  Sleep(100);
 	}
 
 	// ------- it is asked to exit on its own... No need to do this here.
@@ -566,9 +581,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 	// --------wait a little for comm thread to exit.
 	Sleep(200);
 
-	// --------try to close com port
-	if ( loc_com_device != NULL )
-		device_common_serial_close(loc_com_device, &last_error);
+	// --------MOVED COM PORT CLOSE TO COM WORKER THREAD...
 
 	// --------initialize the resource for updating status.
 	// Initialize the resource one time only.
@@ -593,7 +606,7 @@ DWORD WINAPI device_console_worker_thread(LPVOID lpParam) {
 // ============================================================================================================================
 // --------initialize the device.  calls common routines.  Only custom thing is to initialize the 
 // --------data buffer after it is created.
-void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp) {
+void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, char* filename) {
 
 	DEVICE_CONSOLE_DATA* device_data = 0;
 	SIMJ_U16 loc_dev_addr;
@@ -617,6 +630,8 @@ void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, S
 		strcpy_s(device_data->info, 40, "Console");
 
 		// --------data specific to this device.
+		strcpy_s(device_data->filename, 255, filename); // file name or device name on simulator (com1, disk.img, xxx.)
+		device_data->ipport = 0;	 // tcp/udp port number for ip devices (console, async, etc.)
 		device_data->com_handle = NULL;
 		device_common_buffer_init(&device_data->in_buff);
 		device_common_buffer_init(&device_data->out_buff);

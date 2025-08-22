@@ -24,10 +24,10 @@
 
 #include "simj_base.h"
 
-
+// -------- see if the device specified in the attach command is a valid device.  return the device index value.
 bool user_cmd_parse_device_type(char* in_device, SIMJ_U16* out_device_type) {
 
-	const char* valid_devices[8] = {
+	const char* valid_devices[10] = {
 			"null",
 			"console",
 			"consoletcp",
@@ -35,7 +35,9 @@ bool user_cmd_parse_device_type(char* in_device, SIMJ_U16* out_device_type) {
 			"disk_lx",
 			"disk_ips2",
 			"a4811",
-			"modacs"
+			"a4808",
+			"modacsIII",
+			"modacs1600"
 	};
 
 	const SIMJ_U16 valid_device_count = 8;
