@@ -21,7 +21,7 @@ int main()
 	// -------- print array
 	printf("\n array logical to physical \n");
 	for (j = 0; j < sector_per_track; j++) {
-		printf(" logical %d, physical, %ld\n", j, log_to_phys[j]);
+		printf(" logical %d, physical, %lld\n", j, log_to_phys[j]);
 	}
 
 }
