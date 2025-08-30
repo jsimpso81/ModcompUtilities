@@ -3,7 +3,8 @@
 #include "modcomp_utility_library.h"
 
 
-int TapeImg_read_next_record(FILE* fp, __int64 *current_file_position, void* buf, int max_buf_bytes, size_t* bytes_read, int* end_of_file) {
+int TapeImg_read_next_record(FILE* fp, __int64 *current_file_position, void* buf, int max_buf_bytes, 
+								size_t* bytes_read, int* end_of_file) {
 
 	__int64 pos;
 	int stat;

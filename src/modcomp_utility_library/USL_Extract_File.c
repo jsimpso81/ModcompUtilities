@@ -84,7 +84,7 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 				int state = 0;
 				int output_line_index = 0;
 				bool not_done = true;
-				size_t return_count;
+				size_t return_bytes = 0;
 				int end_of_file;
 				int stat;
 				char byte_to_process = 0;
@@ -106,11 +106,15 @@ void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTR
 						}
 						else {
 							/* -------- read next data sector */
+							return_bytes = 0;
+							for (j = 0; j < 128; j++) {
+								raw_sector_data[j] = 0;
+							}
 							printf("\n==========reading sector %d ==============\n", current_sector);
-							// stat = read_raw_disk_sector_lba(inpart, current_sector, 1, &sector_data, &return_count, &end_of_file);
-							stat = read_raw_disk_sector_lba(inpart, current_sector, 1, &raw_sector_data, &return_count, &end_of_file);
-							if (stat != 0 || return_count <= 0 || end_of_file != 0) {
-								printf("\n *** ERROR *** trouble reading data sector of USL file. status = %d, count = %zd, eof = %d\n", stat, return_count, end_of_file);
+							// stat = read_raw_disk_sector_lba(inpart, current_sector, 1, &sector_data, &return_bytes, &end_of_file);
+							stat = read_raw_disk_sector_lba(inpart, current_sector, 1, &raw_sector_data, &return_bytes, &end_of_file);
+							if (stat != 0 || return_bytes <= 0 || end_of_file != 0) {
+								printf("\n *** ERROR *** trouble reading data sector of USL file. status = %d, bytes = %zd, eof = %d\n", stat, return_bytes, end_of_file);
 								not_done = false;
 								break;
 								printf("\n ---- file break -----\n");

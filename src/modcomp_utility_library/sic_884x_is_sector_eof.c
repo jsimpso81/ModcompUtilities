@@ -39,7 +39,7 @@ int sic_884x_is_sector_eof(FILE* inimg, __int64 unit, __int64 unit_sector, bool*
                 not_zero = true;
         }
         if (not_zero) {
-            printf("\ rest of sector not all zero.\n");
+            printf("\n rest of sector not all zero.\n");
         }
     }
     

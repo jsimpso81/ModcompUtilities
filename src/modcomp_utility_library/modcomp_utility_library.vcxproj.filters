@@ -131,5 +131,41 @@
     <ClCompile Include="sic_884x_disk_image_check_fix_eof.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PDP10_TapeImg_dump10_records.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PDP10_utils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PDP10_ks10ram_to_cons.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PDP10_sav_to_cons.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PDP10_file_to_text.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PDP10_ks10_file_to_cons.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util_serial_open.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util_serial_close.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util_serial_set_params.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util_serial_print_settings.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="copy_disk_partition_to_tape_image.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TapeImg_WriteNextRecord.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

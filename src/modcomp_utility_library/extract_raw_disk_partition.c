@@ -12,17 +12,18 @@ void extract_raw_disk_partition(char* image_name, char* partition_file, __int64 
     FILE* inimg;
     FILE* outpart;
     __int64 sector_offset;
-    unsigned _int16 sector_buffer[128];
+    unsigned _int16 sector_buffer[128] = { 0 };
     int stat;
     errno_t status;
     int end_of_file = 0;
-    size_t return_count;
+    size_t return_bytes = 0;
     __int64 log_to_phys[128] = { 0 };
     __int64 track_start;
     __int64 log_sector;
     __int64 phys_sector;
     __int64 phys_sector_offset;
     __int16 geo_stat;
+    int j = 0;
 
     // -------- build geometry table.
     geo_stat = geom_calc(sector_per_track, geom, log_to_phys);
@@ -59,13 +60,17 @@ void extract_raw_disk_partition(char* image_name, char* partition_file, __int64 
                 // -------- calc phy_sector_offset
                 phys_sector_offset = track_start + phys_sector;
 
-                stat = read_raw_disk_sector_lba(inimg, phys_sector_offset + start_sector, 1, sector_buffer, &return_count, &end_of_file);
+                return_bytes = 0;
+                for (j = 0; j < 128; j++) {
+                    sector_buffer[j] = 0;
+                }
+                stat = read_raw_disk_sector_lba(inimg, phys_sector_offset + start_sector, 1, sector_buffer, &return_bytes, &end_of_file);
 
-                if (return_count > 0) {
+                if (return_bytes > 0) {
                     fwrite(sector_buffer, (size_t)256, (size_t)1, outpart);
                 }
                 else {
-                    printf("\n *** ERROR ***  Expected returned data, got nothing. return count=%jd, eof=%d\n", return_count, end_of_file);
+                    printf("\n *** ERROR ***  Expected returned data, got nothing. return bytes=%jd, eof=%d\n", return_bytes, end_of_file);
                 }
             }
 

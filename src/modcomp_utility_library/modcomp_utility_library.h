@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <windows.h>
 
 #define RAW_SECTOR_BYTES (size_t)256
 #define MODCOMP_EMUL_DISK_IMG_SECTORY_BYTES (size_t)258
@@ -112,6 +113,8 @@ typedef struct {
 /* -------- function prototypes */
 unsigned __int16  bswap16(unsigned __int16 a);
 
+void copy_disk_partition_to_tape_image(char* partition_file, char* tape_image_name, bool swap_bytes);
+
 void dump_raw_disk_file(char* filename, bool swap_bytes);
 void dump_raw_disk_file_as_byte_variable(char* filename, bool swap_bytes, int start_sector, int end_sector);
 
@@ -129,7 +132,7 @@ unsigned int get_can_index(unsigned int ascii_code);
 // -------- read disk sectors.
 int read_884x_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
 int read_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
-int read_raw_disk_sector_lba(FILE* fp, __int64 sector, size_t  sector_count, void* buf, size_t* return_count, int* end_of_file);
+int read_raw_disk_sector_lba(FILE* fp, __int64 sector_number, size_t  sector_count, void* buf, size_t* return_bytes, int* end_of_file);
 // -------- write disk sectors
 int write_884x_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
 int write_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
@@ -146,6 +149,7 @@ void sic_884x_disk_image_dump_eof_buffer(char* image_name);
 // -------- tape image I/O
 void TapeImg_dump_records(char* filename, bool swap_bytes);
 int TapeImg_read_next_record(FILE* fp, __int64* current_file_position, void* buf, int max_buf_bytes, size_t* bytes_read, int* end_of_file);
+int TapeImg_write_next_record(FILE* fp, void* buf, int buf_bytes, size_t* bytes_written);
 // --------CAN CODE
 unsigned int to_can_code(unsigned char* ascii_string);
 
@@ -164,6 +168,29 @@ void USL_dump_directory(char* filename);
 void USL_extract_all_files(char* partition_file, char* extract_dir, char* recover_dir, int max_line_bytes, bool tape_flag);
 void USL_Extract_File(FILE* inpart, unsigned __int16 USL_log_file, USL_FILE_ENTRY* parsed_file_entry, char* directory, int max_line_bytes, bool tape_flag);
 void USL_Parse_File_Entry(USL_DIRECTORY_ENTRY* direct_entry, USL_FILE_ENTRY* parsed_file_entry);
+
+// --------utility
+int util_serial_close(HANDLE com_handle, DWORD* last_error);
+int util_serial_open(char* com_port, HANDLE* com_handle, DWORD* last_error);
+int util_serial_set_params(HANDLE hCom, DWORD* last_error, bool USE_HDWR_OUTPUT_HANDSHAKE);
+void util_serial_print_settings(DCB this_dcb);
+
+// --------NOT MODCOMP -- PDP10 STUFF !!
+void PDP10_dump_tape_header(unsigned __int64* tape_words_36);
+void PDP10_dump_2word(unsigned __int64 inx, unsigned __int64 word1, unsigned __int64 word2);
+void PDP10_dump_2word_header();
+void PDP10_dump_3word(unsigned __int64 inx, unsigned __int64 word1, unsigned __int64 word2, unsigned __int64 word3);
+void PDP10_dump_3word_header();
+void PDP10_parse_6bit_text(unsigned __int64 word36, unsigned char* chars7);
+void PDP10_parse_7bit_text(unsigned __int64 word36, unsigned char* chars6);
+void PDP10_write_extracted_word(FILE* extpart, unsigned __int64* word36);
+unsigned __int64 PDP10_tape_decode_word36(unsigned char* tapebytes);
+void PDP10_file_to_text(char* filename);
+void PDP10_ks10ram_to_cons(char *filename);
+void PDP10_ks10_file_to_cons(char* filename, char* consport);
+void PDP10_sav_to_cons(char* filename);
+void PDP10_TapeImg_dump10_records(char* filename, bool swap_bytes);
+unsigned __int64 PDP10_read_extracted_word(FILE* readfile);
 
 
 /* --------------------------------------------------------- */

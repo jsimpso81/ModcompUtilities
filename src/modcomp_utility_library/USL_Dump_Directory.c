@@ -57,13 +57,13 @@ void USL_dump_directory(char* filename) {
     union {
         unsigned _int16 sector_raw[128];
         USL_DIRECTORY_SECTOR usl_directory_sector;
-    } sector_buffer;
+    } sector_buffer = { 0 };
 
     int stat;
     errno_t status;
     bool not_done = true;
     int entry;
-    size_t return_count;
+    size_t return_bytes = 0;
     int end_of_file;
     int overall_entry = 0;
     int overall_used_entries = 1;
@@ -93,9 +93,13 @@ void USL_dump_directory(char* filename) {
             printf("\n ================ reading sector %jd\n", sector);
 
             /* -------- read next directory sector, parse and print */
-            stat = read_raw_disk_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
+            return_bytes = 0;
+            for (j = 0; j < 128; j++) {
+                sector_buffer.sector_raw[j] = 0;
+            }
+            stat = read_raw_disk_sector_lba(inpart, sector, 1, &sector_buffer, &return_bytes, &end_of_file);
 
-            if (return_count > 0) {
+            if (return_bytes > 0) {
 
                 // --------byte swap sector data...
                 for (j = 0; j < 128; j++) {

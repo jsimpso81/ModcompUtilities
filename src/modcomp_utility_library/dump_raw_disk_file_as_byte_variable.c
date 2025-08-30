@@ -14,7 +14,7 @@ void dump_raw_disk_file_as_byte_variable(char* filename, bool swap_bytes, int st
     FILE* inpart;
     __int64 sector;
 
-    unsigned _int16 sector_buffer[128];
+    unsigned _int16 sector_buffer[128] = { 0 };
 
     int stat;
     errno_t status;
@@ -43,7 +43,7 @@ void dump_raw_disk_file_as_byte_variable(char* filename, bool swap_bytes, int st
         sector = 0;
         not_done = true;
         word_index = 0;
-        size_t return_count;
+        size_t return_bytes = 0;
         int end_of_file;
         char temp_string[10] = { 0 };
 
@@ -52,11 +52,15 @@ void dump_raw_disk_file_as_byte_variable(char* filename, bool swap_bytes, int st
         while (not_done) {
 
             /* -------- read next directory sector, parse and print */
-            stat = read_raw_disk_sector_lba(inpart, sector, 1, &sector_buffer, &return_count, &end_of_file);
+            return_bytes = 0;
+            for (j = 0; j < 128; j++) {
+                sector_buffer[j] = 0;
+            }
+            stat = read_raw_disk_sector_lba(inpart, sector, 1, &sector_buffer, &return_bytes, &end_of_file);
 
-            printf(" // -- read sector %lld status %d count read %zd end of file %d\n", sector, stat, return_count, end_of_file);
+            printf(" // -- read sector %lld status %d bytes read %zd end of file %d\n", sector, stat, return_bytes, end_of_file);
 
-            if (return_count > 0) {
+            if (return_bytes > 0) {
 
 
                 if (sector >= start_sector && sector <= end_sector) {
