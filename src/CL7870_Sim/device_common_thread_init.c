@@ -33,8 +33,9 @@ void device_common_thread_init(LPVOID data_buffer,
 	DEVICE_OUTPUT_DATA output_data_proc,
 	DEVICE_OUTPUT_CMD output_cmd_proc,
 	DEVICE_INPUT_DATA input_data_proc,
-	DEVICE_INPUT_STATUS input_status_proc) {
-
+	DEVICE_INPUT_STATUS input_status_proc,
+	DEVICE_MOUNT_UNIT mount_unit_proc,
+	DEVICE_DISMOUNT_UNIT dismount_unit_proc) {
 
 	uintptr_t  device_thread;
 	DWORD   device_thread_id = 0;
@@ -57,6 +58,8 @@ void device_common_thread_init(LPVOID data_buffer,
 		iop_output_cmd_proc[device_address] = output_cmd_proc;
 		iop_input_data_proc[device_address] = input_data_proc;
 		iop_input_status_proc[device_address] = input_status_proc;
+		iop_mount_unit_proc[device_address] = mount_unit_proc;
+		iop_dismount_unit_proc[device_address] = dismount_unit_proc;
 
 		// --------start thread
 		iop_thread_stop_request[device_address] = 0;

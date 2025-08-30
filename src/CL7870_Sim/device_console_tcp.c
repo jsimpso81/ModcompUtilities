@@ -22,7 +22,7 @@
 //		6/28/2024	JAS		Added new header
 // ================================================================================================
 
-// -------- CONSOLE DEVICE -- VIA COMM PORT
+// -------- CONSOLE DEVICE -- VIA RAW TCP SOCKET
 
 #include "simj_base.h"
 
@@ -58,6 +58,7 @@
 
 void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* device_data);
 
+// TODO: fix strict typing errors!
 
 // ============================================================================================================================
 void  device_console_tcp_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
@@ -161,14 +162,15 @@ SIMJ_U16  device_console_tcp_input_status(SIMJ_U16 device_address) {
 	loc_status1 = loc_status;
 
 	// -------- if reading and data available, update status.
-	if (databuffer->read_in_progress) {
+	// TEMP for now set status even if not reading...
+	//if (databuffer->read_in_progress) {
 		if (device_common_buffer_isempty(&databuffer->in_buff)) {
 			loc_status |= status_data_not_ready; // no data to read.
 		}
 		else {
 			loc_status &= (~status_data_not_ready); // something to read.
 		}
-	}
+	//}
 
 	// --------if writing and buffer space available, update status.
 	if (databuffer->write_in_progress) {
@@ -193,6 +195,62 @@ SIMJ_U16  device_console_tcp_input_status(SIMJ_U16 device_address) {
 
 
 // ============================================================================================================================
+// --------initialize the device.  calls common routines.  Only custom thing is to initialize the 
+// --------data buffer after it is created.
+void device_console_tcp_mount_unit(SIMJ_U16 device_address, SIMJ_U16 unit, bool read_only, char* filename) {
+
+	// --------get the pointer to the device data
+	DEVICE_DISC_DATA* device_data = NULL;
+
+	// --------only do things if a valid device address...
+	if (device_address >= 0 && device_address <= 0x3f) {
+		DEVICE_DISC_DATA* device_data = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
+
+		// --------yes this is a valid device....
+		if (device_data != NULL) {
+			printf(" *** INFO ***  This device does not support mount/unmount.  Nothing done.\n");
+		}
+		// --------no device configured at this location..
+		else {
+			printf(" *** ERROR ***  No device configured at this device address 0x%04x\n", device_address);
+		}
+	}
+	// --------bad device address
+	else {
+		printf(" *** ERROR ***  Not a valid device address 0x%04x\n", device_address);
+	}
+
+}
+
+
+// ============================================================================================================================
+// --------dismount a unit.  This can only be done after the device is initialized...
+void device_console_tcp_dismount_unit(SIMJ_U16 device_address, SIMJ_U16 unit) {
+
+	// --------get the pointer to the device data
+	DEVICE_DISC_DATA* device_data = NULL;
+
+	// --------only do things if a valid device address...
+	if (device_address >= 0 && device_address <= 0x3f) {
+		DEVICE_DISC_DATA* device_data = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
+
+		// --------yes this is a valid device....
+		if (device_data != NULL) {
+			printf(" *** INFO ***  This device does not support mount/unmount.  Nothing done.\n");
+		}
+		// --------no device configured at this location..
+		else {
+			printf(" *** ERROR ***  No device configured at this device address 0x%04x\n", device_address);
+		}
+	}
+	// --------bad device address
+	else {
+		printf(" *** ERROR ***  Not a valid device address 0x%04x\n", device_address);
+	}
+}
+
+
+// ============================================================================================================================
 // --------this routine interacts with the local computer com device.
 DWORD WINAPI device_console_tcp_comm_worker_thread(LPVOID lpParam) {
 
@@ -204,7 +262,7 @@ DWORD WINAPI device_console_tcp_comm_worker_thread(LPVOID lpParam) {
 	SIMJ_U8 loc_read_data[2000] = { 0 };
 	DWORD desired_read_bytes = 0;
 	DWORD actual_read_bytes = 0;
-	BOOL read_status = false;
+	int read_status = false;
 	SIMJ_U8 loc_write_data[2000] = { 0 };
 	DWORD bytes_to_write = 0;
 	DWORD bytes_written = 0;
@@ -325,7 +383,6 @@ DWORD WINAPI device_console_tcp_comm_worker_thread(LPVOID lpParam) {
 			bytes_to_write = 0;
 
 			// -------- for now limit bytes written to 500
-			// TODO: Console calculate correct write timeout for different baud rates.
 			while (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 500) {
 				if (device_common_buffer_get(&device_data->out_buff, &loc_write_data[bytes_to_write])) {
 					// --------DEBUG
@@ -336,8 +393,6 @@ DWORD WINAPI device_console_tcp_comm_worker_thread(LPVOID lpParam) {
 			}
 
 			if (bytes_to_write > 0) {
-				// write_status = WriteFile(loc_comm_handle, &loc_write_data, bytes_to_write,
-				// 	&bytes_written, NULL);
 				write_status = device_common_raw_socket_write(loc_socket, bytes_to_write,
 					&loc_write_data, &bytes_written, &last_error);
 				// fprintf(stderr, " Console bytes write requested %d, written %d.  Device Addr %d\n", bytes_to_write, bytes_written, loc_device_addr);
@@ -371,13 +426,12 @@ DWORD WINAPI device_console_tcp_comm_worker_thread(LPVOID lpParam) {
 			//}
 
 			// --------if read in progress, do a read.  --- only do a read if buffer is empty.  This way interrupts can keep up!
-			if (device_data->read_in_progress && device_common_buffer_isempty(&device_data->in_buff)) {
+			// if (device_data->read_in_progress && device_common_buffer_isempty(&device_data->in_buff)) {
+			if ( device_common_buffer_isempty(&device_data->in_buff)) {
 
 				// --------do a read.
 				desired_read_bytes = 1;			// 50;
 				actual_read_bytes = 0;
-				// read_status = ReadFile(loc_socket, &loc_read_data,
-				// 	desired_read_bytes, &actual_read_bytes, NULL);
 				read_status = device_common_raw_socket_read(loc_socket, desired_read_bytes,
 					&loc_read_data, &actual_read_bytes, &last_error);
 
@@ -407,14 +461,12 @@ DWORD WINAPI device_console_tcp_comm_worker_thread(LPVOID lpParam) {
 
 					// --------echo to console --- for now ignore error.
 					bytes_to_write = 1;
-					// write_status = WriteFile(loc_comm_handle, &loc_read_data, bytes_to_write,
-					// 	&bytes_written, NULL);
 					write_status = device_common_raw_socket_write(loc_socket, bytes_to_write,
 						&loc_read_data, &bytes_written, &last_error);
 				}
 
 				// --------check for error.
-				if (!read_status) {
+				if ( read_status != 0) {
 					DWORD my_last_error = 0;
 					my_last_error = GetLastError();
 					fprintf(stderr, " Console read error 0x%08x\n", my_last_error);
@@ -429,8 +481,9 @@ DWORD WINAPI device_console_tcp_comm_worker_thread(LPVOID lpParam) {
 		}
 
 		// --------if no read currently in progress, wait for timeout or a new request, (wait built into read.  don't need two waits.)
+		// --------time out was 50 ms.  use 5
 		if (!device_data->read_in_progress) {
-			WaitOnAddress(&(device_data->ctrl_wake), &last_wake, sizeof(last_wake), (DWORD)50);
+			WaitOnAddress(&(device_data->ctrl_wake), &last_wake, sizeof(last_wake), (DWORD)5);
 		}
 	}
 
@@ -655,7 +708,9 @@ void device_console_tcp_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 pri
 			device_console_tcp_output_data,
 			device_console_tcp_output_cmd,
 			device_console_tcp_input_data,
-			device_console_tcp_input_status);
+			device_console_tcp_input_status,
+			device_console_tcp_mount_unit,
+			device_console_tcp_dismount_unit);
 	}
 }
 
@@ -665,16 +720,16 @@ void device_console_tcp_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 pri
 void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* device_data) {
 
 	SIMJ_U16 cmd_type = 0;
-	SIMJ_U16 orig_status = 0;
-	SIMJ_U16 loc_status = 0;
+	SIMJ_U16 orig_status = 0;		// local copy of starting controller status.
+	SIMJ_U16 loc_status = 0;		// local copy of controller status
 	bool old_read = false;
 	bool old_write = false;
-	bool need_SI = false;
-	bool need_DI = false;
 	bool msg_term_icb = false;
 	bool msg_unexpected_cmd = false;
-	int chg_di = 0;
-	int chg_si = 0;
+	int chg_di_ena = 0;		// change DI enabled status -1=disable, 1=enable, 0=nothing
+	int chg_si_ena = 0;		// change SI enabled status -1=disable, 1=enable, 0=nothing
+	bool need_SI = false;	// generate SI if true
+	bool need_DI = false;	// generate DI if true
 	int chg_wrt = 0;
 	int chg_rd = 0;
 
@@ -707,10 +762,17 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 			chg_rd = -1;
 			chg_wrt = -1;
 
+			// --------generate SI
+			if (!(loc_status & status_busy)) {
+				// --------generate SI if enabled.
+				if (device_data->SI_enabled || (chg_si_ena == 1)) {
+					need_SI = true;
+				}
+		}
+
 			// --------update status
 			loc_status |= (status_data_not_ready);		// set no data ready
 			loc_status &= (~status_busy);				// clear busy
-
 
 			// --------TERMINATE w/ICB   
 			if ((loc_cmd & ctrl_icb) != 0) {
@@ -718,8 +780,10 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 
 				// --------disable interrupts --- ARE WE CERTAIN??
 				// TODO: Should interrupts be disabled on terminate w/ICB?
-				// chg_si = -1;
-				// chg_di = -1;
+				//if (device_data->SI_enabled)
+				//	chg_si_ena = -1;
+				//if (device_data->DI_enabled)
+				//	chg_di_ena = -1;
 
 				// --------clear buffers
 				// device_common_buffer_set_empty(&device_data->in_buff);  // for now don't clear the input buffer.
@@ -736,10 +800,6 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 				// device_common_buffer_set_empty(&device_data->out_buff);
 			}
 
-			// --------generate SI if enabled.
-			if (device_data->SI_enabled || (chg_si == 1)) {
-				need_SI = true;
-			}
 		}
 
 
@@ -785,12 +845,30 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 			// fprintf(stderr, " Device console - NOOP Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 
 			// -------- enable or disable interrupts.
-			chg_si = ((loc_cmd & ctrl_si_enable) != 0) ? 1 : -1;
-			chg_di = ((loc_cmd & ctrl_di_enable) != 0) ? 1 : -1;
+			// -------- Enable SI
+			if (loc_cmd & ctrl_si_enable) {
+				if (!device_data->SI_enabled)
+					chg_si_ena = 1;
+			}
+			// -------- Disable SI
+			else {
+				if (device_data->SI_enabled)
+					chg_si_ena = -1;
+			}
+			// -------- Enable DI
+			if (loc_cmd & ctrl_di_enable) {
+				if (!device_data->DI_enabled)
+					chg_di_ena = 1;
+			}
+			// -------- Disable SI
+			else {
+				if (device_data->DI_enabled)
+					chg_di_ena = -1;
+			}
 
 			// -------- if not busy reset all status indications ??
 			// TODO: figure this out.
-			if (loc_status & (~status_busy)) {
+			if ( (loc_status & status_busy) == 0 ) {
 				loc_status &= (~status_break);		// reset break...
 				// TODO: Any other bits to reset??
 			}
@@ -807,6 +885,12 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 
 					// -------- enable break detect.
 				case ctrl_enable_brk_det:
+					if (!device_data->break_detect_enabled) {
+						// --------generate SI if enabled.
+						if (device_data->SI_enabled || (chg_si_ena == 1)) {
+							need_SI = true;
+						}
+					}
 					device_data->break_detect_enabled = true;
 					loc_status &= (~status_break);		// in case it is on, turn it off.
 					break;
@@ -819,15 +903,16 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 
 					// -------- This is enable break detect and SI release.  (Do both??, Do nothing??)  For now, do both.
 				default:
+					if (!device_data->break_detect_enabled) {
+						// --------generate SI if enabled.
+						if (device_data->SI_enabled || (chg_si_ena == 1)) {
+							need_SI = true;
+						}
+					}
 					device_data->break_detect_enabled = true;
 					loc_status &= (~status_break);		// in case it is on, turn it off.
 					fprintf(stderr, " Device console - invalid noop break select command 0x%04x \n", loc_cmd);
 				}
-			}
-
-			// --------generate SI if enabled.
-			if (device_data->SI_enabled || (chg_si == 1)) {
-				need_SI = true;
 			}
 
 		}
@@ -837,8 +922,26 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 	case cmd_transfer_initiate:
 
 		// -------- enable or disable interrupts.
-		chg_si = ((loc_cmd & ctrl_si_enable) != 0) ? 1 : -1;
-		chg_di = ((loc_cmd & ctrl_di_enable) != 0) ? 1 : -1;
+		// -------- Enable SI
+		if (loc_cmd & ctrl_si_enable) {
+			if (!device_data->SI_enabled)
+				chg_si_ena = 1;
+		}
+		// -------- Disable SI
+		else {
+			if (device_data->SI_enabled)
+				chg_si_ena = -1;
+		}
+		// -------- Enable DI
+		if (loc_cmd & ctrl_di_enable) {
+			if (!device_data->DI_enabled)
+				chg_di_ena = 1;
+		}
+		// -------- Disable SI
+		else {
+			if (device_data->DI_enabled)
+				chg_di_ena = -1;
+		}
 
 		// --------for some reason the console is backwards !		
 		// --------start a write.
@@ -854,7 +957,7 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 			loc_status |= status_busy;
 
 			// -------- if ready for a byte send DI.   If we weren't already doing a write, send DI to get data.
-			if ((device_data->DI_enabled || (chg_di == 1)) && !old_write) {
+			if ((device_data->DI_enabled || (chg_di_ena == 1)) && !old_write) {
 				need_DI = true;
 			}
 		}
@@ -884,31 +987,40 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 
 	}		// -------- END OF COMMAND PROCESSING
 
-
-	if (chg_si == 1) {
+	// --------SEE if SI enable changed... 
+	if (chg_si_ena == 1) {
 		device_data->SI_enabled = true;
+		chg_si_ena = 0;
 	}
-	if (chg_di == 1) {
-		device_data->DI_enabled = true;
+	else if (chg_si_ena == -1) {
+		device_data->SI_enabled = false;
+		chg_si_ena = 0;
+		need_SI = false;
+		cpu_reset_SI(device_data->bus, device_data->pri, device_data->device_address);
 	}
 
-	// --------change SI DI status
-	if (chg_si == -1) {
-		device_data->SI_enabled = false;
+	// --------See if DI enable changed
+	if (chg_di_ena == 1) {
+		device_data->DI_enabled = true;
+		chg_di_ena = 0;
 	}
-	if (chg_di == -1) {
+	else if (chg_di_ena == -1) {
 		device_data->DI_enabled = false;
+		chg_si_ena = 0;
+		need_DI = false;
+		cpu_reset_DI(device_data->bus, device_data->pri, device_data->device_address);
 	}
+
 	if (chg_rd == -1) {
 		device_data->read_in_progress = false;
 	}
-	if (chg_rd == 1) {
+	else if (chg_rd == 1) {
 		device_data->read_in_progress = true;
 	}
 	if (chg_wrt == -1) {
 		device_data->write_in_progress = false;
 	}
-	if (chg_wrt == 1) {
+	else if (chg_wrt == 1) {
 		device_data->write_in_progress = true;
 	}
 
@@ -940,12 +1052,8 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 	// -------- Release ownership of the resource.
 	GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 
-	if (msg_term_icb)
-		fprintf(stderr, " Device console - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
-	if (msg_unexpected_cmd)
-		fprintf(stderr, " Device console - unexpected command.  Dev addr: %d,  cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+	// if (loc_status != orig_status)
+	//	printf("\n Device console status updated 0x%04x\n", our_status);
 
 	// -------- generate interrupts if needed.
 	if (need_SI) {
@@ -954,7 +1062,11 @@ void device_console_tcp_process_command(SIMJ_U16 loc_cmd, DEVICE_CONSOLE_DATA* d
 	if (need_DI) {
 		cpu_request_DI(device_data->bus, device_data->pri, device_data->device_address);
 	}
-	// if (loc_status != orig_status)
-	//	printf("\n Device console status updated 0x%04x\n", our_status);
+
+	if (msg_term_icb)
+		fprintf(stderr, " Device console - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+
+	if (msg_unexpected_cmd)
+		fprintf(stderr, " Device console - unexpected command.  Dev addr: %d,  cmd 0x%04x\n", device_data->device_address, loc_cmd);
 
 }

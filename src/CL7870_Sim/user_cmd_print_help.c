@@ -47,14 +47,17 @@ void user_cmd_print_help() {
 
 	printf("      attach device a4808 <dev addr> <bus> <prio> <dmp> <start_port>\n");
 	printf("      attach device a4811 <dev addr> <bus> <prio> <dmp> <start_port>\n");
-	printf("      attach device console <dev addr> <bus> <prio> <dmp> <port COM1>\n");
-	printf("      attach device consoletcp <dev addr> <bus> <prio> <dmp> <port 3000>\n");
-	printf("      attach device disk_ips <dev addr> <bus> <prio> <dmp> <unit> <filename>\n");
-	printf("      attach device disk_lx <dev addr> <bus> <prio> <dmp> <unit> <filename>\n");
-	printf("      attach device modacs1600 <dev addr> <bus> <prio> <dmp> <card_\n");
-	printf("      attach device modacsIII <dev addr> <bus> <prio> <dmp>\n");
+	printf("      attach device console <dev addr> <bus> <prio> <dmp> <device: COM1> <baud: 9600>\n");
+	printf("      attach device consoletcp <dev addr> <bus> <prio> <dmp> <port: 3000>\n");
+	printf("      attach device disc_ips <dev addr> <bus> <prio> <dmp>\n");
+	printf("      attach device disc_lx <dev addr> <bus> <prio> <dmp>\n");
+	printf("      attach device disc_mh <dev addr> <bus> <prio> <dmp>\n");
+	printf("      attach device modacs1600 <dev addr> <bus> <prio> <dmp> <card model>\n");
+	printf("      attach device modacsIII <dev addr> <bus> <prio> <dmp> <card_layout_file>\n");
 	printf("      attach device null    <dev addr> <bus> <prio> <dmp>\n");
-	printf("      attach device tape <dev addr> <bus> <prio> <dmp> <unit> <filename>\n");
+	printf("      attach device tape <dev addr> <bus> <prio> <dmp>\n");
+	printf("      mount device <dev addr> <unit> <image_file> <ro/readonly>\n");
+	printf("      dismount device <dev addr> <unit>\n");
 
 	printf("\n");
 

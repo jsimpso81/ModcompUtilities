@@ -189,6 +189,39 @@
     <ClCompile Include="device_common_raw_socket_write.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="device_tape.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_tape_open.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_tape_read_record.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_disc_mh.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="user_cmd_mount_device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="user_cmd_dismount_device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_disc_read_sector.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_common_disc_open.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="iop_do_dmp_read.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bswap16.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="iop_store_via_miap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_globals.h">

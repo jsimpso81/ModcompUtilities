@@ -34,6 +34,7 @@ void iop_init_data() {
 
 	int j;
 
+	// --------indexed by device address..
 	for (j = 0; j < 64; j++) {
 
 		// iop_last_dev_status[j] = 0;
@@ -42,6 +43,8 @@ void iop_init_data() {
 		iop_output_cmd_proc[j] =  NULL ;
 		iop_input_data_proc[j] =  NULL ;
 		iop_input_status_proc[j] =  NULL ;
+		iop_mount_unit_proc[j] = NULL;
+		iop_dismount_unit_proc[j] = NULL;
 
 		iop_device_buffer[j] = NULL;
 		iop_thread_stop_request[j] = 0;
@@ -50,4 +53,10 @@ void iop_init_data() {
 
 	}
 
+
+	// -------- indexed by DMP number.
+	for (j = 0; j < 64; j++) {
+		iop_vdmp_miap_page[j] = 0;
+		iop_vdmp_miap_length[j] = 0;
+	}
 }

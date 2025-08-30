@@ -130,10 +130,79 @@ SIMJ_U16 memory_plane_RMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg) {
 	}
 
 	// --------DEBUG
-	fprintf(stderr, " RMPS R: 0x%04x, Rv1: 0x%04x, ema: 0x%04x, ma: 0x%04x, reg: 0x%04x, plane: 0x%04x, value:  0x%04x\n",
-		first_reg, second_reg, ema, ma, reg, plane, mem_status_registers[plane].memory_plane_status[reg]);
+	//--debug--fprintf(stderr, " RMPS R: 0x%04x, Rv1: 0x%04x, ema: 0x%04x, ma: 0x%04x, reg: 0x%04x, plane: 0x%04x, value:  0x%04x\n",
+	//--debug--	first_reg, second_reg, ema, ma, reg, plane, mem_status_registers[plane].memory_plane_status[reg]);
 	// --------END DEBUG
 
 	return mem_status_registers[plane].memory_plane_status[reg];
+
+}
+
+
+void memory_plane_WMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg, SIMJ_U16 data_register ) {
+
+	SIMJ_U16 ema;
+	SIMJ_U16 ma;
+	SIMJ_U16 reg;
+
+	SIMJ_U16 plane;
+
+	// first reg
+	//	0 - 10 not used
+	// 11 -15 EMA - extended memory address
+
+	// second reg
+	// 0 - 10 not used
+	// 11-13  memory plane status reg number
+	// 14-15  ma - least 2 significant address bits
+
+	ema = first_reg & 0x001f;
+	ma = second_reg & 0x0003;
+	reg = (second_reg & 0x00e0) >> 5;
+
+	// --------calculate plane number (module number)
+	// --------for now ignore modules 9-15....
+	// plane = (((ema >> 3) & 0x0003) <<2) | ma;
+	if (ema <= 7) {
+		plane = ma;
+	}
+	else if (ema >= 8 && ema <= 0xf) {
+		plane = 4 + ma;
+	}
+	else if (ema >= 0x10 && ema <= 0x17) {
+		plane = 8 + ma;
+	}
+	else {
+		plane = 12 + ma;
+	}
+
+	// input data value
+	//		6 checksum bits
+	//			1 spare
+	//			1 spare
+	//			BDM1, 2 = 00 nop,
+	//			01 disable err detect when write,
+	//			10 - enable erro detect when write
+	//			11 = nop
+	//			MDC1, 2 = 00 nop,
+	//			01 disable err detect when read,
+	//			10 - enable erro detect when read
+	//			11 = nop
+	//			WPS - write plane status
+	//			0 - no op
+	//			1 - reset error flag
+	//			WWS - write word status
+	//			0 - nop
+	//			1 - write check bits in mem location
+	//			current addressed
+	// DO NOTHING FOR NOW....
+	// mem_status_registers[plane].memory_plane_status[reg] = data_register;
+
+	// --------DEBUG
+	//--debug--fprintf(stderr, " WMPS R: 0x%04x, Rv1: 0x%04x, ema: 0x%04x, ma: 0x%04x, reg: 0x%04x, plane: 0x%04x, value:  0x%04x\n",
+	//--debug-- 	first_reg, second_reg, ema, ma, reg, plane, mem_status_registers[plane].memory_plane_status[reg]);
+	// --------END DEBUG
+
+	return;
 
 }

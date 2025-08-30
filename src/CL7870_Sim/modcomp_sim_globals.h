@@ -54,20 +54,41 @@ SIMJ_SCOPE volatile bool gbl_fp_keylocked SIMJ_INIT( false );
 SIMJ_SCOPE volatile SIMJ_U32 cpu_inst_used[256] SIMJ_INIT( { 0 } );
 
 // -------- IO DEVICES
-//SIMJ_SCOPE  volatile SIMJ_U16 iop_last_dev_status[64] SIMJ_INIT( { 0 } );
 
+// -------- these are all indexed by device address..
+// -------- procedure for ODx instruction (output data)
 SIMJ_SCOPE DEVICE_OUTPUT_DATA  iop_output_data_proc[64] SIMJ_INIT( { 0 } );
+// -------- procedure for OCx instruction (output command)
 SIMJ_SCOPE DEVICE_OUTPUT_CMD   iop_output_cmd_proc[64] SIMJ_INIT( { 0 } );
+// -------- procedure for IDx instruction (input data)
 SIMJ_SCOPE DEVICE_INPUT_DATA   iop_input_data_proc[64] SIMJ_INIT( { 0 } );
+// -------- procedure for ISx instruction (input status)
 SIMJ_SCOPE DEVICE_INPUT_STATUS iop_input_status_proc[64] SIMJ_INIT( { 0 } );
+// -------- procedure for mounting image files to device units.  This can be done on the fly.
+SIMJ_SCOPE DEVICE_MOUNT_UNIT   iop_mount_unit_proc[64] SIMJ_INIT( { 0 } );
+// -------- procedure for dismount image files from device units.  This can be done on the fly.
+SIMJ_SCOPE DEVICE_DISMOUNT_UNIT iop_dismount_unit_proc[64] SIMJ_INIT( { 0 } );
 
+// -------- buffer to store device specific data
 SIMJ_SCOPE volatile void* iop_device_buffer[64];
+// -------- request word to stop the main device thread.
 SIMJ_SCOPE volatile int iop_thread_stop_request[64];
+// -------- request word to stop the secondary device (IO worker) thread.
 SIMJ_SCOPE volatile int iop_thread_stop_request2[64];
+// -------- store the main thread handle
 SIMJ_SCOPE volatile uintptr_t  iop_device_thread_handle[64];
+// -------- store the secondary thread (io worker) thread handle 
 SIMJ_SCOPE volatile uintptr_t  iop_device_thread_handle2[64];
+// -------- thread ID for main device thread.
 SIMJ_SCOPE volatile DWORD   iop_device_thread_id[64];
+// -------- thread ID for secondary (IO worker) thread.
 SIMJ_SCOPE volatile DWORD   iop_device_thread_id2[64];
+
+// -------- variables, indexed by DMP number, to store parameters from DMPI instructions.
+// -------- page number in actual memory of MAP image
+SIMJ_SCOPE volatile SIMJ_U16 iop_vdmp_miap_page[64];
+// -------- number of pages in MAP image.
+SIMJ_SCOPE volatile SIMJ_U16 iop_vdmp_miap_length[64];
 
 
 // -------- execution options

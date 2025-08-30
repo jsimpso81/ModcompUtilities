@@ -28,8 +28,7 @@ volatile bool DI_enabled;
 volatile bool write_in_progress;
 volatile bool read_in_progress;
 char info[40];	// short description
-char filename[255];  // file name or device name on simulator (com1:, disk.img, xxx.)
-SIMJ_U16 ipport;	 // tcp/udp port number for ip devices (console, async, etc.)
+SIMJ_U16 unit_count;	// how many units does this controller support.
 volatile DEVICE_BUFFER in_buff;
 volatile DEVICE_BUFFER out_buff;
 volatile QUEUE_UWORD ctrl_command_que;		// may be obsolete

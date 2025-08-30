@@ -113,7 +113,7 @@ SIMJ_U16  device_null_input_data(SIMJ_U16 device_address) {
 		databuffer->ctrl_status |= (status_data_not_ready);
 	}
 
-	fprintf(stderr, " device_null input data -- called - 0x%04x, index %d \n",ourvalue, databuffer->in_buff.last_byte_read_index );
+	// fprintf(stderr, " device_null input data -- called - 0x%04x, index %d \n",ourvalue, databuffer->in_buff.last_byte_read_index );
 
 	return ourvalue;
 }
@@ -131,6 +131,63 @@ SIMJ_U16  device_null_input_status(SIMJ_U16 device_address) {
 	// printf("\n device_null input status -- called - 0x%04x\n", loc_status);
 	return loc_status;
 }
+
+
+// ============================================================================================================================
+// --------initialize the device.  calls common routines.  Only custom thing is to initialize the 
+// --------data buffer after it is created.
+void device_null_mount_unit(SIMJ_U16 device_address, SIMJ_U16 unit, bool read_only, char* filename) {
+
+	// --------get the pointer to the device data
+	DEVICE_DISC_DATA* device_data = NULL;
+
+	// --------only do things if a valid device address...
+	if (device_address >= 0 && device_address <= 0x3f) {
+		DEVICE_DISC_DATA* device_data = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
+
+		// --------yes this is a valid device....
+		if (device_data != NULL) {
+			printf(" *** INFO ***  This device does not support mount/unmount.  Nothing done.\n");
+		}
+		// --------no device configured at this location..
+		else {
+			printf(" *** ERROR ***  No device configured at this device address 0x%04x\n", device_address);
+		}
+	}
+	// --------bad device address
+	else {
+		printf(" *** ERROR ***  Not a valid device address 0x%04x\n", device_address);
+	}
+
+}
+
+
+// ============================================================================================================================
+// --------dismount a unit.  This can only be done after the device is initialized...
+void device_null_dismount_unit(SIMJ_U16 device_address, SIMJ_U16 unit) {
+
+	// --------get the pointer to the device data
+	DEVICE_DISC_DATA* device_data = NULL;
+
+	// --------only do things if a valid device address...
+	if (device_address >= 0 && device_address <= 0x3f) {
+		DEVICE_DISC_DATA* device_data = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
+
+		// --------yes this is a valid device....
+		if (device_data != NULL) {
+			printf(" *** INFO ***  This device does not support mount/unmount.  Nothing done.\n");
+		}
+		// --------no device configured at this location..
+		else {
+			printf(" *** ERROR ***  No device configured at this device address 0x%04x\n", device_address);
+		}
+	}
+	// --------bad device address
+	else {
+		printf(" *** ERROR ***  Not a valid device address 0x%04x\n", device_address);
+	}
+}
+
 
 
 // ============================================================================================================================
@@ -273,7 +330,7 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 					else {
 						si_enabled = (loc_cmd & ctrl_si_enable) ? true : false;
 						di_enabled = (loc_cmd & ctrl_di_enable) ? true : false;
-						if (loc_status & ( ~status_busy )) {
+						if ( ( loc_status & status_busy ) == 0 ) {
 							// TODO: reset status bits
 						}
 						if (loc_cmd & ctrl_break_select) {
@@ -403,8 +460,6 @@ void device_null_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ
 		strcpy_s(device_data->info, 40, "Null (console)");
 
 		// --------data specific to this device.
-		strcpy_s(device_data->filename, 255, "");
-		device_data->ipport = 0;
 		device_common_buffer_init(&device_data->in_buff);
 		device_common_buffer_init(&device_data->out_buff);
 
@@ -414,7 +469,9 @@ void device_null_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ
 								device_null_output_data, 
 								device_null_output_cmd, 
 								device_null_input_data, 
-								device_null_input_status);
+								device_null_input_status,
+								device_null_mount_unit,
+								device_null_dismount_unit);
 
 	}
 }

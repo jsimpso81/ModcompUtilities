@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
     //fp_init_data(); // front panel
 
     // -------- IOP start threads
-    // TODO: Add IOP threads.
+    // All the IOP work is now buried in the threads of each device...
 
     // -------- start CPU thread.
     cpu_start_thread();

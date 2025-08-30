@@ -131,19 +131,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bswap16.c" />
     <ClCompile Include="CL7870_Sim.c" />
     <ClCompile Include="cpu_do_fill.c" />
     <ClCompile Include="cpu_do_run.c" />
     <ClCompile Include="cpu_do_step.c" />
     <ClCompile Include="device_common_capture_console.c" />
+    <ClCompile Include="device_common_disc_open.c" />
+    <ClCompile Include="device_common_disc_read_sector.c" />
     <ClCompile Include="device_common_raw_socket_close.c" />
     <ClCompile Include="device_common_raw_socket_open.c" />
     <ClCompile Include="device_common_raw_socket_read.c" />
     <ClCompile Include="device_common_raw_socket_write.c" />
+    <ClCompile Include="device_common_tape_open.c" />
+    <ClCompile Include="device_common_tape_read_record.c" />
     <ClCompile Include="device_console_tcp.c" />
+    <ClCompile Include="device_disc_mh.c" />
+    <ClCompile Include="device_tape.c" />
     <ClCompile Include="disp_instruction_trace.c" />
     <ClCompile Include="disp_interrupts.c" />
     <ClCompile Include="disp_virtual_map.c" />
+    <ClCompile Include="iop_do_dmp_read.c" />
+    <ClCompile Include="iop_store_via_miap.c" />
     <ClCompile Include="memory_plane_status.c" />
     <ClCompile Include="rtclock_start_thread.c" />
     <ClCompile Include="cpu_classic_7860.c" />
@@ -174,6 +183,8 @@
     <ClCompile Include="simj_base.h" />
     <ClCompile Include="user_cmd_attach_device.c" />
     <ClCompile Include="user_cmd_config_execute.c" />
+    <ClCompile Include="user_cmd_dismount_device.c" />
+    <ClCompile Include="user_cmd_mount_device.c" />
     <ClCompile Include="user_cmd_parse.c" />
     <ClCompile Include="user_cmd_parse_device_type.c" />
     <ClCompile Include="user_cmd_parse_u16.c" />

@@ -226,6 +226,23 @@ typedef SIMJ_U16(*DEVICE_INPUT_STATUS)(SIMJ_U16 device_address);
 typedef SIMJ_U16(*DEVICE_INPUT_DATA)(SIMJ_U16 device_address);
 //typedef DWORD (*DEVICE_WORKER_THREAD)(LPVOID lpParam);
 #define DEVICE_WORKER_THREAD  LPTHREAD_START_ROUTINE
+typedef void (*DEVICE_MOUNT_UNIT)(SIMJ_U16 device_address, SIMJ_U16 unit, bool readonly, char* filename);
+typedef void (*DEVICE_DISMOUNT_UNIT)(SIMJ_U16 device_address, SIMJ_U16 unit);
+
+
+// --------number of supported controller types.
+#define VALID_DEVICE_COUNT 11
+#define DEVICE_TYPE_NULL			1
+#define DEVICE_TYPE_CONSOLE			2
+#define DEVICE_TYPE_CONSOLETCP		3
+#define DEVICE_TYPE_TAPE			4
+#define DEVICE_TYPE_DISC_MH			5
+#define DEVICE_TYPE_DISC_LX			6
+#define DEVICE_TYPE_DISC_IPS2		7
+#define DEVICE_TYPE_A4811			8
+#define DEVICE_TYPE_A4808			9
+#define DEVICE_TYPE_MODACSIII		10
+#define DEVICE_TYPE_MODACS1600		11
 
 
 // --------structure for unsigned word queues
@@ -253,12 +270,14 @@ typedef struct {
 } DEVICE_GENERIC_DATA;
 
 
-// -------- data block for console device
+// -------- data block for console device, also used for consoletcp
 typedef struct {
 #include "generic_device_variables.h"
+	char filename[255];  // file name or device name on simulator (com1:, disc / tapes have separate names per unit.)
+	SIMJ_U16 ipport;	 // tcp/udp port number for ip devices (console, async, etc.)
 	volatile HANDLE com_handle;
 	volatile bool break_detect_enabled;
-	DEFINE_RESOURCE( ResourceStatusUpdate );
+	DEFINE_RESOURCE(ResourceStatusUpdate);
 } DEVICE_CONSOLE_DATA;
 
 
@@ -267,6 +286,49 @@ typedef struct {
 typedef struct {
 #include "generic_device_variables.h"
 } DEVICE_NULL_DATA;
+
+// -------- data block for tape device
+typedef struct {
+#include "generic_device_variables.h"
+	DEFINE_RESOURCE(ResourceStatusUpdate);
+	volatile SIMJ_S16 cur_sel_unit;
+	volatile SIMJ_S16 io_cmd[4];	// command sent to io thread...
+	volatile bool tape_mounted[4];
+	volatile bool online[4];
+	volatile bool bot[4];	// beginning of tape.
+	volatile bool eof[4];	// end of file.
+	volatile bool eot[4];	// end of tape -- may not need??
+	volatile SIMJ_U64 dpi[4];
+	volatile SIMJ_U32 last_recsize[4];
+	volatile bool tape_readonly[4];
+	volatile FILE* tape_file_handle[4];
+	volatile char tape_filename[4][255];  // filenames for mounted file.
+
+} DEVICE_TAPE_DATA;
+
+
+// -------- data block for disc device
+typedef struct {
+#include "generic_device_variables.h"
+	DEFINE_RESOURCE(ResourceStatusUpdate);
+	volatile SIMJ_S16 cur_sel_unit;
+	volatile SIMJ_S16 io_cmd[4];	// command sent to io thread...
+	volatile SIMJ_U64 dpi[4];		// sent with cmd
+	volatile SIMJ_U64 plat[4];		// saved platter
+	volatile SIMJ_U64 head[4];		// saved head
+	volatile SIMJ_U64 cyl[4];		// saved cyl
+	volatile bool disc_mounted[4];
+	volatile bool online[4];
+	// volatile bool bot[4];	// beginning of disc.
+	volatile bool eof[4];	// end of file.
+	// volatile bool eot[4];	// end of disc
+	volatile SIMJ_U32 last_recsize[4];
+	volatile bool disc_readonly[4];
+	volatile FILE* disc_file_handle[4];
+	volatile char disc_filename[4][255];  // filenames for mounted file.
+
+} DEVICE_DISC_DATA;
+
 
 // -------- return status for floating point conversion routines.
 #define SIMJ_FLTCVT_GOOD			1
@@ -307,6 +369,8 @@ SIMJ_U32 cpu_get_instruction_count();
 SIMJ_U16 cpu_read_internal_register(SIMJ_U16 int_reg_addr);
 void cpu_request_DI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
 void cpu_request_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
+void cpu_reset_DI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
+void cpu_reset_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
 void cpu_get_interrupt(SIMJ_U16* act, SIMJ_U16* req, SIMJ_U16* ena,
 	SIMJ_U32* di_req, SIMJ_U32* di_prc, SIMJ_U32* si_req, SIMJ_U32* si_prc);
 void cpu_master_clear();
@@ -327,9 +391,13 @@ bool user_cmd_parse_u16(char* in_str, SIMJ_U16* out_val, SIMJ_U16 min_val, SIMJ_
 bool user_cmd_parse_device_type(char* in_device, SIMJ_U16* out_device_type);
 void user_cmd_attach_device(SIMJ_U16 device_type, SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp,
 	SIMJ_U16 extra_count, char* extra1, char* extra2, char* extra3);
+void user_cmd_mount_device(SIMJ_U16 device_address, SIMJ_U16 unit, char* filename, bool readonly);
+void user_cmd_dismount_device(SIMJ_U16 device_address, SIMJ_U16 unit);
 
 // -------- iop
 void iop_init_data();
+int iop_do_dmp_read(int device_address, int dmp, SIMJ_U16* databuffer, int words_in_buffer);
+int iop_store_via_miap(SIMJ_U16 miap, SIMJ_U16 miap_len, SIMJ_U16 ta, SIMJ_U16 word_to_store);
 
 // -------- device common
 void* device_common_device_buffer_allocate(SIMJ_U16 device_address, size_t buffer_size);
@@ -340,7 +408,7 @@ void device_common_stop_all();
 int device_common_serial_close(HANDLE com_handle, DWORD* last_error);
 int device_common_serial_open(char* com_port, HANDLE* com_handle, DWORD* last_error);
 void device_common_serial_print_settings(DCB this_dcb);
-int device_common_serial_set_params(HANDLE hCom, DWORD* last_error, bool USE_HDWR_OUTPUT_HANDSHAKE);
+int device_common_serial_set_params(HANDLE hCom, DWORD* last_error, bool USE_HDWR_OUTPUT_HANDSHAKE, SIMJ_U16 baud);
 
 int device_common_raw_socket_open(SIMJ_U16 port, SOCKET* tcp_socket, DWORD* last_error);
 int device_common_raw_socket_close(SOCKET tcp_socket, DWORD* last_error);
@@ -348,6 +416,13 @@ int device_common_raw_socket_read(SOCKET tcp_socket, DWORD desired_read_bytes,
 	SIMJ_U8* loc_read_data, DWORD* actual_read_bytes, DWORD* last_error);
 int device_common_raw_socket_write(SOCKET tcp_socket, DWORD desired_write_bytes,
 	SIMJ_U8* loc_write_data, DWORD* actual_written_bytes, DWORD* last_error);
+
+int device_common_tape_open(char* tape_filename, bool read_only, FILE** tape_file_handle, DWORD* last_error);
+int device_common_tape_read_record(FILE* fp, __int64* current_file_position, SIMJ_U16* buf,
+	int max_buf_bytes, size_t* bytes_read, int* end_of_file);
+
+int device_common_disc_open(char* disc_filename, bool read_only, FILE** disc_file_handle, DWORD* last_error);
+int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, void* raw_sector_buf, unsigned __int16* flags);
 
 void device_common_buffer_init(volatile DEVICE_BUFFER* buff);
 bool device_common_buffer_isempty(volatile DEVICE_BUFFER* buff);
@@ -361,15 +436,19 @@ void device_common_thread_init(LPVOID data_buffer,
 	DEVICE_OUTPUT_DATA output_data_proc,
 	DEVICE_OUTPUT_CMD output_cmd_proc,
 	DEVICE_INPUT_DATA input_data_proc,
-	DEVICE_INPUT_STATUS input_status_proc);
+	DEVICE_INPUT_STATUS input_status_proc,
+	DEVICE_MOUNT_UNIT mount_unit_proc,
+	DEVICE_DISMOUNT_UNIT dismount_unit_proc);
 
 void device_common_capture_console(SIMJ_U8 in_data);
 void device_common_capture_console_close();
 
 // -------- specific devices
 void device_null_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
-void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, char* filename);
+void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, char* filename, SIMJ_U16 baud);
 void device_console_tcp_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, SIMJ_U16 port);
+void device_tape_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
+void device_disc_mh_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
 
 // -------- generic queue routines
 void que_uword_init(volatile QUEUE_UWORD* que);
@@ -387,6 +466,7 @@ void disp_instruction_trace(FILE* io_unit);
 void disp_virtual_map(FILE* io_unit, SIMJ_U16 map);
 
 // -------- util
+unsigned __int16  bswap16(unsigned __int16 a);
 void util_get_opcode_disp(SIMJ_U16 instruction, char* op_buffer, size_t buf_size);
 bool util_is_same_stream(FILE* one, FILE* two);
 void util_high_res_spin_wait(SIMJ_U16 wait_time_100ns);
@@ -440,6 +520,7 @@ void rmi_request(SIMJ_U16 rmi_request);
 
 // --------memory
 SIMJ_U16 memory_plane_RMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg);
+void memory_plane_WMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg, SIMJ_U16 data_register);
 void memory_plane_init();
 
 // =====================================================================================================================

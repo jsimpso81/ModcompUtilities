@@ -194,6 +194,114 @@ void process_user_commands(FILE* cmd_src) {
 					}
 				}
 
+				// --------mount device dev_addr unit filename readonly
+				else if (strcmp(cmd_data->cmd_line_parsed[0], "mount") == 0) {
+					// -------- not enough parameters
+					if (cmd_count_found < 5) {
+						printf(" *** ERROR *** Mount command expects at least 5 parameters\n");
+					}
+					// -------- device 
+					else if (strcmp(cmd_data->cmd_line_parsed[1], "device") == 0) {
+
+						// -------- check to ensure there are at least 5 parmeters mount device <dev addr> <unit> <filename> readonly
+						if (cmd_count_found < 5) {
+							printf(" *** ERROR *** Mount device command does not have enough parameters.\n");
+						}
+
+						// --------so far looks good, call a routine to process the specifics.
+						else {
+							bool good1 = false;
+							bool good2 = false;
+							bool good3 = true;
+							bool good4 = false;
+							SIMJ_U16 dev_addr;
+							SIMJ_U16 unit;
+							bool readonly = false;
+
+							// --------device address 0-#3f (probably should be 1-3f)
+							good1 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[2], &dev_addr, 0, 0x3f);
+							if (!good1) {
+								printf(" *** ERROR *** Not a valid device address: %s\n", cmd_data->cmd_line_parsed[2]);
+							}
+							// --------unit number 0-3
+							good2 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[3], &unit, 0, 3);
+							if (!good2) {
+								printf(" *** ERROR *** Not a unit: %s\n", cmd_data->cmd_line_parsed[3]);
+							}
+							// -------- if there is a 6th parameter it must be rw, ro, or readonly
+							good4 = true;
+							if (cmd_count_found >= 6) {
+								if ((strcmp(cmd_data->cmd_line_parsed[5], "ro") == 0) ||
+									(strcmp(cmd_data->cmd_line_parsed[5], "readonly") == 0)) {
+									readonly = true;
+								}
+								else if ((strcmp(cmd_data->cmd_line_parsed[5], "rw") != 0)) {
+									printf(" *** ERROR *** Parameter invalid.  It must be: rw, ro, readonly: %s\n", cmd_data->cmd_line_parsed[5]);
+									good4 = false;
+								}
+							}
+
+							// -------- if all good try and initialize this device.
+							// -------- individual devices will parse extra parameters as needed.
+							if (good1 && good2 && good4 ) {
+								user_cmd_mount_device(dev_addr, unit, cmd_data->cmd_line_parsed[4], readonly);
+							}
+						}
+					}
+					// -------- not a valid mount sub-command..
+					else {
+						printf(" *** ERROR *** Not a valid mount sub-command : %s\n", cmd_data->cmd_line_parsed[1]);
+					}
+				}
+
+
+				// --------dismount device dev_addr unit
+				else if (strcmp(cmd_data->cmd_line_parsed[0], "dismount") == 0) {
+					// -------- not enough parameters
+					if (cmd_count_found < 4) {
+						printf(" *** ERROR *** Mount command expects at least 4 parameters\n");
+					}
+					// -------- device 
+					else if (strcmp(cmd_data->cmd_line_parsed[1], "device") == 0) {
+
+						// -------- check to ensure there are at least 5 parmeters mount device <dev addr> <unit> <filename> readonly
+						if (cmd_count_found < 4) {
+							printf(" *** ERROR *** Mount device command does not have enough parameters.\n");
+						}
+
+						// --------so far looks good, call a routine to process the specifics.
+						else {
+							bool good1 = false;
+							bool good2 = false;
+							SIMJ_U16 dev_addr;
+							SIMJ_U16 unit;
+
+							// --------device address 0-#3f (probably should be 1-3f)
+							good1 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[2], &dev_addr, 0, 0x3f);
+							if (!good1) {
+								printf(" *** ERROR *** Not a valid device address: %s\n", cmd_data->cmd_line_parsed[2]);
+							}
+							// --------unit number 0-3
+							good2 = user_cmd_parse_u16(cmd_data->cmd_line_parsed[3], &unit, 0, 3);
+							if (!good2) {
+								printf(" *** ERROR *** Not a unit: %s\n", cmd_data->cmd_line_parsed[3]);
+							}
+
+							// -------- if all good try and initialize this device.
+							// -------- individual devices will parse extra parameters as needed.
+							if (good1 && good2 ) {
+								user_cmd_dismount_device(dev_addr, unit);
+							}
+						}
+					}
+					// -------- not a valid mount sub-command..
+					else {
+						printf(" *** ERROR *** Not a valid mount sub-command : %s\n", cmd_data->cmd_line_parsed[1]);
+					}
+					}
+
+
+
 				// --------show
 				else if (strcmp(cmd_data->cmd_line_parsed[0], "show") == 0) {
 					if (cmd_count_found >= 2) {
