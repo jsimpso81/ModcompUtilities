@@ -18,7 +18,6 @@ int main(int argc, char* argv[]) {
 
     FILE* outpart;
     unsigned _int16 raw_sector_buffer[128] = { 0 };
-    int stat;
     errno_t status;
 
 
