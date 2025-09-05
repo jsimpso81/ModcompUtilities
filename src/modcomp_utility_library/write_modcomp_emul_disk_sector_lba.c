@@ -4,7 +4,7 @@
 #include "modcomp_utility_library.h"
 
 
-int write_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* raw_sector_buf) {
+int write_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* sector_buf) {
 
 	__int64 pos;
 	__int64 desired_pos;
@@ -14,7 +14,7 @@ int write_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* raw_secto
 
 	MODCOMP_EMUL_DISC_SECTOR disk_buff = { 0 };
 
-	desired_pos = sector * (__int64)MODCOMP_EMUL_DISK_IMG_SECTORY_BYTES;
+	desired_pos = sector * (__int64)MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES;
 	pos = _ftelli64(fp);
 
 	if (pos != desired_pos)
@@ -24,11 +24,46 @@ int write_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* raw_secto
 
 	if (stat == 0) {
 
-		memcpy( disk_buff.rawsectbuffer, raw_sector_buf, (size_t)RAW_SECTOR_BYTES);
+		memcpy( disk_buff.rawsectbuffer, sector_buf, (size_t)RAW_SECTOR_BYTES);
 
 		// TODO: Set flags....
 
-		return_count = fwrite(&disk_buff, MODCOMP_EMUL_DISK_IMG_SECTORY_BYTES, 1, fp);
+		return_count = fwrite(&disk_buff, MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES, 1, fp);
+		stat = ferror(fp);
+	}
+
+	/* printf("\n first two bytes of image sector : %d", disk_buff.lba); */
+
+	return stat;
+
+}
+
+
+
+int write_modcomp_emul_disk_sector_lba_raw(FILE* fp, __int64 sector, void* raw_sector_buf) {
+
+	__int64 pos;
+	__int64 desired_pos;
+	int stat;
+	size_t return_count;
+	// int j;
+
+	//MODCOMP_EMUL_DISC_SECTOR disk_buff = { 0 };
+
+	desired_pos = sector * (__int64)MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES;
+	pos = _ftelli64(fp);
+
+	if (pos != desired_pos)
+		stat = _fseeki64(fp, desired_pos, SEEK_SET);
+	else
+		stat = 0;
+
+	if (stat == 0) {
+
+		//memcpy(disk_buff.rawsectbuffer, raw_sector_buf, (size_t)RAW_SECTOR_BYTES);
+
+
+		return_count = fwrite(raw_sector_buf, MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES, 1, fp);
 		stat = ferror(fp);
 	}
 

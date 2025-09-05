@@ -48,8 +48,10 @@ int main(int argc, char* argv[]) {
             /* -------- partition file name */
             else if (strcmp(argv[j], "-p") == 0) {
                 j++;
-                if (j < argc)
+                if (j < argc) {
                     strncpy_s(partition_name, 1000, argv[j], strlen(argv[j]));
+                    have_partition_name = true;
+                }
             }
 
             /* -------- sector count */

@@ -5,7 +5,7 @@
 #include <windows.h>
 
 #define RAW_SECTOR_BYTES (size_t)256
-#define MODCOMP_EMUL_DISK_IMG_SECTORY_BYTES (size_t)258
+#define MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES (size_t)258
 
 #define SIC_8840_IMG_SECTOR_BYTES RAW_SECTOR_BYTES
 #define SIC_8840_IMG_START_OFFSET_BYTES (size_t)0x4000
@@ -121,7 +121,7 @@ void dump_raw_disk_file_as_byte_variable(char* filename, bool swap_bytes, int st
 void dump_raw_disk_sector(unsigned __int16* sector_buffer);
 void dump_raw_disk_sector_as_byte_variable(unsigned __int16 sector_buffer[]);
 
-void extract_modcomp_emul_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 sector_per_track, __int64 geom);
+void extract_modcomp_emul_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 sector_per_track, __int64 geom, bool dump_raw);
 void extract_raw_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 sector_per_track, __int64 geom);
 void extract_sic_884x_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 sector_per_track, __int64 geom);
 
@@ -132,10 +132,12 @@ unsigned int get_can_index(unsigned int ascii_code);
 // -------- read disk sectors.
 int read_884x_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
 int read_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
+int read_modcomp_emul_disk_sector_lba_raw(FILE* fp, __int64 sector, void* raw_sector_buf);
 int read_raw_disk_sector_lba(FILE* fp, __int64 sector_number, size_t  sector_count, void* buf, size_t* return_bytes, int* end_of_file);
 // -------- write disk sectors
 int write_884x_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
 int write_modcomp_emul_disk_sector_lba(FILE* fp, __int64 sector, void* buf);
+int write_modcomp_emul_disk_sector_lba_raw(FILE* fp, __int64 sector, void* raw_sector_buf);
 
 // --------SIC EOF checking.
 int sic_884x_is_sector_eof(FILE* inimg, __int64 unit, __int64 unit_sector, bool* is_eof);
@@ -153,7 +155,7 @@ int TapeImg_write_next_record(FILE* fp, void* buf, int buf_bytes, size_t* bytes_
 // --------CAN CODE
 unsigned int to_can_code(unsigned char* ascii_string);
 
-void update_modcomp_emul_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count);
+void update_modcomp_emul_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, bool update_raw);
 void update_sic_884x_disk_partition(char* image_name, char* partition_file, __int64 start_sector, __int64 sector_count, __int64 unit);
 
 __int16 geom_calc(__int64 sect_per_track, __int64 geom, __int64 log_to_phys[]);

@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
     bool have_partition_name = false;
     __int64 sector_per_track = 96;
     __int64 geom = 28;
+    bool dump_raw = false;
 
     /* -------- annouce our program  */
     printf("\nModcompEmulDiskImg_ExtractPartition - Extract partition file from a Modcomp Emulator disk image\n");
@@ -44,7 +45,13 @@ int main(int argc, char* argv[]) {
                 printf("        -c sector_count  number of sectors\n");
                 printf("        -t sector/track  sectors per track (96)\n");
                 printf("        -g geom          geometry (28)\n");
+                printf("        -r               raw (inc flag eof)\n");
                 exit(0);
+            }
+
+            /* -------- dump as raw partition */
+            else if (strcmp(argv[j], "-r") == 0) {
+                dump_raw = true;
             }
 
             /* -------- disk image file name */
@@ -106,7 +113,8 @@ int main(int argc, char* argv[]) {
     if (have_image_name && have_partition_name) {
         printf("\nExtracting partition %s from disk %s starting at %lld length %lld sectors.\n", partition_name, image_name, starting_sector, sector_count);
 
-        extract_modcomp_emul_disk_partition(image_name, partition_name, starting_sector, sector_count, sector_per_track, geom);
+        extract_modcomp_emul_disk_partition(image_name, partition_name, starting_sector,
+               sector_count, sector_per_track, geom, dump_raw );
     }
     else {
         printf("\n *** ERROR **** Not all required parameters provided.\n");

@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
     __int64 sector_count = 1;
     bool have_image_name = false;
     bool have_partition_name = false;
+    bool update_raw = false;
 
     /* -------- annouce our program  */
     printf("\nModcompEmulDiskImg_UpdatePartition - Update partition file on a Modcomp Emulator disk image\n");
@@ -40,7 +41,13 @@ int main(int argc, char* argv[]) {
                 printf("        -p partition_file  partition file\n");
                 printf("        -s start_sector  starting sector 0 relative\n");
                 printf("        -c sector_count  number of sectors\n");
+                printf("        -r       raw (partition includes flags)\n");
                 exit(0);
+            }
+
+            /* -------- update raw */
+            else if (strcmp(argv[j], "-r") == 0) {
+                update_raw = true;
             }
 
             /* -------- disk image file name */
@@ -87,7 +94,8 @@ int main(int argc, char* argv[]) {
     if (have_image_name && have_partition_name) {
         printf("\nUpdating partition %s to disk %s starting at %lld length %lld sectors.\n", partition_name, image_name, starting_sector, sector_count);
 
-        update_modcomp_emul_disk_partition(image_name, partition_name, starting_sector, sector_count);
+        update_modcomp_emul_disk_partition(image_name, partition_name, 
+            starting_sector, sector_count, update_raw);
     }
     else {
         printf("\n *** ERROR **** Not all required parameters provided.\n");
