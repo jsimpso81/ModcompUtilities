@@ -370,7 +370,21 @@ void process_user_commands(FILE* cmd_src) {
 
 						//--------reg
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "reg") == 0) {
-							disp_cur_reg(stdout);
+							// -------- a particular block...
+							if (cmd_count_found >= 3) {
+								SIMJ_U32 parm_parse = 0;
+								SIMJ_U16 reg_block = 0;
+								if (sscanf_s(cmd_data->cmd_line_parsed[2], "%li", &parm_parse) == 1) {
+									reg_block = parm_parse;
+								}
+								else {
+									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[2]);
+								}
+								disp_reg_block(stdout, reg_block);
+							}
+							else {
+								disp_cur_reg(stdout);
+							}
 						}
 
 
@@ -487,7 +501,17 @@ void process_user_commands(FILE* cmd_src) {
 									set_addr = parm_parse;
 									if (sscanf_s(cmd_data->cmd_line_parsed[3], "%i", &parm_parse) == 1) {
 										set_value = parm_parse;
-										gbl_mem[set_addr] = set_value;
+										// --------kludge to clear all memory
+										if (set_addr == 0xffffffff) {
+											int j = 0;
+											for (j = 0; j < 2097152; j++) {
+												gbl_mem[j] = 0;
+											}
+										}
+										else {
+											// TODO: check bounds of address value !!
+											gbl_mem[set_addr] = set_value;
+										}
 									}
 									else {
 										printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[3]);

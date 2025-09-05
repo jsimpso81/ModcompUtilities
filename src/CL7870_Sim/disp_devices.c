@@ -70,7 +70,7 @@ void disp_devices(FILE* io_unit) {
 				( ptr_generic_data->device_address, ptr_generic_data->read_in_progress ? "Read " : "---- "),
 				(ptr_generic_data->device_address, ptr_generic_data->write_in_progress ? "Write" : "-----"),
 				ptr_generic_data->bus, ptr_generic_data->pri, ptr_generic_data->dmp, 
-				( ptr_generic_data->DI_enabled ? "X" : "-" ), (ptr_generic_data->SI_enabled ? "X" : "-"),
+				( ptr_generic_data->SI_enabled ? "X" : "-" ), (ptr_generic_data->DI_enabled ? "X" : "-"),
 				rd_buf_count, wr_buf_count,
 				ptr_generic_data->info);
 		}

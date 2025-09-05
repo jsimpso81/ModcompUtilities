@@ -23,6 +23,10 @@ volatile SIMJ_U16 ctrl_status;
 volatile SIMJ_U16 bus;	// IO bus 0-3
 volatile SIMJ_U16 dmp;	// for non dmp devices, specify 0
 volatile SIMJ_U16 pri;	// priority 0 - 15 (or is it 1 - 15)
+volatile SIMJ_S16 dmp_tc; //TODO: clear these new variables in init...
+volatile SIMJ_U16 dmp_ta;
+volatile SIMJ_U32 dmp_abs_tc_addr;
+volatile bool dmp_virt;
 volatile bool SI_enabled;
 volatile bool DI_enabled;
 volatile bool write_in_progress;

@@ -92,7 +92,7 @@ void user_cmd_print_help() {
 	printf("      show pc - show program counter\n");
 	printf("      show power - show power on status\n");
 	printf("      show psw - show processor status word\n");
-	printf("      show reg - show current register value\n");
+	printf("      show reg <blk> - show register block (blank=current)\n");
 	printf("      show run - show current cpu run state\n");
 	printf("      show switches - show console switches\n");
 	printf("      show trace - show instruction trace\n");

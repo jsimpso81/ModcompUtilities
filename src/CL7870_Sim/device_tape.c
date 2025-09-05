@@ -33,6 +33,9 @@
 
 // -------- DEVICE TAPE
 
+// -------- define debug level
+#define TAPE_DEBUG 0
+
 // --------status
 #define tapestatus_exists			0x8000
 #define tapestatus_overunder		0x4000		// under/over flow, dmp too small if 0x8000 too.
@@ -99,6 +102,35 @@ void device_tape_dismount_unit(SIMJ_U16 device_address, SIMJ_U16 unit);
 volatile SIMJ_U32 junk_debug = 0;	// input_data
 volatile SIMJ_U32 junk2_debug = 0;	// put in buffer
 
+
+
+// ============================================================================================================================
+void device_tape_enable_disable_SI_DI(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data, int* chg_si_ena, int* chg_di_ena) {
+
+	// -------- enable or disable interrupts.
+	// -------- Enable SI
+	if (loc_cmd & cmd_si_enable) {
+		if (!device_data->SI_enabled)
+			*chg_si_ena = 1;
+	}
+	// -------- Disable SI
+	else {
+		if (device_data->SI_enabled)
+			*chg_si_ena = -1;
+	}
+	// -------- Enable DI
+	if (loc_cmd & cmd_di_enable) {
+		if (!device_data->DI_enabled)
+			*chg_di_ena = 1;
+	}
+	// -------- Disable SI
+	else {
+		if (device_data->DI_enabled)
+			*chg_di_ena = -1;
+	}
+	return;
+}
+
 // ============================================================================================================================
 void  device_tape_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 
@@ -111,7 +143,7 @@ void  device_tape_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 	// -------- just some diagnostics.
 	SIMJ_U8 junk2 = (SIMJ_U8)((data_value >> 8) & 0x00ff);
 	if (junk2 != 0) {
-		fprintf(stderr, " tape output data, high byte not zero: 0x%04x\n", data_value);
+		fprintf(stderr, " *** DEBUG *** tape output data, high byte not zero: 0x%04x\n", data_value);
 	}
 	// -------add the byte to the data buffer.
 	device_common_buffer_put(&databuffer->out_buff, junk);
@@ -255,7 +287,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 	DEVICE_TAPE_DATA* device_data = 0;
 
 	SIMJ_U16 last_wake = 0;
-	int j = 0;
+	SIMJ_U32 j = 0;
 	BOOL bool_status;
 	     
 	DWORD last_error = 0;
@@ -276,7 +308,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 	// --------local things indexed by unit...
 	__int64 current_file_pos[4] = { 0,0,0,0 };		// current byte pos in file...
-	size_t bytes_read[4] = { 0,0,0,0 };
+	SIMJ_U32 bytes_read[4] = { 0,0,0,0 };
 	//size_t words_read[4] = { 0,0,0,0 };
 	int read_stat[4] = { 0,0,0,0 };
 	//errno_t status[4] = { 0,0,0,0 };
@@ -284,7 +316,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 	//size_t start_word[4] = { 0,0,0,0 };
 	//__int64 word_index[4] = { 0,0,0,0 };
 	//int start_byte[4] = { 0,0,0,0 };
-	int end_of_file[4] = { 0,0,0,0 };
+	// int end_of_file[4] = { 0,0,0,0 };
 	// --------end tape file stuff..
 
 	// -------------------------------------------------------------------------------------------------------------
@@ -296,7 +328,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 	loc_device_addr = *(SIMJ_U16*)lpParam;
 	printf(" Starting device Tape communications thread at device address %d\n", loc_device_addr);
 	if (loc_device_addr == 0) {
-		printf(" Tape device thread didn't get device address \n");
+		printf(" *** ERROR *** Tape device thread didn't get device address \n");
 		loc_stop_request = 1;
 		iop_thread_stop_request[loc_device_addr] = 1;
 	}
@@ -334,15 +366,15 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 				case locIOcmd_readDMP:
 
 					bytes_read[j_unit] = 0;
-					end_of_file[j_unit] = -1;
 					if (device_data->tape_file_handle[j_unit] != NULL) {
-						read_stat[j_unit] = device_common_tape_read_record(device_data->tape_file_handle[j_unit],
+						read_stat[j_unit] = device_common_tape_read_record(&device_data->tape_file_handle[j_unit],
 							        &(current_file_pos[j_unit]), &tape_buffer, 
-									65536, &(bytes_read[j_unit]), &(end_of_file[j_unit]));
+									65536, &(bytes_read[j_unit]), &device_data->eof[j_unit]);
 
-
-						printf(" read tape record -- status %d bytes read %zd end of file %d\n", read_stat[j_unit],
-							bytes_read[j_unit], end_of_file[j_unit]);
+#if TAPE_DEBUG >= 1
+						printf(" read tape record -- status %d bytes read %d end of file %d\n", read_stat[j_unit],
+							bytes_read[j_unit], device_data->eof[j_unit]);
+#endif
 
 						// --------copy to buffer.
 						if (bytes_read[j_unit] > 0) {
@@ -350,7 +382,10 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 							// --------if DMP process...
 							if (loc_cmd == locIOcmd_readDMP) {
-								iop_do_dmp_read(device_data->device_address, device_data->dmp, &(tape_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
+								//iop_finish_dmp_read(device_data->device_address, device_data->dmp, &(tape_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
+								iop_finish_dmp_read(device_data->dmp_virt, device_data->dmp_tc, device_data->dmp_ta,
+									device_data->dmp_abs_tc_addr, iop_vdmp_miap_page[device_data->dmp], iop_vdmp_miap_length[device_data->dmp],
+									&(tape_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
 							}
 							// --------REG IO, copy to buffer.
 							// TODO: There is only one tape buffer, not one for each unit !!!
@@ -438,20 +473,25 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 				// --------do a read.  Once done say data is available and cause interrupts..
 				case locIOcmd_write:
 				case locIOcmd_writeDMP:
-					printf(" device tape WRITE - IO entered -- not done...\n");
+					printf(" device tape WRITE - IO entered -- not finished yet.....\n");
 					break;
 
+				// --------REWIND
 				case locIOcmd_rewon:
+#if TAPE_DEBUG >= 1
 					printf(" device tape REWIND ON - IO entered\n");
+#endif
 					current_file_pos[j_unit] = 0;
 					device_data->bot[j_unit] = true;
 					device_data->eof[j_unit] = true;
 
 					// --------see where the position was, then set it to the beginning of the file.
 					if (device_data->tape_file_handle[j_unit] != NULL) {
-						__int64 curpos = _ftelli64(device_data->tape_file_handle[j_unit]);
-						int stat = _fseeki64(device_data->tape_file_handle[j_unit], current_file_pos[j_unit], SEEK_SET);
-						printf(" device tape REWIND ON - old pos %I64d, status %d\n", curpos, stat);
+						int stat = device_common_tape_rewind(device_data->tape_file_handle[j_unit], 
+							&(device_data->tape_file_handle[j_unit]));
+#if TAPE_DEBUG >= 1
+						printf(" device tape REWIND ON - cur pos %I64d, status %d\n", device_data->tape_file_handle[j_unit], stat);
+#endif
 					}
 					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 					// --------signal rewound...
@@ -469,7 +509,9 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				case locIOcmd_rewoff:
+#if TAPE_DEBUG >= 1
 					printf(" device tape REWIND OFF - IO entered\n");
+#endif
 					current_file_pos[j_unit] = 0;
 					device_data->bot[j_unit] = true;
 					device_data->eof[j_unit] = true;
@@ -477,10 +519,13 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 					// --------see where the position was, then set it to the beginning of the file.
 					if (device_data->tape_file_handle[j_unit] != NULL) {
-						__int64 curpos = _ftelli64(device_data->tape_file_handle[j_unit]);
-						int stat = _fseeki64(device_data->tape_file_handle[j_unit], current_file_pos[j_unit], SEEK_SET);
-						printf(" device tape REWIND OFF - old pos %I64d, status %d\n", curpos, stat);
+						int stat = device_common_tape_rewind(device_data->tape_file_handle[j_unit],
+							&(device_data->tape_file_handle[j_unit]));
+#if TAPE_DEBUG >= 1
+						printf(" device tape REWIND ON - cur pos %I64d, status %d\n", device_data->tape_file_handle[j_unit], stat);
+#endif
 					}
+
 					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 					// --------signal rewound...
 					loc_status = device_data->ctrl_status;
@@ -496,18 +541,88 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				case locIOcmd_bkfile:
+#if TAPE_DEBUG >= 1
+					printf(" device tape BCK FILE - IO entered\n");
+#endif
+					printf(" device tape BCK FILE not implemented yet!\n");
+					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
+					// --------signal not busy.
+					// TODO: set other status EOF EOT BOT
+					loc_status = device_data->ctrl_status;
+					loc_status &= (~(tapestatus_busy ));
+					device_data->ctrl_status = loc_status;
+					// --------clear buffers
+					device_common_buffer_set_empty(&device_data->in_buff);
+					device_common_buffer_set_empty(&device_data->out_buff);
+					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 					break;
 
 				case locIOcmd_fwdfile:
+#if TAPE_DEBUG >= 1
+					printf(" device tape FWD FILE - IO entered\n");
+#endif
+					printf(" device tape FWD FILE not implemented yet!\n");
+					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
+					// --------signal not busy.
+					// TODO: set other status EOF EOT BOT
+					loc_status = device_data->ctrl_status;
+					loc_status &= (~(tapestatus_busy));
+					device_data->ctrl_status = loc_status;
+					// --------clear buffers
+					device_common_buffer_set_empty(&device_data->in_buff);
+					device_common_buffer_set_empty(&device_data->out_buff);
+					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 					break;
 
 				case locIOcmd_bkrec:
+#if TAPE_DEBUG >= 1
+					printf(" device tape BCK RECORD - IO entered\n");
+#endif
+					printf(" device tape BCK RECORD not implemented yet!\n");
+					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
+					// --------signal not busy.
+					// TODO: set other status EOF EOT BOT
+					loc_status = device_data->ctrl_status;
+					loc_status &= (~(tapestatus_busy));
+					device_data->ctrl_status = loc_status;
+					// --------clear buffers
+					device_common_buffer_set_empty(&device_data->in_buff);
+					device_common_buffer_set_empty(&device_data->out_buff);
+					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 					break;
 
 				case locIOcmd_fwdrec:
+#if TAPE_DEBUG >= 1
+					printf(" device tape FWD RECORD - IO entered\n");
+#endif
+					printf(" device tape FWD RECORD not implemented yet!\n");
+					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
+					// --------signal not busy.
+					// TODO: set other status EOF EOT BOT
+					loc_status = device_data->ctrl_status;
+					loc_status &= (~(tapestatus_busy));
+					device_data->ctrl_status = loc_status;
+					// --------clear buffers
+					device_common_buffer_set_empty(&device_data->in_buff);
+					device_common_buffer_set_empty(&device_data->out_buff);
+					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 					break;
 
 				case locIOcmd_weof:
+#if TAPE_DEBUG >= 1
+					printf(" device tape WRT EOF - IO entered\n");
+#endif
+					printf(" device tape WRT EOF not implemented yet!\n");
+					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
+					// --------signal not busy.
+					// TODO: set other status EOF EOT BOT
+					loc_status = device_data->ctrl_status;
+					loc_status &= (~(tapestatus_busy));
+					device_data->ctrl_status = loc_status;
+					// --------clear buffers
+					device_common_buffer_set_empty(&device_data->in_buff);
+					device_common_buffer_set_empty(&device_data->out_buff);
+					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 					break;
 
 				// -------- no outstanding command for this unit
@@ -515,122 +630,8 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				default:
+					printf(" *** ERROR *** device tape error unexpected IO command %d\n",loc_cmd);
 					break;
-
-			// --------init -- do flush, start read.
-			// --tape-- device_data->case 0:
-
-			// --------set next normal state
-			// --tape-- com_state = 1;
-			// --tape-- break;
-
-			// -------- DO IO.
-			// --tape-- case 1:
-
-			// --------if write in progress, do a write
-			// --------for now do any outstanding writes regardless of IO in progress status.  
-			// --------cpu may have turned around IO operation before buffer is cleared...
-			//if (device_data->write_in_progress) {
-
-			// --------if a write is needed, do the write.
-			// --tape-- bytes_to_write = 0;
-
-			// -------- for now limit bytes written to 500
-			//--tape--do--while (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 500) {
-			//--tape--do--	if (device_common_buffer_get(&device_data->out_buff, &loc_write_data[bytes_to_write])) {
-			//--tape--do--		// --------DEBUG
-			//--tape--do--		// fprintf(stderr,"%c", loc_write_data[bytes_to_write]);
-			//--tape--do--		// --------END DEBUG
-			//--tape--do--		bytes_to_write++;
-			//--tape--do--	}
-			//--tape--do--}
-
-			//--tape--do--if (bytes_to_write > 0) {
-			//--tape--do--	write_status = WriteFile(loc_comm_handle, &loc_write_data, bytes_to_write,
-			//--tape--do--		&bytes_written, NULL);
-			//--tape--do--	// fprintf(stderr, " tape bytes write requested %d, written %d.  Device Addr %d\n", bytes_to_write, bytes_written, loc_device_addr);
-
-			//--tape--do--	// -------- Request ownership of the resource.
-			//--tape--do--	TAKE_RESOURCE(device_data->ResourceStatusUpdate);
-
-			//--tape--do--	// --------signal buffer not full -- ready for more.
-			//--tape--do--	if (device_data->write_in_progress) {
-			//--tape--do--		device_data->ctrl_status &= (~tapestatus_data_not_ready);
-			//--tape--do--	}
-			//--tape--do--	// -------- Release ownership of the resource.
-			//--tape--do--	GIVE_RESOURCE(device_data->ResourceStatusUpdate);
-
-			//--tape--do--	// --------initiate DI to get more
-			//--tape--do--	if (device_data->write_in_progress && device_data->DI_enabled) {
-			//--tape--do--		cpu_request_DI(device_data->bus, device_data->pri, device_data->device_address);
-			//--tape--do--	}
-			//--tape--do--}
-
-			// -------- Request ownership of the resource.
-			//--tape--do--TAKE_RESOURCE(device_data->ResourceStatusUpdate);
-
-			// --------signal buffer not full -- ready for more. -- JUST IN CASE.
-			//--tape--do--if (device_data->write_in_progress && device_common_buffer_isempty(&device_data->out_buff)) {
-			//--tape--do--	device_data->ctrl_status &= (~tapestatus_data_not_ready);
-			//--tape--do--}
-			// -------- Release ownership of the resource.
-			//--tape--do--GIVE_RESOURCE(device_data->ResourceStatusUpdate);
-
-			//}
-
-			// --------if read in progress, do a read.  --- only do a read if buffer is empty.  This way interrupts can keep up!
-			// --tape-- if (device_data->read_in_progress && device_common_buffer_isempty(&device_data->in_buff)) {
-
-				// --------do a read. -- non blocking...
-				// desired_read_bytes = 1;			// 50;
-				// actual_read_bytes = 0;
-				//--tape--do--read_status = ReadFile(loc_comm_handle, &loc_read_data,
-				//--tape--do--	desired_read_bytes, &actual_read_bytes, NULL);
-
-				// --------got a byte
-				//--tape--do--if (actual_read_bytes > 0) {
-				//--tape--do--	// fprintf(stderr, " tape bytes read %d.  Device Addr %d\n", actual_read_bytes, loc_device_addr);
-				//--tape--do--	for (j = 0; j < actual_read_bytes; j++) {
-				//--tape--do--		device_common_buffer_put(&device_data->in_buff, loc_read_data[j]);
-				//--tape--do--		if (gbl_capture_tape) {
-				//--tape--do--			device_common_capture_tape(loc_read_data[j]);
-				//--tape--do--		}
-				//--tape--do--	}
-
-				//--tape--do--	// -------- Request ownership of the resource.
-				//--tape--do--	TAKE_RESOURCE(device_data->ResourceStatusUpdate);
-
-				//--tape--do--	// --------signal data ready.
-				//--tape--do--	device_data->ctrl_status &= (~tapestatus_data_not_ready);
-
-				//--tape--do--	// -------- Release ownership of the resource.
-				//--tape--do--	GIVE_RESOURCE(device_data->ResourceStatusUpdate);
-
-				//--tape--do--	// --------initiate DI so they can process this byte.
-				//--tape--do--	if (device_data->DI_enabled) {
-				//--tape--do--		cpu_request_DI(device_data->bus, device_data->pri, device_data->device_address);
-				//--tape--do--	}
-
-				//--tape--do--	// --------echo to tape --- for now ignore error.
-				//--tape--do--	bytes_to_write = 1;
-				//--tape--do--	write_status = WriteFile(loc_comm_handle, &loc_read_data, bytes_to_write,
-				//--tape--do--		&bytes_written, NULL);
-				//--tape--do--}
-
-				// --------check for error.
-				//--tape--do--if (!read_status) {
-				//--tape--do--	DWORD my_last_error = 0;
-				//--tape--do--	my_last_error = GetLastError();
-				//--tape--do--	fprintf(stderr, " tape read error 0x%08x\n", my_last_error);
-				//--tape--do--}
-				// --tape-- }
-
-				// --tape-- break;
-
-				// --tape-- case 99:
-				// --tape-- loc_stop_request = 1;
-				// --tape-- break;
-
 
 			} // -- end of switch
 
@@ -830,9 +831,10 @@ void device_tape_mount_unit(SIMJ_U16 device_address, SIMJ_U16 unit, bool read_on
 
 	// --------get the pointer to the device data
 	DEVICE_TAPE_DATA* device_data = NULL;
-	DWORD last_error;
+	SIMJ_TAPE_ERR last_error;
 	FILE* loc_tape_file_handle = NULL;
 	int file_open_status = 0;
+	SIMJ_U64 loc_tape_dpi = 0;
 
 	// --------only do things if a valid device address...
 	if (device_address >= 0 && device_address <= 0x3f) {
@@ -844,11 +846,13 @@ void device_tape_mount_unit(SIMJ_U16 device_address, SIMJ_U16 unit, bool read_on
 			if (unit >= 0 && unit <= 3) {
 
 				// -------- open input tape image file.
-				//file_open_status = fopen_s(&loc_tape_file_handle, filename, open_flags);
-				file_open_status = device_common_tape_open( filename, read_only, &loc_tape_file_handle, &last_error);
+				file_open_status = device_common_tape_open( filename, read_only, 
+							&loc_tape_file_handle, &loc_tape_dpi, &last_error);
 
 				// -------- if tape file was opened..
 				if (file_open_status == 0) {
+
+					printf(" *** INFO *** device_common_tape_open - File opened:  %s...\n", filename);
 
 					// --------set global com handle for other thread.
 					device_data->tape_file_handle[unit] = loc_tape_file_handle;
@@ -916,14 +920,13 @@ void device_tape_dismount_unit(SIMJ_U16 device_address, SIMJ_U16 unit) {
 				// --------close the file
 				// --------ignore the error
 				if (device_data->tape_file_handle[unit] != NULL)
-					fclose(device_data->tape_file_handle[unit]);
+					device_common_tape_close( &device_data->tape_file_handle[unit], &device_data->dpi[unit]);
 
 				device_data->tape_mounted[unit] = false;
 				device_data->online[unit] = false;
 				device_data->bot[unit] = true;
 				device_data->eof[unit] = false;
 				device_data->eot[unit] = false;
-				device_data->dpi[unit] = 0;
 				device_data->last_recsize[unit] = 0;
 				device_data->tape_readonly[unit] = true;
 				device_data->tape_file_handle[unit] = NULL;
@@ -1091,7 +1094,9 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		//
 	case cmd_cmd_term:			// do a terminate.
 
+#if TAPE_DEBUG >= 1
 		fprintf(stderr, " Device tape - TERM Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 		// --------stop all I/O
 		chg_rd = -1;
@@ -1150,8 +1155,14 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		//       Bit 6 - Gap length long=1, else normal
 		//		 Bit 7 - Enable SCS=1 (single scan cycle)
 		//
-	case cmd_cmd_ti:			//	0x8000		// do a transfer initiate command
 	case cmd_cmd_ti_dmp:		//	0xC000		// do a transfer initiate command w/dmp
+		if ((loc_status & tapestatus_busy) == 0) {
+			// --------store tc/ta information
+			iop_get_dmp_parameters(device_data->device_address, device_data->dmp, &(device_data->dmp_tc), &(device_data->dmp_ta), &(device_data->dmp_virt), &(device_data->dmp_abs_tc_addr) );
+		}
+		// --------fall through to reset of transfer initiate.
+
+	case cmd_cmd_ti:			//	0x8000		// do a transfer initiate command
 
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
@@ -1161,30 +1172,13 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 			chg_unit = 1;
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// --------start a write.
 			if (!(loc_cmd & cmd_read)) {
+#if TAPE_DEBUG >= 1
 				fprintf(stderr, " Device tape - transfer initiate - write requested.  Dev addr: %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 				// --------get old write status
 				old_write = device_data->write_in_progress;
@@ -1210,7 +1204,9 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 			}
 			// --------start a read.
 			else {
+#if TAPE_DEBUG >= 1
 				fprintf(stderr, " Device tape - transfer initiate - read requested.  Dev addr: %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 				// -------- get old read status
 				// old_read = device_data->read_in_progress;
@@ -1259,33 +1255,15 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		//
 	case cmd_cmd_weof:		//			0x4020		// do a weof command (gap = 1)
 
-
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
+#if TAPE_DEBUG >= 1
 			fprintf(stderr, " Device tape - WEOF Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// -------- check prerequisites
 			// TODO: check prerequisites
@@ -1324,30 +1302,12 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
+#if TAPE_DEBUG >= 1
 			fprintf(stderr, " Device tape - FWD REC Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#endif
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// -------- check prerequisites
 			// TODO: check prerequisites
@@ -1385,29 +1345,12 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
+#if TAPE_DEBUG >= 1
 			fprintf(stderr, " Device tape - REV REC Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// -------- check prerequisites
 			// TODO: check prerequisites
@@ -1436,29 +1379,12 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
+#if TAPE_DEBUG >= 1
 			fprintf(stderr, " Device tape - REV FIL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// -------- check prerequisites
 			// TODO: check prerequisites
@@ -1486,29 +1412,12 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
+#if TAPE_DEBUG >= 1
 			fprintf(stderr, " Device tape - FWD FIL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// -------- check prerequisites
 			// TODO: check prerequisites
@@ -1532,30 +1441,12 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// **DONE**
 	case cmd_cmd_noop:  //			0x4000		// do a no-op command
 
+#if TAPE_DEBUG >= 1
 		fprintf(stderr, " Device tape - NOOP Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#endif
 
 		// -------- enable or disable interrupts.
-		// -------- Enable SI
-		if (loc_cmd & cmd_si_enable) {
-			if (!device_data->SI_enabled)
-				chg_si_ena = 1;
-		}
-		// -------- Disable SI
-		else {
-			if (device_data->SI_enabled)
-				chg_si_ena = -1;
-		}
-		// -------- Enable DI
-		if (loc_cmd & cmd_di_enable) {
-			if (!device_data->DI_enabled)
-				chg_di_ena = 1;
-		}
-		// -------- Disable SI
-		else {
-			if (device_data->DI_enabled)
-				chg_di_ena = -1;
-		}
+		device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 		// -------- if not busy reset all status indications ??
 		if ((loc_status & tapestatus_busy) == 0) {
@@ -1594,29 +1485,12 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
+#if TAPE_DEBUG >= 1
 			fprintf(stderr, " Device tape - REW OFL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// -------- check prerequisites
 			// TODO: check prerequisites
@@ -1647,29 +1521,12 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
+#if TAPE_DEBUG >= 1
 			fprintf(stderr, " Device tape - REW Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// -------- check prerequisites
 			// TODO: check prerequisites
@@ -1707,29 +1564,11 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		//		Bit 7 - Continuous Scan
 		//
 	case cmd_cmd_sel_trans:		//		0x4200		// do a select unit command.
+#if TAPE_DEBUG >= 1
 		fprintf(stderr, " Device tape - SEL TRANS Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#endif
 		// -------- enable or disable interrupts.
-		// -------- Enable SI
-		if (loc_cmd & cmd_si_enable) {
-			if (!device_data->SI_enabled)
-				chg_si_ena = 1;
-		}
-		// -------- Disable SI
-		else {
-			if (device_data->SI_enabled)
-				chg_si_ena = -1;
-		}
-		// -------- Enable DI
-		if (loc_cmd & cmd_di_enable) {
-			if (!device_data->DI_enabled)
-				chg_di_ena = 1;
-		}
-		// -------- Disable SI
-		else {
-			if (device_data->DI_enabled)
-				chg_di_ena = -1;
-		}
+		device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 		// -------- select unit
 		loc_unit = loc_cmd & cmd_unit_mask;
@@ -1838,12 +1677,11 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 	}
 
 	// --------diag/debug messages....
+#if TAPE_DEBUG >= 1
 	if (msg_term_icb)
 		fprintf(stderr, " Device tape - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
 	if (msg_unexpected_cmd)
 		fprintf(stderr, " Device tape - unexpected command.  Dev addr: %d,  cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
-
-
 }

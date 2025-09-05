@@ -33,13 +33,10 @@
     <ClCompile Include="cpu_start_thread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="iop_init_data.c">
+    <ClCompile Include="iop_functions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="device_null.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_console.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="device_common_remove.c">
@@ -51,16 +48,7 @@
     <ClCompile Include="user_cmd_print_help.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="device_common_serial_set_params.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_serial_open.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_serial_close.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_serial_print_settings.c">
+    <ClCompile Include="device_common_serial_functions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="device_common_thread_init.c">
@@ -99,22 +87,7 @@
     <ClCompile Include="device_common_start_thread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="device_common_buffer_init.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_buffer_put.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_buffer_get.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_buffer_isempty.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_buffer_set_empty.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_buffer_isfull.c">
+    <ClCompile Include="device_common_buffer_functions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="disp_instruction_use.c">
@@ -174,28 +147,13 @@
     <ClCompile Include="disp_virtual_map.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="device_common_raw_socket_open.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_raw_socket_close.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_console_tcp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_raw_socket_read.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_raw_socket_write.c">
+    <ClCompile Include="device_common_raw_socket_functions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="device_tape.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="device_common_tape_open.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_tape_read_record.c">
+    <ClCompile Include="device_common_tape_functions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="device_disc_mh.c">
@@ -207,19 +165,16 @@
     <ClCompile Include="user_cmd_dismount_device.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="device_common_disc_read_sector.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="device_common_disc_open.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="iop_do_dmp_read.c">
+    <ClCompile Include="device_common_disc_functions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bswap16.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="iop_store_via_miap.c">
+    <ClCompile Include="device_console_tcp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device_console_serial.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -258,6 +213,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="device_null_sal_new.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="device_console_common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

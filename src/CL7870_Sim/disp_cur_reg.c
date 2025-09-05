@@ -52,3 +52,31 @@ void disp_cur_reg(FILE* io_unit) {
 	);
 
 }
+
+
+void disp_reg_block(FILE* io_unit, SIMJ_U16 register_block ) {
+
+	fprintf(io_unit, " Register block %d\n", register_block);
+	fprintf(io_unit, "       0  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
+		cpu_get_register_block_value(register_block, 0),
+		cpu_get_register_block_value(register_block, 1),
+		cpu_get_register_block_value(register_block, 2),
+		cpu_get_register_block_value(register_block, 3),
+		cpu_get_register_block_value(register_block, 4),
+		cpu_get_register_block_value(register_block, 5),
+		cpu_get_register_block_value(register_block, 6),
+		cpu_get_register_block_value(register_block, 7)
+	);
+	fprintf(io_unit, "       8  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n",
+		cpu_get_register_block_value(register_block, 8),
+		cpu_get_register_block_value(register_block, 9),
+		cpu_get_register_block_value(register_block, 10),
+		cpu_get_register_block_value(register_block, 11),
+		cpu_get_register_block_value(register_block, 12),
+		cpu_get_register_block_value(register_block, 13),
+		cpu_get_register_block_value(register_block, 14),
+		cpu_get_register_block_value(register_block, 15)
+	);
+
+}
+

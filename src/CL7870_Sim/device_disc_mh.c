@@ -173,7 +173,34 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 void device_disc_mh_dismount_unit(SIMJ_U16 device_address, SIMJ_U16 unit);
 
 // ============================================================================================================================
-void  device_disc_mh_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
+void device_disc_mh_enable_disable_SI_DI(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_data, int* chg_si_ena, int* chg_di_ena) {
+
+	// -------- enable or disable interrupts.
+	// -------- Enable SI
+	if (loc_cmd & cmd_si_enable) {
+		if (!device_data->SI_enabled)
+			*chg_si_ena = 1;
+	}
+	// -------- Disable SI
+	else {
+		if (device_data->SI_enabled)
+			*chg_si_ena = -1;
+	}
+	// -------- Enable DI
+	if (loc_cmd & cmd_di_enable) {
+		if (!device_data->DI_enabled)
+			*chg_di_ena = 1;
+	}
+	// -------- Disable SI
+	else {
+		if (device_data->DI_enabled)
+			*chg_di_ena = -1;
+	}
+	return;
+}
+
+// ============================================================================================================================
+static void  device_disc_mh_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 
 	// --------get the pointer to the data buffer
 	DEVICE_DISC_DATA* databuffer = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
@@ -201,7 +228,7 @@ void  device_disc_mh_output_data(SIMJ_U16 device_address, SIMJ_U16 data_value) {
 }
 
 // ============================================================================================================================
-void  device_disc_mh_output_cmd(SIMJ_U16 device_address, SIMJ_U16 cmd_value) {
+static void  device_disc_mh_output_cmd(SIMJ_U16 device_address, SIMJ_U16 cmd_value) {
 
 	DEVICE_DISC_DATA* databuffer = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
 
@@ -213,7 +240,7 @@ void  device_disc_mh_output_cmd(SIMJ_U16 device_address, SIMJ_U16 cmd_value) {
 }
 
 // ============================================================================================================================
-SIMJ_U16  device_disc_mh_input_data(SIMJ_U16 device_address) {
+static SIMJ_U16  device_disc_mh_input_data(SIMJ_U16 device_address) {
 
 	DEVICE_DISC_DATA* databuffer = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
 	SIMJ_U16 ourvalue = 0;
@@ -251,7 +278,7 @@ SIMJ_U16  device_disc_mh_input_data(SIMJ_U16 device_address) {
 }
 
 // ============================================================================================================================
-SIMJ_U16  device_disc_mh_input_status(SIMJ_U16 device_address) {
+static SIMJ_U16  device_disc_mh_input_status(SIMJ_U16 device_address) {
 
 	DEVICE_DISC_DATA* databuffer = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
 
@@ -413,7 +440,11 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 
 						// --------if DMP process...
 						if (loc_cmd == locIOcmd_readDMP) {
-							iop_do_dmp_read(device_data->device_address, device_data->dmp, &(disc_sector_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
+							// iop_finish_dmp_read(device_data->device_address, device_data->dmp, &(disc_sector_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
+							iop_finish_dmp_read(device_data->dmp_virt, device_data->dmp_tc, device_data->dmp_ta,
+								device_data->dmp_abs_tc_addr, iop_vdmp_miap_page[device_data->dmp], iop_vdmp_miap_length[device_data->dmp],
+								&(disc_sector_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
+
 						}
 						// --------REG IO, copy to buffer.
 						else {
@@ -452,6 +483,15 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 				device_data->ctrl_status = loc_status;
 				// -------- Release ownership of the resource.
 				GIVE_RESOURCE(device_data->ResourceStatusUpdate);
+
+				// --------generate DI if enabled.
+				// TODO: MH END OF READ DI.  do we need SI
+				if (device_data->DI_enabled ) {
+					cpu_request_DI(device_data->bus, device_data->pri, device_data->device_address);
+				}
+				if (device_data->SI_enabled) {
+					cpu_request_SI(device_data->bus, device_data->pri, device_data->device_address);
+				}
 
 				break;
 
@@ -648,7 +688,7 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 
 // ============================================================================================================================
 // --------this routine processes command output values.
-DWORD WINAPI device_disc_mh_worker_thread(LPVOID lpParam) {
+static DWORD WINAPI device_disc_mh_worker_thread(LPVOID lpParam) {
 
 	SIMJ_U16 loc_device_addr = 0;
 	DEVICE_DISC_DATA* device_data = 0;
@@ -803,15 +843,16 @@ DWORD WINAPI device_disc_mh_worker_thread(LPVOID lpParam) {
 // ============================================================================================================================
 // --------initialize the device.  calls common routines.  Only custom thing is to initialize the 
 // --------data buffer after it is created.
-void device_disc_mh_mount_unit(SIMJ_U16 device_address, SIMJ_U16 unit, bool read_only, char* filename) {
+static void device_disc_mh_mount_unit(SIMJ_U16 device_address, SIMJ_U16 unit, bool read_only, char* filename) {
 
 	// --------get the pointer to the device data
 	DEVICE_DISC_DATA* device_data = NULL;
-	char* open_flags;
-	char* open_flags_read = "rb";
-	char* open_flags_write = "wb";
+	//char* open_flags;
+	//char* open_flags_read = "rb";
+	//char* open_flags_write = "wb";
 	FILE* loc_disc_file_handle = NULL;
 	int file_open_status = 0;
+	DWORD last_error = 0;
 
 	// --------only do things if a valid device address...
 	if (device_address >= 0 && device_address <= 0x3f) {
@@ -823,16 +864,17 @@ void device_disc_mh_mount_unit(SIMJ_U16 device_address, SIMJ_U16 unit, bool read
 			if (unit >= 0 && unit <= 3) {
 
 				// --------mount the file...
-				if (read_only) {
-					open_flags = open_flags_read;
-				}
-				else {
-					open_flags = open_flags_write;
-				}
+				//if (read_only) {
+				//	open_flags = open_flags_read;
+				//}
+				//else {
+				//	open_flags = open_flags_write;
+				//}
 				// -------- open input disc image file.
-				file_open_status = fopen_s(&loc_disc_file_handle, filename, open_flags);
+				//file_open_status = fopen_s(&loc_disc_file_handle, filename, open_flags);
+				file_open_status = device_common_disc_open(filename, read_only, &loc_disc_file_handle, &last_error);
 
-				// -------- if disc file was opened..
+					// -------- if disc file was opened..
 				if (file_open_status == 0) {
 
 					// --------set global com handle for other thread.
@@ -1044,7 +1086,7 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 	bool need_DI = false;	// generate DI if true
 	int chg_wrt = 0;
 	int chg_rd = 0;
-	int chg_unit = 0;
+	//int chg_unit = 0;
 	int loc_io_cmd = 0;
 	int loc_unit = 0;
 
@@ -1095,39 +1137,27 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 		//		 Bit 8 - Enable SCS=1 
 		//		 Bits 11-15 - sector
 		//
-		case cmd_cmd_ti:		//	0x8000		// do a transfer initiate command
 		case cmd_cmd_ti_dmp:	//	0xC000		// do a transfer initiate command w/dmp
+			// --------store tc/ta information
+			iop_get_dmp_parameters(device_data->device_address, device_data->dmp, &(device_data->dmp_tc), 
+						&(device_data->dmp_ta), &(device_data->dmp_virt), &(device_data->dmp_abs_tc_addr));
+			// --------fall through to reset of transfer initiate.
+
+		case cmd_cmd_ti:		//	0x8000		// do a transfer initiate command
 
 			// -------- get local sector number from command, then form abs sector number
 			loc_sector = loc_cmd & cmd_ti_sectormask;
 			loc_unit = device_data->cur_sel_unit;
-			loc_device_sector = loc_sector + device_data->cyl[loc_unit] * SEC_PER_TRACK + 
-								((device_data->head[loc_unit] != 0) ? TRK_PER_HEAD : 0) + ((device_data->plat[loc_unit] != 0) ? TRK_PER_PLAT : 0);
-			fprintf(stderr, " Device disc_mh - transfer initiate - Dev addr: %d, cmd 0x%04x, unit %d, device sector %I64u\n", 
-					device_data->device_address, loc_cmd, loc_unit, loc_device_sector);
+			loc_device_sector = loc_sector + ( device_data->cyl[loc_unit] * 2 + ((device_data->head[loc_unit] != 0) ? 1 : 0)) * SEC_PER_TRACK +
+				((device_data->plat[loc_unit] != 0) ? TRK_PER_PLAT : 0);
+			fprintf(stderr, " Device disc_mh - transfer initiate - Dev addr: %d, cmd 0x%04x, unit %d, device sector %I64u\n",
+				device_data->device_address, loc_cmd, loc_unit, loc_device_sector);
+			fprintf(stderr, " Device disc_mh - transfer initiate - plat: %zd, head: %zd, cyl: %zd, sect: %zd\n",
+				device_data->plat[loc_unit], device_data->head[loc_unit], device_data->cyl[loc_unit], loc_sector);
 			device_data->dpi[loc_unit] = loc_device_sector;
 
 			// -------- enable or disable interrupts.
-			// -------- Enable SI
-			if (loc_cmd & cmd_si_enable) {
-				if (!device_data->SI_enabled)
-					chg_si_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->SI_enabled)
-					chg_si_ena = -1;
-			}
-			// -------- Enable DI
-			if (loc_cmd & cmd_di_enable) {
-				if (!device_data->DI_enabled)
-					chg_di_ena = 1;
-			}
-			// -------- Disable SI
-			else {
-				if (device_data->DI_enabled)
-					chg_di_ena = -1;
-			}
+			device_disc_mh_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 			// --------start a write.  -- notice the ! in the if...
 			if (!(loc_cmd & cmd_ti_read)) {
@@ -1187,12 +1217,14 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 					loc_io_cmd = locIOcmd_read;
 				}
 			}
+
 			// --------what interrupts are caused by transfer initiate???   (Always SI to signal completion??,   DI when starting write?)
 
 			// --------generate SI if enabled.
-			//if (device_data->SI_enabled) {
-			//	need_SI = true;
-			//}
+			// ADD SI FOR TESTING.. NOT ORIGINAL.
+			if (device_data->SI_enabled) {
+				need_SI = true;
+			}
 			break;
 
 		
@@ -1205,6 +1237,17 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 			device_data->cur_sel_unit = loc_unit;
 			device_data->head[loc_unit] = ((loc_cmd & cmd_sel_head) ? 1 : 0);
 			device_data->plat[loc_unit] = ((loc_cmd & cmd_sel_plat) ? 1 : 0);
+			fprintf(stderr, " Device disc MH - UNIT HEAD SEL Command. Dev Addr %d, cmd 0x%04x unit: %d plat: %d, head: %d\n",
+				device_data->device_address, loc_cmd, loc_unit, (loc_cmd & cmd_sel_plat), (loc_cmd & cmd_sel_head) );
+
+			loc_status &= (~(discstatus_ctrlbusy | discstatus_unitmask));
+			loc_status |= ( discstatus_datanotready|(loc_unit & discstatus_unitmask));
+
+			// --------generate SI if enabled.
+			if (device_data->SI_enabled) {
+				need_SI = true;
+			}
+
 			break;
 
 		// --------various control commands.
@@ -1259,9 +1302,9 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 
 					// --------maybe no SI for just EOB...
 					// --------generate SI if enabled.
-					//if (device_data->SI_enabled || (chg_si_ena == 1)) {
-					//	need_SI = true;
-					//}
+					if (device_data->SI_enabled || (chg_si_ena == 1)) {
+						need_SI = true;
+					}
 					break;
 
 				// --------terminate		
@@ -1313,31 +1356,13 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 				case cmd_ctrl_noop:			// 0x0000  no-op or cyl select
 
 					// -------- enable or disable interrupts.
-					// -------- Enable SI
-					if (loc_cmd & cmd_si_enable) {
-						if (!device_data->SI_enabled)
-							chg_si_ena = 1;
-					}
-					// -------- Disable SI
-					else {
-						if (device_data->SI_enabled)
-							chg_si_ena = -1;
-					}
-					// -------- Enable DI
-					if (loc_cmd & cmd_di_enable) {
-						if (!device_data->DI_enabled)
-							chg_di_ena = 1;
-					}
-					// -------- Disable SI
-					else {
-						if (device_data->DI_enabled)
-							chg_di_ena = -1;
-					}
+					device_disc_mh_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
 
 					// --------cylinder select
 					// --------store cylinder for later...
 					if (loc_cmd & cmd_noop_cylsel) {
-						fprintf(stderr, " Device disc MH - CYL SEL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+						fprintf(stderr, " Device disc MH - CYL SEL Command. Dev Addr %d, cmd 0x%04x cyl: %d \n", 
+								device_data->device_address, loc_cmd, loc_cmd & cmd_cylsel_cylmask);
 						device_data->cyl[device_data->cur_sel_unit] = loc_cmd & cmd_cylsel_cylmask;
 
 					}
@@ -1346,6 +1371,12 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 						fprintf(stderr, " Device disc MH - NOOP Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 
 					}
+					// --------generate SI if enabled.
+					// ADD SI FOR TESTING.. NOT ORIGINAL.
+					if (device_data->SI_enabled) {
+						need_SI = true;
+					}
+
 					break;
 
 				// --------something unexpected....
@@ -1399,9 +1430,9 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 	else if (chg_wrt == 1) {
 		device_data->write_in_progress = true;
 	}
-	if (chg_unit == 1) {
-		device_data->cur_sel_unit = loc_unit;
-	}
+	//if (chg_unit == 1) {
+	//	device_data->cur_sel_unit = loc_unit;
+	//}
 
 	// -------- if reading and data available, update status.
 	if (device_data->read_in_progress) {
@@ -1453,7 +1484,5 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 
 	if (msg_unexpected_cmd)
 		fprintf(stderr, " Device disc MH - unexpected command.  Dev addr: %d,  cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
-
 
 }

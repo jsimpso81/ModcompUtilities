@@ -57,10 +57,10 @@ void user_cmd_attach_device(SIMJ_U16 device_type, SIMJ_U16 device_address, SIMJ_
 				 // console com port is set to 19200, 8, N, 1, currently this is hard coded.
 			console_baud = 9600;
 			if (extra_count <= 0) {
-				device_console_init(device_address, bus, prio, dmp, "COM1", console_baud);
+				device_console_serial_init(device_address, bus, prio, dmp, "COM1", console_baud);
 			}
 			else if (extra_count == 1 ) {
-				device_console_init(device_address, bus, prio, dmp, extra1, console_baud);
+				device_console_serial_init(device_address, bus, prio, dmp, extra1, console_baud);
 			}
 			else {
 				goode2 = user_cmd_parse_u16(extra2, &console_baud, 0, 0xffff);
@@ -72,7 +72,7 @@ void user_cmd_attach_device(SIMJ_U16 device_type, SIMJ_U16 device_address, SIMJ_
 					printf(" *** ERROR *** Not a valid baud rate: %s\n", extra2);
 				}
 				else {
-					device_console_init(device_address, bus, prio, dmp, extra1, console_baud);
+					device_console_serial_init(device_address, bus, prio, dmp, extra1, console_baud);
 				}
 			}
 			Sleep(1000);

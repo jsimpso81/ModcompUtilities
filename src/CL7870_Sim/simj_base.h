@@ -85,6 +85,8 @@
 // -- 64 bit Modcomp float storage
 #define SIMJ_M64 SIMJ_U64
 
+#define SIMJ_TAPE_DPI __int64
+#define SIMJ_TAPE_ERR DWORD
 
 // -------- Resource 
 #define DEFINE_RESOURCE( NAME )  CRITICAL_SECTION NAME
@@ -265,13 +267,13 @@ typedef struct {
 
 
 // -------- data block for generic device --- ALL DEVICES MUST START WITH THIS AND ADD VALUES TO END OF STRUCT.
-typedef struct {
+typedef volatile struct {
 #include "generic_device_variables.h"
 } DEVICE_GENERIC_DATA;
 
 
 // -------- data block for console device, also used for consoletcp
-typedef struct {
+typedef volatile struct {
 #include "generic_device_variables.h"
 	char filename[255];  // file name or device name on simulator (com1:, disc / tapes have separate names per unit.)
 	SIMJ_U16 ipport;	 // tcp/udp port number for ip devices (console, async, etc.)
@@ -283,12 +285,12 @@ typedef struct {
 
 // -------- data block for null device
 // #define DEVICE_NULL_MAX_BUFFER 12000
-typedef struct {
+typedef volatile struct {
 #include "generic_device_variables.h"
 } DEVICE_NULL_DATA;
 
 // -------- data block for tape device
-typedef struct {
+typedef volatile struct {
 #include "generic_device_variables.h"
 	DEFINE_RESOURCE(ResourceStatusUpdate);
 	volatile SIMJ_S16 cur_sel_unit;
@@ -298,7 +300,7 @@ typedef struct {
 	volatile bool bot[4];	// beginning of tape.
 	volatile bool eof[4];	// end of file.
 	volatile bool eot[4];	// end of tape -- may not need??
-	volatile SIMJ_U64 dpi[4];
+	volatile SIMJ_TAPE_DPI dpi[4];
 	volatile SIMJ_U32 last_recsize[4];
 	volatile bool tape_readonly[4];
 	volatile FILE* tape_file_handle[4];
@@ -308,7 +310,7 @@ typedef struct {
 
 
 // -------- data block for disc device
-typedef struct {
+typedef volatile struct {
 #include "generic_device_variables.h"
 	DEFINE_RESOURCE(ResourceStatusUpdate);
 	volatile SIMJ_S16 cur_sel_unit;
@@ -346,11 +348,14 @@ void cpu_do_run();
 void cpu_do_step(SIMJ_U16 step_count);
 SIMJ_U16 cpu_get_program_counter();
 PSW cpu_get_current_PSW();
-void cpu_get_instruction_trace(SIMJ_U16* inx, SIMJ_U32 trace[1024],
-	SIMJ_U32 trace_w1[1024], SIMJ_U32 trace_w2[1024], SIMJ_U32 trace_w3[1024], SIMJ_U32 trace_w4[1024]);
+void cpu_get_instruction_trace(SIMJ_U16* inx,
+	SIMJ_U16 pc_trace[1024], PSW psw_trace[1024], SIMJ_U16 actint_trace[1024],
+	SIMJ_U32 trace[1024], SIMJ_U32 trace_w1[1024], SIMJ_U32 trace_w2[1024],
+	SIMJ_U32 trace_w3[1024], SIMJ_U32 trace_w4[1024]);
 bool cpu_get_virtual_mode();
 void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map);
 SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index);
+SIMJ_U16 cpu_get_register_block_value(SIMJ_U16 reg_block_numb, SIMJ_U16 reg_numb);
 bool cpu_get_power_on();
 void cpu_set_register_value(SIMJ_U16 reg_index, SIMJ_U16 reg_value);
 void cpu_set_power_on();
@@ -396,8 +401,12 @@ void user_cmd_dismount_device(SIMJ_U16 device_address, SIMJ_U16 unit);
 
 // -------- iop
 void iop_init_data();
-int iop_do_dmp_read(int device_address, int dmp, SIMJ_U16* databuffer, int words_in_buffer);
-int iop_store_via_miap(SIMJ_U16 miap, SIMJ_U16 miap_len, SIMJ_U16 ta, SIMJ_U16 word_to_store);
+int iop_finish_dmp_read(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 abs_tc_addr,
+	SIMJ_U16 vdmp_miap_page, SIMJ_U16 vdmp_miap_length,
+	SIMJ_U16* databuffer, int words_in_buffer);
+int iop_get_dmp_parameters(int device_address, SIMJ_U16 dmp, SIMJ_S16* raw_tc, SIMJ_U16* raw_ta, bool* virt, SIMJ_U32* abs_tc_addr);
+int iop_load_via_miap(SIMJ_U16 miap, SIMJ_U16 miap_len, SIMJ_U16 virt_addr, SIMJ_U16* word_loaded, SIMJ_U32* abs_addr);
+int iop_store_via_miap(SIMJ_U16 miap, SIMJ_U16 miap_len, SIMJ_U16 virt_addr, SIMJ_U16 word_to_store);
 
 // -------- device common
 void* device_common_device_buffer_allocate(SIMJ_U16 device_address, size_t buffer_size);
@@ -417,10 +426,15 @@ int device_common_raw_socket_read(SOCKET tcp_socket, DWORD desired_read_bytes,
 int device_common_raw_socket_write(SOCKET tcp_socket, DWORD desired_write_bytes,
 	SIMJ_U8* loc_write_data, DWORD* actual_written_bytes, DWORD* last_error);
 
-int device_common_tape_open(char* tape_filename, bool read_only, FILE** tape_file_handle, DWORD* last_error);
-int device_common_tape_read_record(FILE* fp, __int64* current_file_position, SIMJ_U16* buf,
-	int max_buf_bytes, size_t* bytes_read, int* end_of_file);
+// --------tape image file processing routines...
+int device_common_tape_close(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi);
+int device_common_tape_open(char* tape_filename, bool read_only, FILE** tape_file_handle,
+	SIMJ_TAPE_DPI* tape_dpi, SIMJ_TAPE_ERR* last_error);
+int device_common_tape_rewind(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi);
+int device_common_tape_read_record( FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position,
+	void* buf, SIMJ_U32 max_buf_bytes, SIMJ_U32* bytes_read, bool* end_of_file);
 
+// --------disc image file processing routines.
 int device_common_disc_open(char* disc_filename, bool read_only, FILE** disc_file_handle, DWORD* last_error);
 int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, void* raw_sector_buf, unsigned __int16* flags);
 
@@ -445,7 +459,7 @@ void device_common_capture_console_close();
 
 // -------- specific devices
 void device_null_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
-void device_console_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, char* filename, SIMJ_U16 baud);
+void device_console_serial_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, char* filename, SIMJ_U16 baud);
 void device_console_tcp_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp, SIMJ_U16 port);
 void device_tape_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
 void device_disc_mh_init(SIMJ_U16 device_address, SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dmp);
@@ -458,6 +472,7 @@ bool que_uword_send(volatile QUEUE_UWORD* queue, SIMJ_U16 value);
 // -------- display routines
 void disp_devices(FILE* io_unit);
 void disp_cur_reg(FILE* io_unit);
+void disp_reg_block(FILE* io_unit, SIMJ_U16 register_block);
 void disp_interrupts(FILE* io_unit);
 void disp_pc(FILE* io_unit, SIMJ_U16 loc_pc);
 void disp_psw(FILE* io_unit, PSW loc_psw);
