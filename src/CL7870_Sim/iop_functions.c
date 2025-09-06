@@ -40,6 +40,7 @@
 
 #include "modcomp_opcodes.h"
 
+#define DEBUG_IOP 1
 
 // ================================================================================================
 // --------calculate absolute memory address from miap information
@@ -87,8 +88,11 @@ void iop_init_data() {
 
 		iop_device_buffer[j] = NULL;
 		iop_thread_stop_request[j] = 0;
+		iop_thread_stop_request2[j] = 0;
 		iop_device_thread_handle[j] = 0;
+		iop_device_thread_handle2[j] = 0;
 		iop_device_thread_id[j] = 0;
+		iop_device_thread_id2[j] = 0;
 
 	}
 
@@ -222,7 +226,7 @@ int iop_get_dmp_parameters(int device_address, SIMJ_U16 dmp, SIMJ_S16* raw_tc, S
 	}
 
 	// -------- debug
-	printf(" Get DMP parameters. tc 0x%04x, ta 0x%04x, virt mode %d, abs addr: 0x%08x\n", *raw_tc, *raw_ta, *virt, *abs_tc_addr);
+	printf(" iop_get_dmp_parameters. tc 0x%04x, ta 0x%04x, virt mode %d, abs tc addr: 0x%08x\n", *raw_tc, *raw_ta, *virt, *abs_tc_addr);
 	return 0;
 }
 
@@ -236,10 +240,13 @@ int iop_finish_dmp_read( bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_ad
 	int j = 0;
 	SIMJ_U16 loc_miap = 0;
 	SIMJ_U16 loc_miap_len = 0;
-	SIMJ_S16 use_tc = 0;
+	SIMJ_S16 single_tc = 0;
 	SIMJ_S16 count_tc = 0;
-	SIMJ_U16 use_ta = 0;
+	SIMJ_U16 single_ta = 0;
+
 	SIMJ_U16 string_addr = 0;
+	SIMJ_S16 string_tc = 0;
+	SIMJ_U16 string_ta = 0;
 	int load_via_map_stat = 0;
 	SIMJ_U32  loc_abs_tc_addr = 0;
 	SIMJ_U32  loc_abs_ta_addr = 0;		// not used....
@@ -257,12 +264,12 @@ int iop_finish_dmp_read( bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_ad
 
 		// --------single block -- 14 bit transfer count
 		if (single_block) {
-			use_tc = tc;
-			count_tc = (SIMJ_S16)(use_tc | 0xc000) * -1;
+			single_tc = tc;
+			count_tc = (SIMJ_S16)(single_tc | 0xc000) * -1;
 			loc_miap_len = vdmp_miap_length;
 			loc_miap = vdmp_miap_page;
 			loc_abs_tc_addr = tc_abs_addr;
-			use_ta = ta;
+			single_ta = ta;
 		}
 	
 		// --------chaining -- 13 bit transfer count
@@ -274,35 +281,38 @@ int iop_finish_dmp_read( bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_ad
 				loc_miap = vdmp_miap_page;
 			}
 			// --------string chain via map 0
-			else {
+			else if (string_type == 0 ) {
+				// -------- assume map 0 image is a full map...
 				loc_miap_len = 256;
 				loc_miap = 1;
 			}
+			// --------error - bad string type
+			else {
+				printf("\n *** ERROR ***  iop_finish_dmp_read - bad virt string type 0x%04x\n", string_type);
+				return 1;
+			}
+
 			string_addr = ta;
-			// --------for debug
-			use_ta = ta;
-			use_tc = tc;
 		}
+
+		// --------okay - ready to transfer...
 
 		// --------can only transfer the amount in the buffer....
 		if (words_in_buffer < count_tc)
 			count_tc = words_in_buffer;
-
 
 		// --------for now only support single transfer....
 		// --------single transfer
 		if (single_block) {
 			// --------store via map...
 			for (j = 0; j < count_tc; j++) {
-				//printf(" inx %d, set memory loc 0x%04x = 0x%04x \n", j, (SIMJ_U16)(j + use_ta), databuffer[j]);
-				iop_store_via_miap(loc_miap, loc_miap_len, use_ta + j, databuffer[j]);
+				//printf(" inx %d, set memory loc 0x%04x = 0x%04x \n", j, (SIMJ_U16)(j + single_ta), databuffer[j]);
+				iop_store_via_miap(loc_miap, loc_miap_len, single_ta + j, databuffer[j]);
 				(SIMJ_S16)(gbl_mem[tc_abs_addr])++;
 			}
 		}
 		// --------string chaining..
 		else {
-			printf("\n *** ERROR ***  Virtual DMP string chaining not yet supported. use_tc 0x%04x, use_ta: 0x%04x\n\n",
-				use_tc, use_ta);
 
 			bool not_done = true;
 			SIMJ_S16 remain_count = words_in_buffer;
@@ -310,42 +320,49 @@ int iop_finish_dmp_read( bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_ad
 	
 			while (not_done) {
 
-				load_via_map_stat = iop_load_via_miap(loc_miap, loc_miap_len, string_addr, &use_tc, &loc_abs_tc_addr);
+				// --------get TC transfer count
+				string_tc = 0;
+				load_via_map_stat = iop_load_via_miap(loc_miap, loc_miap_len, string_addr, &string_tc, &loc_abs_tc_addr);
 				if (load_via_map_stat != 0) {
 					printf(" *** ERROR ***  iop_finish_dmp_read - cant load via map %d, stat %d\n", loc_miap, load_via_map_stat);
 					return 1;
 				}
 				string_addr++;
-				load_via_map_stat = iop_load_via_miap(loc_miap, loc_miap_len, string_addr, &use_ta, &loc_abs_ta_addr);
+				// --------get TA transfer address
+				string_ta = 0;
+				load_via_map_stat = iop_load_via_miap(loc_miap, loc_miap_len, string_addr, &string_ta, &loc_abs_ta_addr);
 				if (load_via_map_stat != 0) {
 					printf(" *** ERROR ***  iop_finish_dmp_read - cant load via map %d, stat %d\n", loc_miap, load_via_map_stat);
 					return 1;
 				}
 				string_addr++;
 
-				count_tc = (SIMJ_S16)(use_tc | 0xe000) * -1;
-				SIMJ_U16 string_type = use_tc & 0xe000;
+				count_tc = (SIMJ_S16)(string_tc | 0xc000) * -1;
 
 				// --------now we have the real tc and ta, process it again to get info we need to do transfer..
-				printf("   string chain use_tc, use_ta count_tc remain 0x%04hx, 0x%04hx, %d %d\n", 
-					use_tc, use_ta, count_tc, remain_count);
+				printf("     string chain string_tc 0x%04hx, string_ta 0x%04hx, count_tc %d, remain %d ", 
+					string_tc, string_ta, count_tc, remain_count);
 
-				if (count_tc > remain_count)
+				if (count_tc > remain_count) {
 					count_tc = remain_count;
+					printf("      string count shorted for data buffer length\n");
+				}
 
 				// --------store via map...
 				for (j = 0; j < count_tc; j++) {
 					//printf(" inx %d, set memory loc 0x%04x = 0x%04x \n", j, (SIMJ_U16)(j + use_ta), databuffer[j+buffer+offset]);
-					iop_store_via_miap(vdmp_miap_page, vdmp_miap_length, use_ta + j, databuffer[j+buffer_offset]);
+					iop_store_via_miap(vdmp_miap_page, vdmp_miap_length, string_ta + j, databuffer[j+buffer_offset]);
 					(SIMJ_S16)(gbl_mem[loc_abs_tc_addr])++;
 				}
+				printf(" last tc value %d\n ", (SIMJ_S16)(gbl_mem[loc_abs_tc_addr]));
 				buffer_offset += count_tc;
 				remain_count -= count_tc;
-				single_block = use_tc & 0x8000;
+
+				// --------are we done yet.
+				single_block = string_tc & 0x8000;
 				if (single_block)
 					not_done = false;
 			}
-			return 1;
 		}
 
 	}
@@ -440,22 +457,24 @@ int iop_get_dmp_word_count(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_
 			// TODO: set limits on this loop.   Think max chain list is 128 entries (256 words) ???
 			while (not_done) {
 
+				use_tc = 0;
+				loc_abs_tc_addr = 0;
 				load_via_map_stat = iop_load_via_miap(loc_miap, loc_miap_len, string_addr, &use_tc, &loc_abs_tc_addr);
 				if (load_via_map_stat != 0) {
 					printf(" *** ERROR ***  iop_finish_dmp_read - cant load via map %d, stat %d\n", loc_miap, load_via_map_stat);
+					*dmp_words_requested = 0;
 					return 1;
 				}
 				string_addr+=2;
 
-				loc_word_count += (SIMJ_S16)(use_tc | 0xe000) * -1;
+				loc_word_count += ((SIMJ_S16)(use_tc | 0xc000) * -1);
 
-				SIMJ_U16 string_type = use_tc & 0xe000;
 				single_block = use_tc & 0x8000;
 				if (single_block)
 					not_done = false;
 
-				printf("   string chain use_tc, loc_word_count 0x%04hx, %d not done %d\n",
-					use_tc, loc_word_count, not_done);
+				printf("      string chain use_tc  0x%04hx, this count %d, loc_word_count %d not done %d\n",
+					use_tc, ((SIMJ_S16)(use_tc | 0xc000) * -1), loc_word_count, not_done);
 			}
 		}
 	}

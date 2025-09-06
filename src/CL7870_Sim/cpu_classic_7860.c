@@ -72,31 +72,31 @@
 // --------flags for debug
 #define DEBUG_CAR				0
 #define DEBUG_DI				0
-#define DEBUG_SI				0
-#define DEBUG_UIT_TRAP			0
-#define DEBUG_REX_TRAP			0
-#define DEBUG_ILL_INST			0
+#define DEBUG_DMPI				1
 #define DEBUG_EXI_EXR			0
-#define DEBUG_PRIV_INSTR_TRAP	0
-#define DEBUG_MEM_ACCESS_TRAP	0
 #define DEBUG_FLOAT_TRAP		0
 #define DEBUG_HLT				0
-#define DEBUG_PREVENT_HLT		1
-#define DEBUG_SIOM				0
-#define DEBUG_SOOM				0
-#define DEBUG_SZOM				0
-#define DEBUG_ZIMP				0
-#define DEBUG_ZOMP				0
+#define DEBUG_ILL_INST			0
 #define DEBUG_LIMP				0
 #define DEBUG_LOMP				0
-#define DEBUG_SOMP				0
-#define DEBUG_SPR				0
-#define DEBUG_SGP				0
-#define DEBUG_SLP				0
+#define DEBUG_MEM_ACCESS_TRAP	0
+#define DEBUG_PREVENT_HLT		1
+#define DEBUG_PRIV_INSTR_TRAP	0
+#define DEBUG_REX_TRAP			0
 #define DEBUG_RMPS				0
+#define DEBUG_SGP				0
+#define DEBUG_SI				0
+#define DEBUG_SIOM				0
+#define DEBUG_SLP				0
+#define DEBUG_SOMP				0
+#define DEBUG_SOOM				0
+#define DEBUG_SZOM				0
+#define DEBUG_SPR				0
 #define DEBUG_SUP				0
+#define DEBUG_UIT_TRAP			0
 #define DEBUG_WMS				0
-#define DEBUG_DMPI				0
+#define DEBUG_ZIMP				0
+#define DEBUG_ZOMP				0
 
 
 
@@ -2431,7 +2431,7 @@ void cpu_classic_7860() {
 				iop_vdmp_miap_page[tmp_dmp] = (tmp32_val1.uval & 0x00001fff);
 				iop_vdmp_miap_length[tmp_dmp] = (~((SIMJ_U16)((tmp32_val1.uval & 0x00ff0000) >> 16) | 0xff00))+1;
 #if DEBUG_DMPI == 1
-				fprintf(stderr, " pc: 0x%04x  DMPI: 0x%04x  Reg Value: 0x%08x, dmp: 0x%08x, miap: 0x%08x, map len: 0x%08x\n", 
+				fprintf(stderr, "\n pc: 0x%04x  DMPI: 0x%04x  Reg Value: 0x%08x, dmp: 0x%08x, miap: 0x%08x, map len: 0x%08x\n", 
 					program_counter, instruction.all, tmp32_val1.uval, 
 					tmp_dmp, iop_vdmp_miap_page[tmp_dmp], iop_vdmp_miap_length[tmp_dmp] );
 #endif
