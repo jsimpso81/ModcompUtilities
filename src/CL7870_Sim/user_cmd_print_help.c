@@ -75,7 +75,7 @@ void user_cmd_print_help() {
 	printf("\n");
 	printf("      set key lock - lock front panel\n");
 	printf("      set key unlock - unlock front panel\n");
-	printf("      set mem <addr> <value> - set memory value\n");
+	printf("      set mem <addr> <value> - set memory value. Addr 0xffffffff to clear all mem.\n");
 	printf("      set pc <value> - set program counter value\n");
 	printf("      set reg <reg> <value> - set register value\n");
 	printf("      set switches <value> - set console switches\n");
@@ -84,6 +84,7 @@ void user_cmd_print_help() {
 	printf("      show clock - show running count of clock interrupts\n");
 	printf("      show count - show running count of instructions executed\n");
 	printf("      show devices - show all configured devices\n");
+	printf("      show imem <map page> <start> <end> - show virtual mem via map page\n");
 	printf("      show inst - show instruction (opcode) use counts\n");
 	printf("      show int - show interrupts\n");
 	printf("      show key - show front panel key status\n");
@@ -98,6 +99,7 @@ void user_cmd_print_help() {
 	printf("      show trace - show instruction trace\n");
 	printf("      show verbose - show verbose debug mode\n");
 	printf("      show virtual - show cpu virtual/real mode\n");
+	printf("      show vmem <map num> <start> <end> - show virtual mem via hardware map\n");
 	printf("\n");
 	printf("      step <instruction count> - execute a single instruction\n");
 

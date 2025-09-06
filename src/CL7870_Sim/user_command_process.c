@@ -49,6 +49,7 @@ void process_user_commands(FILE* cmd_src) {
 	// TODO: make these global.
 	static SIMJ_U32 last_starting_mem_address = 0;
 	static SIMJ_U32 last_ending_mem_address = 1023;
+	static SIMJ_U16 last_mem_map_number = 0;
 
 	CMD_PROC_STRINGS* cmd_data;
 	size_t buffer_size;
@@ -438,6 +439,52 @@ void process_user_commands(FILE* cmd_src) {
 								);
 							}
 						}
+
+
+						//--------vmem virtual memory via hardware map
+						else if (strcmp(cmd_data->cmd_line_parsed[1], "vmem") == 0) {
+							// --------show vmem <map num> <virt addr start> <virt addr end>
+							SIMJ_U32 parm_parse = 0;
+							if (cmd_count_found >= 3) {
+								if (sscanf_s(cmd_data->cmd_line_parsed[2], "%li", &parm_parse) == 1) {
+									last_mem_map_number = parm_parse;
+								}
+								else {
+									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[2]);
+								}
+							}
+							if (cmd_count_found >= 4) {
+								if (sscanf_s(cmd_data->cmd_line_parsed[3], "%li", &parm_parse) == 1) {
+									last_starting_mem_address = parm_parse;
+								}
+								else {
+									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[3]);
+								}
+							}
+							if (cmd_count_found >= 5) {
+								if (sscanf_s(cmd_data->cmd_line_parsed[4], "%li", &parm_parse) == 1) {
+									last_ending_mem_address = parm_parse;
+								}
+								else {
+									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[3]);
+								}
+							}
+
+							printf(" Virtual memory via hardware map %d\n", last_mem_map_number);
+							for (uj = last_starting_mem_address; uj < (last_ending_mem_address + 8); uj += 8) {
+								printf("  0x%04x  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n", uj,
+									cpu_get_virtual_mem(last_mem_map_number, uj),
+									cpu_get_virtual_mem(last_mem_map_number, uj + 1),
+									cpu_get_virtual_mem(last_mem_map_number, uj + 2),
+									cpu_get_virtual_mem(last_mem_map_number, uj + 3),
+									cpu_get_virtual_mem(last_mem_map_number, uj + 4),
+									cpu_get_virtual_mem(last_mem_map_number, uj + 5),
+									cpu_get_virtual_mem(last_mem_map_number, uj + 6),
+									cpu_get_virtual_mem(last_mem_map_number, uj + 7)
+								);
+							}
+						}
+
 
 						//--------instruction use (deug)
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "inst") == 0) {

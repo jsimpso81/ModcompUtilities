@@ -33,6 +33,12 @@
 
 // -------- DEVICE DISC
 
+// -------- DEFINE DEBUG LEVEL
+// ---------1 - physical IO transfers
+// ---------2 - commands and 1
+// ---------3 - 1 and 2 and much more
+// ---------4 ludicous mode.
+#define DEBUG_DISC_MH 1
 
 
 // -------- 
@@ -232,8 +238,9 @@ static void  device_disc_mh_output_cmd(SIMJ_U16 device_address, SIMJ_U16 cmd_val
 
 	DEVICE_DISC_DATA* databuffer = (DEVICE_DISC_DATA*)iop_device_buffer[device_address];
 
-	// printf("\n device_disc_mh output cmd -- called - %04x\n", cmd_value);
-
+#if DEBUG_DISC_MH >= 4
+	printf("\n device_disc_mh output cmd -- called - %04x\n", cmd_value);
+#endif
 	// --------process the command
 	device_disc_mh_process_command(cmd_value, databuffer);
 
@@ -267,7 +274,9 @@ static SIMJ_U16  device_disc_mh_input_data(SIMJ_U16 device_address) {
 		GIVE_RESOURCE(databuffer->ResourceStatusUpdate);
 	}
 
+#if DEBUG_DISC_MH >= 3
 	fprintf(stderr, " device_disc_mh input data -- called - 0x%04x, index %d, new: %s \n", ourvalue, databuffer->in_buff.last_byte_read_index, (new_data ? "New  " : "Empty"));
+#endif
 
 	// --------wake up comm thread.  WHY 
 	// TODO: figure out if this is needed.
@@ -322,7 +331,9 @@ static SIMJ_U16  device_disc_mh_input_status(SIMJ_U16 device_address) {
 	// -------- Release ownership of the resource.
 	//GIVE_RESOURCE(databuffer->ResourceStatusUpdate);
 
-	// printf("\n device_disc_mh input status -- called - 0x%04x\n", loc_status);
+#if DEBUG_DISC_MH >= 4
+	printf("\n device_disc_mh input status -- called - 0x%04x\n", loc_status);
+#endif
 
 	return loc_status;
 }
@@ -353,7 +364,7 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 	union {
 		unsigned __int8 ubytes[256];
 		unsigned __int16 words[128];
-	} disc_sector_buffer;
+	} disc_sector_buffer[128] = { 0 };
 
 	// --------local things indexed by unit...
 	__int64 current_file_pos[4] = { 0,0,0,0 };		// current byte pos in file...
@@ -377,7 +388,7 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 	loc_device_addr = *(SIMJ_U16*)lpParam;
 	printf(" Starting device Disc MH communications thread at device address %d\n", loc_device_addr);
 	if (loc_device_addr == 0) {
-		printf(" Disc MH device thread didn't get device address \n");
+		printf(" *** ERROR *** Disc MH device thread didn't get device address \n");
 		loc_stop_request = 1;
 		iop_thread_stop_request[loc_device_addr] = 1;
 	}
@@ -416,24 +427,47 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 
 				if (device_data->disc_file_handle[j_unit] != NULL) {
 
+					SIMJ_U16 sectors_to_read = 1;
+
+					if (loc_cmd == locIOcmd_readDMP) {
+						SIMJ_U16 dmp_words_requested = 0;
+						// --------find out how many words to read..
+						iop_get_dmp_word_count(device_data->dmp_virt, device_data->dmp_tc, device_data->dmp_ta,
+							device_data->dmp_abs_tc_addr, iop_vdmp_miap_page[device_data->dmp], iop_vdmp_miap_length[device_data->dmp],
+							&dmp_words_requested);
+
+						sectors_to_read = dmp_words_requested / 128;
+						if ((dmp_words_requested % 128) != 0)
+							sectors_to_read++;
+					}
+#if DEBUG_DISC_MH >= 1
+					printf("   sectors to read %d\n", sectors_to_read);
+#endif
+					SIMJ_U64 j = 0;
+					SIMJ_U16 flags = 0;
+
 					bytes_read[j_unit] = 0;
 					end_of_file[j_unit] = -1;
-					SIMJ_U16 flags;
-					stat[j_unit] = device_common_disc_read_sector(device_data->disc_file_handle[j_unit],
-						device_data->dpi[j_unit],
-						&disc_sector_buffer, &flags);
 
-					printf(" read disc_mh record -- status %d flags %d\n", stat[j_unit],
-						flags);
+					for (j = 0; j < sectors_to_read; j++) {
+						stat[j_unit] = device_common_disc_read_sector(device_data->disc_file_handle[j_unit],
+							device_data->dpi[j_unit]+j,
+							&(disc_sector_buffer[j]), &flags);
 
-					// -------- KLUDGE
-					if (stat[j_unit] == 0) {
-						bytes_read[j_unit] = 256;
+#if DEBUG_DISC_MH >= 1
+						printf(" read disc_mh record -- status %d flags %d\n", stat[j_unit],	flags);
+#endif
+						if (flags != 0) {
+							end_of_file[j_unit] = true;
+							break;
+						}
+						// -------- KLUDGE
+						if (stat[j_unit] == 0) {
+							bytes_read[j_unit] += 256;
+						}
 					}
-					else {
-						bytes_read[j_unit] = 0;
-					}
-						// --------copy to buffer.
+
+					// --------copy to buffer.
 					if (bytes_read[j_unit] > 0) {
 
 						device_data->eof[j_unit] = false;
@@ -443,14 +477,14 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 							// iop_finish_dmp_read(device_data->device_address, device_data->dmp, &(disc_sector_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
 							iop_finish_dmp_read(device_data->dmp_virt, device_data->dmp_tc, device_data->dmp_ta,
 								device_data->dmp_abs_tc_addr, iop_vdmp_miap_page[device_data->dmp], iop_vdmp_miap_length[device_data->dmp],
-								&(disc_sector_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
+								&(disc_sector_buffer[0].words[0]), (int)(bytes_read[j_unit] / 2));
 
 						}
 						// --------REG IO, copy to buffer.
 						else {
 							device_common_buffer_set_empty(&device_data->in_buff); // set buffer empty
 							for (j = 0; j < bytes_read[j_unit]; j++) {
-								device_common_buffer_put(&device_data->in_buff, disc_sector_buffer.ubytes[j]);
+								device_common_buffer_put(&device_data->in_buff, disc_sector_buffer[0].ubytes[j]);
 							}
 						}
 						device_data->eof[j_unit] = false;
@@ -1150,10 +1184,12 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 			loc_unit = device_data->cur_sel_unit;
 			loc_device_sector = loc_sector + ( device_data->cyl[loc_unit] * 2 + ((device_data->head[loc_unit] != 0) ? 1 : 0)) * SEC_PER_TRACK +
 				((device_data->plat[loc_unit] != 0) ? TRK_PER_PLAT : 0);
+#if DEBUG_DISC_MH >= 2
 			fprintf(stderr, " Device disc_mh - transfer initiate - Dev addr: %d, cmd 0x%04x, unit %d, device sector %I64u\n",
 				device_data->device_address, loc_cmd, loc_unit, loc_device_sector);
 			fprintf(stderr, " Device disc_mh - transfer initiate - plat: %zd, head: %zd, cyl: %zd, sect: %zd\n",
 				device_data->plat[loc_unit], device_data->head[loc_unit], device_data->cyl[loc_unit], loc_sector);
+#endif
 			device_data->dpi[loc_unit] = loc_device_sector;
 
 			// -------- enable or disable interrupts.
@@ -1161,8 +1197,9 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 
 			// --------start a write.  -- notice the ! in the if...
 			if (!(loc_cmd & cmd_ti_read)) {
-				fprintf(stderr, " Device disc_mh - transfer initiate - write requested.  Dev addr: %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#if DEBUG_DISC_MH >= 2
+				fprintf(stderr, " Device disc_mh - TRANSFER INITIATE - write requested.  Dev addr: %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 				// --------get old write status
 				old_write = device_data->write_in_progress;
 
@@ -1199,8 +1236,9 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 			}
 			// --------start a read.
 			else {
-				fprintf(stderr, " Device disc_mh - transfer initiate - read requested.  Dev addr: %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#if DEBUG_DISC_MH >= 2
+				fprintf(stderr, " Device disc_mh - TRANSFER INITIATE - read requested.  Dev addr: %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 				// -------- get old read status
 				// old_read = device_data->read_in_progress;
 
@@ -1237,9 +1275,10 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 			device_data->cur_sel_unit = loc_unit;
 			device_data->head[loc_unit] = ((loc_cmd & cmd_sel_head) ? 1 : 0);
 			device_data->plat[loc_unit] = ((loc_cmd & cmd_sel_plat) ? 1 : 0);
+#if DEBUG_DISC_MH >= 2
 			fprintf(stderr, " Device disc MH - UNIT HEAD SEL Command. Dev Addr %d, cmd 0x%04x unit: %d plat: %d, head: %d\n",
 				device_data->device_address, loc_cmd, loc_unit, (loc_cmd & cmd_sel_plat), (loc_cmd & cmd_sel_head) );
-
+#endif
 			loc_status &= (~(discstatus_ctrlbusy | discstatus_unitmask));
 			loc_status |= ( discstatus_datanotready|(loc_unit & discstatus_unitmask));
 
@@ -1258,8 +1297,9 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 
 				// --------terminate and eob
 				case cmd_ctrl_eobterm:		// 0x0C00  eob and term
+#if DEBUG_DISC_MH >= 2
 					fprintf(stderr, " Device disc_mh - TERM/EOB Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#endif
 					// --------stop all I/O
 					chg_rd = -1;
 					chg_wrt = -1;
@@ -1283,8 +1323,9 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 
 				// --------eob
 				case cmd_ctrl_eob:			// 0x0800  eob
+#if DEBUG_DISC_MH >= 2
 					fprintf(stderr, " Device disc_mh - EOB Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#endif
 					// --------stop all I/O
 					chg_rd = -1;
 					chg_wrt = -1;
@@ -1331,8 +1372,9 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 				//
 				case cmd_ctrl_term:			// 0x0400  eob
 
+#if DEBUG_DISC_MH >= 2
 					fprintf(stderr, " Device disc_mh - TERM Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#endif
 					// --------stop all I/O
 					chg_rd = -1;
 					chg_wrt = -1;
@@ -1361,15 +1403,18 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 					// --------cylinder select
 					// --------store cylinder for later...
 					if (loc_cmd & cmd_noop_cylsel) {
-						fprintf(stderr, " Device disc MH - CYL SEL Command. Dev Addr %d, cmd 0x%04x cyl: %d \n", 
+#if DEBUG_DISC_MH >= 2
+						fprintf(stderr, " Device disc MH - CYL SEL Command. Dev Addr %d, cmd 0x%04x cyl: %d \n",
 								device_data->device_address, loc_cmd, loc_cmd & cmd_cylsel_cylmask);
+#endif
 						device_data->cyl[device_data->cur_sel_unit] = loc_cmd & cmd_cylsel_cylmask;
 
 					}
 					// --------noop ---- nothing to do...
 					else {
+#if DEBUG_DISC_MH >= 2
 						fprintf(stderr, " Device disc MH - NOOP Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#endif
 					}
 					// --------generate SI if enabled.
 					// ADD SI FOR TESTING.. NOT ORIGINAL.
@@ -1381,7 +1426,9 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 
 				// --------something unexpected....
 				default:
+#if DEBUG_DISC_MH >= 1
 					fprintf(stderr, " Device disc_mh - CTRL ??? Command - ignored. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 					break;
 			}
 			break;
@@ -1479,10 +1526,13 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 	}
 
 	// --------diag/debug messages....
+#if DEBUG_DISC_MH >= 2
 	if (msg_term_icb)
 		fprintf(stderr, " Device disc MH - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
 
+#if DEBUG_DISC_MH >= 1
 	if (msg_unexpected_cmd)
 		fprintf(stderr, " Device disc MH - unexpected command.  Dev addr: %d,  cmd 0x%04x\n", device_data->device_address, loc_cmd);
-
+#endif
 }

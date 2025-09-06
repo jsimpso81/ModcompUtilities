@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <memory.h>
 
+#define DEBUG_DISC_COMMON 0
 
 #define RAW_SECTOR_BYTES (size_t)256
 #define MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES (size_t)258
@@ -99,18 +100,22 @@ int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, void* raw_
 	//else
 		//stat = 0;
 
-	//--debug
+#if DEBUG_DISC_COMMON >= 1
 	printf(" disk common read - sector %lld, pos %lld, des pos %lld, stat %d\n",
 					sector, pos, desired_pos, stat );
+#endif
 
 	if (stat == 0) {
 		return_count = fread(&disk_buff, (size_t)1, MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES, fp);
 		stat = ferror(fp);
-		//--debug
+#if DEBUG_DISC_COMMON >= 1
 		printf(" disc common read - return count %lld, stat %d \n", return_count,stat);
+#endif
 	}
 
-	/* printf("\n first two bytes of image sector : %d", disk_buff.lba); */
+#if DEBUG_DISC_COMMON >= 2
+	printf("\n first two bytes of image sector : %d", disk_buff.lba);
+#endif
 
 	// --------byte swap sector data...
 	int j = 0;

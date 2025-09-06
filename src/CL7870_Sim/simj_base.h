@@ -379,7 +379,7 @@ void cpu_reset_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
 void cpu_get_interrupt(SIMJ_U16* act, SIMJ_U16* req, SIMJ_U16* ena,
 	SIMJ_U32* di_req, SIMJ_U32* di_prc, SIMJ_U32* si_req, SIMJ_U32* si_prc);
 void cpu_master_clear();
-
+SIMJ_U16 cpu_get_virtual_mem(SIMJ_U16 map_numb, SIMJ_U16 virt_addr);
 
 // -------- Real time clock
 void rtclock_start_thread();
@@ -404,6 +404,9 @@ void iop_init_data();
 int iop_finish_dmp_read(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 abs_tc_addr,
 	SIMJ_U16 vdmp_miap_page, SIMJ_U16 vdmp_miap_length,
 	SIMJ_U16* databuffer, int words_in_buffer);
+int iop_get_dmp_word_count(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_addr,
+	SIMJ_U16 vdmp_miap_page, SIMJ_U16 vdmp_miap_length,
+	SIMJ_U16* dmp_words_requested);
 int iop_get_dmp_parameters(int device_address, SIMJ_U16 dmp, SIMJ_S16* raw_tc, SIMJ_U16* raw_ta, bool* virt, SIMJ_U32* abs_tc_addr);
 int iop_load_via_miap(SIMJ_U16 miap, SIMJ_U16 miap_len, SIMJ_U16 virt_addr, SIMJ_U16* word_loaded, SIMJ_U32* abs_addr);
 int iop_store_via_miap(SIMJ_U16 miap, SIMJ_U16 miap_len, SIMJ_U16 virt_addr, SIMJ_U16 word_to_store);

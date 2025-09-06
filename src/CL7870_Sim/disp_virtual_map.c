@@ -35,7 +35,7 @@
 
 void disp_virtual_map(FILE* io_unit, SIMJ_U16 map ) {
 
-	const char* acc_str[] = { "None", "Read", "Exec", "RWE" };
+	const char* acc_str[] = { "None", "Read", "Exec", "RWE " };
 	int j = 0;
 
 	MEM_MAP loc_map;
@@ -54,9 +54,9 @@ void disp_virtual_map(FILE* io_unit, SIMJ_U16 map ) {
 	// --------loop over stack;
 	for (j = 0; j < 256; j++) {
 
-//		fprintf(io_unit, "   %3d     %s     0x%01x      0x%04x    0x%04x \n",
+//		fprintf(io_unit, "   0x%02x     %4s     0x%01x      0x%04x    0x%04x \n",
 //			j, acc_str[loc_map.entry[j].parts.acc], loc_map.entry[j].parts.shared, loc_map.entry[j].parts.mem_page, loc_map.entry[j].all);
-		fprintf(io_unit, "   %3d     %s     0x%01x      0x%04x    0x%04x \n",
+		fprintf(io_unit, "   0x%02x      %4s     0x%01x      0x%04x    0x%04x \n",
 			j, acc_str[ (loc_map.entry[j].all >> 14) & 0x3 ], loc_map.entry[j].parts.shared, loc_map.entry[j].parts.mem_page, loc_map.entry[j].all);
 
 	}
