@@ -26,8 +26,8 @@
 #define DEBUG_LDX				0
 #define DEBUG_LIMP				0
 #define DEBUG_LOMP				0
-#define DEBUG_MBVV				1
-#define DEBUG_MEM_ACCESS_TRAP	1
+#define DEBUG_MBVV				0
+#define DEBUG_MEM_ACCESS_TRAP	0
 #define DEBUG_MEM_ACCESS_HALT	0
 #define DEBUG_MMRB				0
 #define DEBUG_MRBM				0
@@ -38,7 +38,7 @@
 #define DEBUG_PSM				0
 #define DEBUG_RIA				0
 #define DEBUG_RDI				1
-#define DEBUG_RESTARTABLE		1
+#define DEBUG_RESTARTABLE		0
 #define DEBUG_REX_TRAP			0
 #define DEBUG_RMI				1
 #define DEBUG_RMPS				0
