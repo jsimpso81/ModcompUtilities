@@ -1,4 +1,9 @@
-﻿Public Class SimpleLED
+﻿Option Strict On
+
+
+
+
+Public Class SimpleLED
     Inherits Control
 
     ' Public property to control the LED's state (On/Off)
