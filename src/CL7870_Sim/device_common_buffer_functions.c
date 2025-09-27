@@ -121,7 +121,7 @@ void device_common_buffer_put(volatile DEVICE_BUFFER* buff, SIMJ_U8 to_put) {
 		buff->last_byte_writen_index = next_inx;
 	}
 	else {
-		printf("\n Buffer full - could not add to buffer.\n");
+		printf("\n *** ERROR ***  Buffer full - could not add to buffer.\n");
 	}
 
 }

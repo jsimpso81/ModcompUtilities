@@ -73,10 +73,10 @@
 // --------macros for memory address, access and values
 //
 // -------- absolute direct memory access
-#define GET_MEMORY_VALUE_ABS( A ) (gbl_mem[(A)])
+#define GET_MEMORY_VALUE_ABS( A ) (gbl_mem[ ( cpu_mem_last_abs_addr = (A) ) ])
 
 
-#define SET_MEMORY_VALUE_ABS( A, VAL ) (gbl_mem[(A)] = (VAL))
+#define SET_MEMORY_VALUE_ABS( A, VAL ) (gbl_mem[ ( cpu_mem_last_abs_addr = (A) )] = (VAL))
 
 //
 // -------- VIRTUAL ACCESS MACROS.
@@ -86,57 +86,74 @@
 // 11   3	read write execute
 
 #define VIRT_MEM_CHECK_ACCESS_READ( VIRT_ADDR, MAP ) {\
-					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) == MEM_MAP_WORD_ACC_NONE ) {\
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & (SIMJ_U16)0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) == MEM_MAP_WORD_ACC_NONE ) {\
 						MEM_ACCESS_TRAP_NO_READ; \
 					}\
 					}
+#define VIRT_MEM_CHECK_ACCESS_READ_IM( VIRT_ADDR, MAP ) {\
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & (SIMJ_U16)0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) == MEM_MAP_WORD_ACC_NONE ) {\
+						MEM_ACCESS_TRAP_NO_READ_IM; \
+					}\
+					}
+#define VIRT_MEM_CHECK_ACCESS_READ_OM( VIRT_ADDR, MAP ) {\
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ (( (VIRT_ADDR) >> 8 ) & (SIMJ_U16)0x00ff) ].all & MEM_MAP_WORD_ACC_MASK ) == MEM_MAP_WORD_ACC_NONE ) {\
+						MEM_ACCESS_TRAP_NO_READ_OM; \
+					}\
+					}
+
+
+
 #define VIRT_MEM_CHECK_ACCESS_EXEC( VIRT_ADDR, MAP ) {\
-					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK  ) < MEM_MAP_WORD_ACC_EXEC) {\
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & (SIMJ_U16)0x00ff ].all & MEM_MAP_WORD_ACC_MASK  ) < MEM_MAP_WORD_ACC_EXEC) {\
 						MEM_ACCESS_TRAP_NO_EXEC; \
 					}\
 					}
 #define VIRT_MEM_CHECK_ACCESS_WRITE( VIRT_ADDR, MAP ) {\
-					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & 0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) != MEM_MAP_WORD_ACC_WRITE) {\
+					if ( (SIMJ_U16)( cpu_mem_last_access_rights = cpu_virtual_mem_map[(MAP)].entry[ ( (VIRT_ADDR) >> 8 ) & (SIMJ_U16)0x00ff ].all & MEM_MAP_WORD_ACC_MASK ) != MEM_MAP_WORD_ACC_WRITE) {\
 						MEM_ACCESS_TRAP_NO_WRITE; \
 					}\
 					}
 
-#define GET_ABS_MEMORY_ADDR_IM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_instruction_map].entry[((A) >> 8) & 0x00ff].parts.mem_page << 8 | (SIMJ_U32)((A) & 0x00ff)) : (A) )
-#define GET_ABS_MEMORY_ADDR_OM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_operand_map].entry[((A) >> 8) & 0x00ff].parts.mem_page << 8 | (SIMJ_U32)((A) & 0x00ff)) : (A) )
+#define GET_ABS_MEMORY_ADDR_IM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_instruction_map].entry[(((A) >> 8) & (SIMJ_U16)0x00ff)].parts.mem_page << 8 | (SIMJ_U32)((A) & (SIMJ_U32)0x000000ff)) : (A) )
+#define GET_ABS_MEMORY_ADDR_OM( A ) ( cpu_virtual_mode ? (SIMJ_U32)(  (SIMJ_U32)cpu_virtual_mem_map[cpu_operand_map].entry[((A) >> 8) & (SIMJ_U16)0x00ff].parts.mem_page << 8 | (SIMJ_U32)((A) & (SIMJ_U32)0x000000ff)) : (A) )
 
 
-#define GET_MEMORY_VALUE_IM_VIRT( A ) ( gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] )
-#define GET_MEMORY_VALUE_OM_VIRT( A ) ( gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] )
+#define GET_MEMORY_VALUE_IM_VIRT( A ) ( GET_MEMORY_VALUE_ABS( (cpu_mem_last_IM_abs_addr = (cpu_virtual_mem_map[cpu_instruction_map].entry[ (((A) >> 8 ) & (SIMJ_U16)0x00ff) ].parts.mem_page << 8 | ( (A) & (SIMJ_U32)0x000000ff ) ) ) ) )
+#define GET_MEMORY_VALUE_OM_VIRT( A ) ( GET_MEMORY_VALUE_ABS( (cpu_mem_last_OM_abs_addr = (cpu_virtual_mem_map[cpu_operand_map].entry[ ( (A) >> 8 ) & (SIMJ_U16)0x00ff ].parts.mem_page << 8 | ( (A) & (SIMJ_U32)0x000000ff ) ) ) ) )
 
 
 #define GET_MEMORY_VALUE_IM( OUTVAL, A ) {\
 					if ( cpu_virtual_mode ) {\
-						VIRT_MEM_CHECK_ACCESS_EXEC( A, cpu_instruction_map );\
-						OUTVAL = GET_MEMORY_VALUE_IM_VIRT( (SIMJ_U16)(A));\
+						VIRT_MEM_CHECK_ACCESS_EXEC( (A), cpu_instruction_map );\
+						OUTVAL = GET_MEMORY_VALUE_IM_VIRT( (A) );\
 					}\
 					else {\
-						OUTVAL = GET_MEMORY_VALUE_ABS( (SIMJ_U16)(A) );\
+						OUTVAL = GET_MEMORY_VALUE_ABS( (A) );\
+						cpu_mem_last_IM_abs_addr = (A);\
 					}\
-					}
+					cpu_mem_last_IM_data = (OUTVAL);\
+				}
 
 
 #define GET_MEMORY_VALUE_OM( OUTVAL, A ) {\
 					if (  cpu_virtual_mode ) {\
-						VIRT_MEM_CHECK_ACCESS_READ( A, cpu_operand_map );\
-						OUTVAL = GET_MEMORY_VALUE_OM_VIRT( (SIMJ_U16)(A));\
+						VIRT_MEM_CHECK_ACCESS_READ_OM( (A), cpu_operand_map );\
+						OUTVAL = GET_MEMORY_VALUE_OM_VIRT( (A) );\
 					}\
 					else {\
-						OUTVAL = GET_MEMORY_VALUE_ABS((SIMJ_U16)(A) );\
+						OUTVAL = GET_MEMORY_VALUE_ABS( (A) );\
+						cpu_mem_last_OM_abs_addr = (A);\
 					}\
-					}
+					cpu_mem_last_OM_data = (OUTVAL);\
+				}
 
 
 #define SET_MEMORY_VALUE_IM_VIRT( A, VAL ) {\
-			gbl_mem[ cpu_virtual_mem_map[cpu_instruction_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] = (VAL);\
+			SET_MEMORY_VALUE_ABS( (cpu_mem_last_IM_abs_addr = (cpu_virtual_mem_map[cpu_instruction_map].entry[ ( (A) >> 8 ) & (SIMJ_U16)0x00ff ].parts.mem_page << 8 | ( (A) & (SIMJ_U32)0x000000ff ) ) ) , (VAL));\
 			}
 
 #define SET_MEMORY_VALUE_OM_VIRT( A, VAL ) {\
-			 gbl_mem[ cpu_virtual_mem_map[cpu_operand_map].entry[ ( (A) >> 8 ) & 0x00ff ].parts.mem_page << 8 | ( (A) & 0x00ff ) ] = (VAL);\
+			 SET_MEMORY_VALUE_ABS( (cpu_mem_last_OM_abs_addr = (cpu_virtual_mem_map[cpu_operand_map].entry[ ( (A) >> 8 ) & (SIMJ_U16)0x00ff ].parts.mem_page << 8 | ( (A) & (SIMJ_U32)0x000000ff ) ) ) , (VAL));\
 			}
 
 //#define SET_MEMORY_VALUE_IM( A, VAL ) ( cpu_virtual_mode ? SET_MEMORY_VALUE_IM_VIRT( (SIMJ_U16)(A), VAL ) : SET_MEMORY_VALUE_ABS( (SIMJ_U16)(A), VAL ))
@@ -146,36 +163,38 @@
 #define SET_MEMORY_VALUE_IM( A, VAL ) {\
 			if ( cpu_virtual_mode ) {\
 				VIRT_MEM_CHECK_ACCESS_WRITE( A, cpu_instruction_map );\
-				SET_MEMORY_VALUE_IM_VIRT( (SIMJ_U16)(A), VAL );\
+				SET_MEMORY_VALUE_IM_VIRT( (A), VAL );\
 			}\
 			else {\
-				SET_MEMORY_VALUE_ABS( (SIMJ_U16)(A), VAL );\
+				SET_MEMORY_VALUE_ABS( (A), VAL );\
+				cpu_mem_last_IM_abs_addr = (A);\
 			}\
 			}
 
 #define SET_MEMORY_VALUE_OM( A, VAL ) {\
 			if ( cpu_virtual_mode ) {\
 				VIRT_MEM_CHECK_ACCESS_WRITE( A, cpu_operand_map );\
-				SET_MEMORY_VALUE_OM_VIRT( (SIMJ_U16)(A), VAL );\
+				SET_MEMORY_VALUE_OM_VIRT( (A), VAL );\
 			}\
 			else {\
-				SET_MEMORY_VALUE_ABS( (SIMJ_U16)(A), VAL );\
+				SET_MEMORY_VALUE_ABS( (A), VAL );\
+				cpu_mem_last_OM_abs_addr = (A);\
 			}\
 			}
 
 
 // -------- IMMEDIATE MODE (I)
-#define GET_MEMORY_VALUE_IMMEDIATE( OUTVAL ) GET_MEMORY_VALUE_IM( OUTVAL, (SIMJ_U16)(program_counter + 1) )
+#define GET_MEMORY_VALUE_IMMEDIATE( OUTVAL ) GET_MEMORY_VALUE_IM( OUTVAL, (program_counter + (SIMJ_U16)1) )
 
 #define SET_MEMORY_VALUE_IMMEDIATE( VAL ) {\
-				SET_MEMORY_VALUE_IM( (SIMJ_U16)(program_counter + 1), VAL);\
+				SET_MEMORY_VALUE_IM( (program_counter + (SIMJ_U16)1), VAL);\
 				}
-#define GET_MEMORY_VALUE_IMMEDIATE_2ND( OUTVAL ) GET_MEMORY_VALUE_IM( OUTVAL, (SIMJ_U16)(program_counter + 2))
-#define GET_MEMORY_VALUE_IMMEDIATE_3RD( OUTVAL ) GET_MEMORY_VALUE_IM( OUTVAL, (SIMJ_U16)(program_counter + 3))
+#define GET_MEMORY_VALUE_IMMEDIATE_2ND( OUTVAL ) GET_MEMORY_VALUE_IM( OUTVAL, (program_counter + (SIMJ_U16)2))
+#define GET_MEMORY_VALUE_IMMEDIATE_3RD( OUTVAL ) GET_MEMORY_VALUE_IM( OUTVAL, (program_counter + (SIMJ_U16)3))
 
 
 // -------- SHORT DISPLACED (S)
-#define GET_MEMORY_ADDR_SHORT_DISPLACED  ( (SIMJ_U16)(GET_REGISTER_VALUE(1) + instruction.parts.src_reg) )
+#define GET_MEMORY_ADDR_SHORT_DISPLACED  ( (GET_REGISTER_VALUE(1) + instruction.parts.src_reg) )
 //#define SHORT_DISPLACED_ADDR_FAULT (  ( ( GET_REGISTER_VALUE(1) & 0x8000 ) != ( GET_MEMORY_ADDR_SHORT_DISPLACED & 0x8000 ) ? true : false ) )
 //#define SHORT_DISPLACED_ADDR_FAULT (  false )
 #define GET_MEMORY_VALUE_SHORT_DISPLACED( OUT_VAL ) {\
@@ -187,7 +206,7 @@
 				}
 
 // -------- SHORT INDEXED (X)
-// TODO: fix when Rs = 0 
+// TODO: GET_MEMORY_VALUE_SHORT_INDEXED fix when Rs = 0 
 #define GET_MEMORY_ADDR_SHORT_INDEXED ( GET_SOURCE_REGISTER_VALUE )
 #define GET_MEMORY_VALUE_SHORT_INDEXED( OUT_VAL ) {\
 					 GET_MEMORY_VALUE_OM( OUT_VAL, GET_SOURCE_REGISTER_VALUE );\
@@ -203,8 +222,8 @@
 				}
 
 #define SET_MEMORY_VALUE_SHORT_INDEXED_DOUBLE( VAL ) {\
-					SET_MEMORY_VALUE_OM( GET_MEMORY_ADDR_SHORT_INDEXED, (SIMJ_U16)((VAL>>16) & 0x0000ffff ));\
-					SET_MEMORY_VALUE_OM( GET_MEMORY_ADDR_SHORT_INDEXED+1, (SIMJ_U16)(VAL & 0x0000ffff ));\
+					SET_MEMORY_VALUE_OM( GET_MEMORY_ADDR_SHORT_INDEXED, (SIMJ_U16)((VAL>>16) & (SIMJ_U32)0x0000ffff ));\
+					SET_MEMORY_VALUE_OM( GET_MEMORY_ADDR_SHORT_INDEXED+1, (SIMJ_U16)(VAL & (SIMJ_U32)0x0000ffff ));\
 					}
 
 
@@ -212,7 +231,7 @@
 // --------note that the first two are for only for use by GET_MEMORY_DIRECT !!!
 // TODO: Look at signed vs unsigned...
 #define GET_MEMORY_DIRECT_ADDR_PARTIAL( OUT_PART_DIRECT_ADDR ) {\
-					if ( (instruction.all & 0x0007) == 0 ) {\
+					if ( (instruction.all & (SIMJ_U16)0x0007) == 0 ) {\
 						GET_MEMORY_VALUE_IMMEDIATE( OUT_PART_DIRECT_ADDR );\
 					}\
 					else {\
@@ -224,7 +243,7 @@
 // TODO: Ensure that GET_MEMORY_VALUE_OM works with the putput and input parameters being the same.
 #define GET_MEMORY_DIRECT_ADDR( OUT_DIRECT_ADDR ) {\
 					GET_MEMORY_DIRECT_ADDR_PARTIAL(OUT_DIRECT_ADDR);\
-					if( (instruction.all & 0x0008) != 0 ) {\
+					if( (instruction.all & (SIMJ_U16)0x0008) != 0 ) {\
 						GET_MEMORY_VALUE_OM(OUT_DIRECT_ADDR, OUT_DIRECT_ADDR);\
 					}\
 					}
@@ -242,22 +261,22 @@
 #define GET_MEMORY_VALUE_DIRECT_DOUBLE( OUT_VAL_DBLE ) {\
 					GET_MEMORY_DIRECT_ADDR( tmp_addr_direct );\
 					GET_MEMORY_VALUE_OM( tmp_val_direct_1, tmp_addr_direct );\
-					GET_MEMORY_VALUE_OM( tmp_val_direct_2, (SIMJ_U16)(tmp_addr_direct + 1));\
+					GET_MEMORY_VALUE_OM( tmp_val_direct_2, (SIMJ_U16)(tmp_addr_direct + (SIMJ_U16)1));\
 					OUT_VAL_DBLE =  (SIMJ_U32)( ( (SIMJ_U32)tmp_val_direct_1 << 16) | (SIMJ_U32)tmp_val_direct_2 );\
 					}
 
 #define SET_MEMORY_VALUE_DIRECT_DOUBLE( VAL ) {\
 					GET_MEMORY_DIRECT_ADDR( tmp_addr_direct );\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct, (SIMJ_U16)((VAL>>16) & 0x0000ffff ));\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct+1, (SIMJ_U16)(VAL & 0x0000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct, (SIMJ_U16)((VAL>>16) & (SIMJ_U32)0x0000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct+(SIMJ_U16)1, (SIMJ_U16)(VAL & (SIMJ_U32)0x0000ffff ));\
 					}
 
 // TODO: Should this occupy the top or bottom 48 bits?? (for now bottom -- think it should be top)
 #define GET_MEMORY_VALUE_DIRECT_TRIPLE( OUT_VAL_TRPL ) {\
 					GET_MEMORY_DIRECT_ADDR( tmp_addr_direct );\
 					GET_MEMORY_VALUE_OM( tmp_val_direct_1, tmp_addr_direct );\
-					GET_MEMORY_VALUE_OM( tmp_val_direct_2, (SIMJ_U16)(tmp_addr_direct + 1));\
-					GET_MEMORY_VALUE_OM( tmp_val_direct_3, (SIMJ_U16)(tmp_addr_direct + 2));\
+					GET_MEMORY_VALUE_OM( tmp_val_direct_2, (SIMJ_U16)(tmp_addr_direct + (SIMJ_U16)1));\
+					GET_MEMORY_VALUE_OM( tmp_val_direct_3, (SIMJ_U16)(tmp_addr_direct + (SIMJ_U16)2));\
 					OUT_VAL_TRPL =  (SIMJ_U64)( ((SIMJ_U64)tmp_val_direct_1 << 48) | ((SIMJ_U64)tmp_val_direct_2 << 32) | ((SIMJ_U64)tmp_val_direct_3 << 16) );\
 					}
 
@@ -265,28 +284,28 @@
 
 #define SET_MEMORY_VALUE_DIRECT_TRIPLE( VAL ) {\
 					GET_MEMORY_DIRECT_ADDR( tmp_addr_direct );\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct, (SIMJ_U16)((VAL>>48) & 0x0000ffff ));\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct+1, (SIMJ_U16)((VAL>>32) & 0x0000ffff ));\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct+2, (SIMJ_U16)((VAL>>16) & 0x0000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct, (SIMJ_U16)((VAL>>48) & (SIMJ_U64)0x000000000000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct+(SIMJ_U16)1, (SIMJ_U16)((VAL>>32) & (SIMJ_U64)0x000000000000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct+(SIMJ_U16)2, (SIMJ_U16)((VAL>>16) & (SIMJ_U64)0x000000000000ffff ));\
 					}
 
 
 #define GET_MEMORY_VALUE_DIRECT_QUAD( OUT_VAL_QUAD ) {\
 					GET_MEMORY_DIRECT_ADDR( tmp_addr_direct );\
 					GET_MEMORY_VALUE_OM( tmp_val_direct_1, tmp_addr_direct );\
-					GET_MEMORY_VALUE_OM( tmp_val_direct_2, (SIMJ_U16)(tmp_addr_direct + 1));\
-					GET_MEMORY_VALUE_OM( tmp_val_direct_3, (SIMJ_U16)(tmp_addr_direct + 2));\
-					GET_MEMORY_VALUE_OM( tmp_val_direct_4, (SIMJ_U16)(tmp_addr_direct + 3));\
+					GET_MEMORY_VALUE_OM( tmp_val_direct_2, (SIMJ_U16)(tmp_addr_direct + (SIMJ_U16)1));\
+					GET_MEMORY_VALUE_OM( tmp_val_direct_3, (SIMJ_U16)(tmp_addr_direct + (SIMJ_U16)2));\
+					GET_MEMORY_VALUE_OM( tmp_val_direct_4, (SIMJ_U16)(tmp_addr_direct + (SIMJ_U16)3));\
 					OUT_VAL_QUAD =  (SIMJ_U64)( ((SIMJ_U64)tmp_val_direct_1 << 48) | ((SIMJ_U64)tmp_val_direct_2 << 32) | ((SIMJ_U64)tmp_val_direct_3 << 16) | (SIMJ_U64)tmp_val_direct_4 );\
 					}
 //					 ( ((SIMJ_U64)GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR ) << 48) | ((SIMJ_U64)GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR+1 ) << 32) | ((SIMJ_U64)GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR+2 ) <<16) | (SIMJ_U64)GET_MEMORY_VALUE_OM( GET_MEMORY_DIRECT_ADDR+3 ) )
 
 #define SET_MEMORY_VALUE_DIRECT_QUAD( VAL ) {\
 					GET_MEMORY_DIRECT_ADDR( tmp_addr_direct );\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct, (SIMJ_U16)((VAL>>48) & 0x0000ffff ));\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct+1, (SIMJ_U16)((VAL>>32) & 0x0000ffff ));\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct+2, (SIMJ_U16)((VAL>>16) & 0x0000ffff ));\
-					SET_MEMORY_VALUE_OM( tmp_addr_direct+3, (SIMJ_U16)(VAL & 0x0000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct, (SIMJ_U16)((VAL>>48) & (SIMJ_U64)0x000000000000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct+(SIMJ_U16)1, (SIMJ_U16)((VAL>>32) & (SIMJ_U64)0x000000000000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct+(SIMJ_U16)2, (SIMJ_U16)((VAL>>16) & (SIMJ_U64)0x000000000000ffff ));\
+					SET_MEMORY_VALUE_OM( tmp_addr_direct+(SIMJ_U16)3, (SIMJ_U16)(VAL & (SIMJ_U64)0x000000000000ffff ));\
 					}
 
 // ------- dont need the order is done by the access macros.

@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 
             /* -------- verbose debug messges */
             if (strcmp(argv[j], "-v") == 0 ) {
-                gbl_verbose_debug = true;
+                gbl_verbose_debug = debugging_on;
             }
 
             /* -------- configuration file. */
@@ -108,6 +108,9 @@ int main(int argc, char* argv[]) {
     // -------- start the clock
     rtclock_start_thread();
 
+    // --------start the front panel communications thread.
+    frontpanel_start_thread();
+
     // --------wait a little for things to start
     Sleep(500);
 
@@ -120,6 +123,7 @@ int main(int argc, char* argv[]) {
     process_user_commands(stdin);
 
     rtclock_stop_thread();
+    frontpanel_stop_thread();
     cpu_stop_thread();
     device_common_stop_all();
     device_common_capture_console_close();

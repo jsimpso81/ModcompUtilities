@@ -37,12 +37,12 @@ HANDLE rtclock_timer_handle = NULL;
 
 DWORD WINAPI rtclock_thread_proc(LPVOID lpParam);
 
-typedef struct _MYDATA {
-	LPCTSTR szText;
-	DWORD dwValue;
-} MYDATA;
+// --  typedef struct _MYDATA {
+// --  	LPCTSTR szText;
+// --  	DWORD dwValue;
+// --  } MYDATA;
 
-MYDATA unused_data = { 0 };
+// --  MYDATA unused_data = { 0 };
 
 
 // =============================================================================================================

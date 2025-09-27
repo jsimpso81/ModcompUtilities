@@ -25,25 +25,27 @@
 #define SIMJ_INIT( A )  = A
 #endif
 
+#include "modcomp_opcode_string.h"
+
 // -------- main memory
 SIMJ_SCOPE volatile SIMJ_U16  gbl_mem[2097152];
 
 // -------- items for front panel
 SIMJ_SCOPE volatile SIMJ_U16 gbl_fp_switches SIMJ_INIT( 0 );
-SIMJ_SCOPE volatile SIMJ_U16 gbl_fp_datalights SIMJ_INIT( 0 );
-SIMJ_SCOPE volatile SIMJ_U16 gbl_fp_addrlights SIMJ_INIT( 0 );
-SIMJ_SCOPE volatile SIMJ_U16 gbl_regselectswitches SIMJ_INIT( 0 );
-SIMJ_SCOPE volatile bool gbl_fp_powerlight SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_standbylight SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_backupfailure SIMJ_INIT( false );
+//SIMJ_SCOPE volatile SIMJ_U16 gbl_fp_datalights SIMJ_INIT( 0 );
+//SIMJ_SCOPE volatile SIMJ_U16 gbl_fp_addrlights SIMJ_INIT( 0 );
+//SIMJ_SCOPE volatile SIMJ_U16 gbl_regselectswitches SIMJ_INIT( 0 );
+//SIMJ_SCOPE volatile bool gbl_fp_powerlight SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_standbylight SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_backupfailure SIMJ_INIT( false );
 SIMJ_SCOPE volatile bool gbl_fp_runlight SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_cc_n_light SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_cc_z_light SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_cc_o_light SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_cc_c_light SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_io_light SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_task_light SIMJ_INIT( false );
-SIMJ_SCOPE volatile bool gbl_fp_memerror_light SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_cc_n_light SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_cc_z_light SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_cc_o_light SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_cc_c_light SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_io_light SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_task_light SIMJ_INIT( false );
+//SIMJ_SCOPE volatile bool gbl_fp_memerror_light SIMJ_INIT( false );
 SIMJ_SCOPE volatile bool gbl_fp_single_step SIMJ_INIT( false );
 
 SIMJ_SCOPE volatile bool gbl_fp_keylocked SIMJ_INIT( false );
@@ -51,7 +53,7 @@ SIMJ_SCOPE volatile bool gbl_fp_keylocked SIMJ_INIT( false );
 // -------- not done more front panel info
 
 // -------- CPU ITEMS (for debug)
-SIMJ_SCOPE volatile SIMJ_U32 cpu_inst_used[256] SIMJ_INIT( { 0 } );
+SIMJ_SCOPE volatile SIMJ_U32 cpu_inst_used[NUMB_OPSI] SIMJ_INIT( { 0 } );
 
 // -------- IO DEVICES
 
@@ -92,7 +94,7 @@ SIMJ_SCOPE volatile SIMJ_U16 iop_vdmp_miap_length[64];
 
 
 // -------- execution options
-SIMJ_SCOPE bool volatile gbl_verbose_debug SIMJ_INIT( false);
+SIMJ_SCOPE VERBOSE_DEBUGGING volatile gbl_verbose_debug SIMJ_INIT( debugging_off );
 SIMJ_SCOPE bool volatile gbl_capture_console SIMJ_INIT( false );
 
 

@@ -30,11 +30,15 @@
 void disp_instruction_use(FILE* io_unit) {
 
 	SIMJ_U16 j = 0;
+	SIMJ_U16 j1 = 0;
 	char opcode[100];
+	SIMJ_U16 instruct = 0;
 
-	// TODO: fix for augments !!!!
-	for (j = 0; j < 256; j++) {
-		util_get_opcode_disp(j<<8, opcode, 100);
-		fprintf(io_unit, " 0x%04x %s %d\n", j<<8, opcode, cpu_inst_used[j]);
+
+	for (j = 0; j < NUMB_OPSI; j++) {
+		instruct = (j << 8);		// this is fake... it misses the augments..
+		// util_get_opcode_disp(instruct, opcode, 100);
+		strcpy_s(opcode, 100, &(opcode_si_string[j][0]));
+		fprintf(io_unit, " 0x%04x %s %d\n", instruct, opcode, cpu_inst_used[j]);
 	}
 }

@@ -33,9 +33,6 @@
 
 // -------- DEVICE TAPE
 
-// -------- define debug level
-#define TAPE_DEBUG 0
-
 // --------status
 #define tapestatus_exists			0x8000
 #define tapestatus_overunder		0x4000		// under/over flow, dmp too small if 0x8000 too.
@@ -54,34 +51,40 @@
 #define tapestatus_unitsel_mask		0x0003		// unit selected mask.
 
 // --------command
-#define cmd_cmd_mask			0xC7BC		// command mask
-//                              1100 0111 1011 1100	-  really 1024 commands...
+#define cmd_cmd_mask			0xC6B0		// command mask
+//                              1100 0110 1011 0000 -  really 128 commands...
 // --------various commands.
-#define cmd_cmd_ti				0x8000		// do a transfer initiate command
-#define cmd_cmd_ti_dmp			0xC000		// do a transfer initiate command w/dmp
-#define cmd_cmd_term			0x4400		// do a terminate.
-#define cmd_cmd_sel_trans		0x4200		// do a select unit command.
-#define cmd_cmd_rew_SAL			0x4280		// -- not documented, but SAL uses.
-#define cmd_cmd_rew_lock		0x4180		// do a rewind with offline
-#define cmd_cmd_rew				0x4080		// do a rewind and stay online
-#define cmd_cmd_weof			0x4020		// do a weof command (gap = 1)
-#define cmd_cmd_revrec			0x4018		// do a space reverse to eor
-#define cmd_cmd_revfil			0x401C		// do a space reverse to eof
-#define cmd_cmd_fwdrec			0x4010		// do a space fwd to eor
-#define cmd_cmd_fwdfil			0x4014		// do a space fwd to eof
+#define cmd_cmd_ti				0x8000		// do a transfer initiate command (read or write)
+#define cmd_cmd_ti_dmp			0xC000		// do a transfer initiate command w/dmp (read or write)
 #define cmd_cmd_noop			0x4000		// do a no-op command
+#define cmd_cmd_sel_trans		0x4200		// do a select unit command.
+#define cmd_cmd_space			0x4210		// do a space fwd to eor
+#define cmd_cmd_weof			0x4220		// do a weof command (gap = 1)
+#define cmd_cmd_rew				0x4280		// do a rewind and stay online
+#define cmd_cmd_term			0x4400		// do a terminate.
+#define cmd_cmd_term_ign		0x4600		// do a terminate with ign set.. (ign??)
+
+//#define cmd_cmd_sel_trans_cont 0x4300		// do a select unit command. with cont scan. (check in cmd)
+//#define cmd_cmd_term_mpe		0x4500		// do a terminate with mpe set (generate mpe error?) (check in cmd)
+//#define cmd_cmd_term_mpe_ign	0x4700		// do a terminate with both ign and mpe set. (check in cmd)
 
 // --------other masks in command register.
 #define cmd_dmp_ena				0x4000		// enable dmp
 #define cmd_di_enable			0x2000
 #define cmd_si_enable			0x1000
 #define cmd_term_eob			0x0800		// terminate end of block modifier...
+#define cmd_term_par			0x0100		// terminate mem parity error occured.
+#define cmd_term_mc				0x0040		// terminate master clear.
 #define cmd_read				0x0800		// read if one, else write.
 #define cmd_gap_long			0x0200		// long gap if one, else normal
-#define cmd_term_par			0x0100		// terminate mem parity error occured.
 #define cmd_scs					0x0100		// enable single scan scs if one, else disable
-#define cmd_term_mc				0x0040		// terminate master clear.
 #define cmd_unit_mask			0x0003		// unit mask.
+#define cmd_space_mask			0x000C		// mask to get different space cmds.
+#define cmd_space_fwdrec		0x0000		// do a space fwd to eor
+#define cmd_space_fwdfil		0x0004		// do a space fwd to eof
+#define cmd_space_revrec		0x0008		// do a space reverse to eor
+#define cmd_space_revfil		0x000C		// do a space reverse to eof
+#define cmd_rewind_lockout		0x0100		// do a rewind with offline
 
 // --------internal list of IO commands
 #define locIOcmd_read		1
@@ -367,11 +370,11 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 					bytes_read[j_unit] = 0;
 					if (device_data->tape_file_handle[j_unit] != NULL) {
-						read_stat[j_unit] = device_common_tape_read_record(&device_data->tape_file_handle[j_unit],
+						read_stat[j_unit] = device_common_tape_read_record( (FILE**)&device_data->tape_file_handle[j_unit],
 							        &(current_file_pos[j_unit]), &tape_buffer, 
-									65536, &(bytes_read[j_unit]), &device_data->eof[j_unit]);
+									65536, &(bytes_read[j_unit]), (bool*) &device_data->eof[j_unit]);
 
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 						printf(" read tape record -- status %d bytes read %d end of file %d\n", read_stat[j_unit],
 							bytes_read[j_unit], device_data->eof[j_unit]);
 #endif
@@ -478,7 +481,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 				// --------REWIND
 				case locIOcmd_rewon:
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 					printf(" device tape REWIND ON - IO entered\n");
 #endif
 					current_file_pos[j_unit] = 0;
@@ -487,10 +490,10 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 					// --------see where the position was, then set it to the beginning of the file.
 					if (device_data->tape_file_handle[j_unit] != NULL) {
-						int stat = device_common_tape_rewind(device_data->tape_file_handle[j_unit], 
-							&(device_data->tape_file_handle[j_unit]));
-#if TAPE_DEBUG >= 1
-						printf(" device tape REWIND ON - cur pos %I64d, status %d\n", device_data->tape_file_handle[j_unit], stat);
+						int stat = device_common_tape_rewind( (FILE**) &(device_data->tape_file_handle[j_unit]),
+							(SIMJ_TAPE_DPI*) &(device_data->dpi[j_unit]));
+#if DEBUG_TAPE >= 1
+						printf(" device tape REWIND ON - cur pos %I64d, status %d\n", device_data->dpi[j_unit], stat);
 #endif
 					}
 					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
@@ -509,7 +512,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				case locIOcmd_rewoff:
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 					printf(" device tape REWIND OFF - IO entered\n");
 #endif
 					current_file_pos[j_unit] = 0;
@@ -519,10 +522,10 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 					// --------see where the position was, then set it to the beginning of the file.
 					if (device_data->tape_file_handle[j_unit] != NULL) {
-						int stat = device_common_tape_rewind(device_data->tape_file_handle[j_unit],
-							&(device_data->tape_file_handle[j_unit]));
-#if TAPE_DEBUG >= 1
-						printf(" device tape REWIND ON - cur pos %I64d, status %d\n", device_data->tape_file_handle[j_unit], stat);
+						int stat = device_common_tape_rewind( (FILE**)&(device_data->tape_file_handle[j_unit]),
+							(SIMJ_TAPE_DPI*)&(device_data->dpi[j_unit]));
+#if DEBUG_TAPE >= 1
+						printf(" device tape REWIND ON - cur pos %I64d, status %d\n", (device_data->dpi[j_unit]), stat);
 #endif
 					}
 
@@ -541,7 +544,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				case locIOcmd_bkfile:
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 					printf(" device tape BCK FILE - IO entered\n");
 #endif
 					printf(" device tape BCK FILE not implemented yet!\n");
@@ -558,7 +561,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				case locIOcmd_fwdfile:
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 					printf(" device tape FWD FILE - IO entered\n");
 #endif
 					printf(" device tape FWD FILE not implemented yet!\n");
@@ -575,7 +578,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				case locIOcmd_bkrec:
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 					printf(" device tape BCK RECORD - IO entered\n");
 #endif
 					printf(" device tape BCK RECORD not implemented yet!\n");
@@ -592,7 +595,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				case locIOcmd_fwdrec:
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 					printf(" device tape FWD RECORD - IO entered\n");
 #endif
 					printf(" device tape FWD RECORD not implemented yet!\n");
@@ -609,7 +612,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					break;
 
 				case locIOcmd_weof:
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 					printf(" device tape WRT EOF - IO entered\n");
 #endif
 					printf(" device tape WRT EOF not implemented yet!\n");
@@ -1052,6 +1055,8 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 	int chg_unit = 0;
 	int loc_io_cmd = 0;
 	int loc_unit = 0;
+	int sub_cmd = 0;
+	bool rew_with_lockout = false;
 
 	// --------get the type of command.
 	cmd_type = loc_cmd & cmd_cmd_mask;
@@ -1093,8 +1098,11 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		//  SI and DI bits in command should be off (diable interrupts?)
 		//
 	case cmd_cmd_term:			// do a terminate.
+	case cmd_cmd_term_ign:		// do a terminate. with ign set ???
 
-#if TAPE_DEBUG >= 1
+		// TODO: figure out what to do for IGN bit.
+
+#if DEBUG_TAPE >= 1
 		fprintf(stderr, " Device tape - TERM Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 #endif
 
@@ -1106,8 +1114,11 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		loc_status |= (tapestatus_data_not_ready);		// set no data ready
 		loc_status &= (~tapestatus_busy);				// clear busy
 
+		// --------see if MPE bit is set.
+		// TODO: do something for term with MPE bit set..
+
 		// --------TERMINATE w/ICB
-		// TODO: is this a thing...  
+		// TODO: is this a thing... Not defined by chart in cpu manual 
 		if ((loc_cmd & cmd_term_mc) != 0) {
 			msg_term_icb = true;
 
@@ -1158,7 +1169,7 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 	case cmd_cmd_ti_dmp:		//	0xC000		// do a transfer initiate command w/dmp
 		if ((loc_status & tapestatus_busy) == 0) {
 			// --------store tc/ta information
-			iop_get_dmp_parameters(device_data->device_address, device_data->dmp, &(device_data->dmp_tc), &(device_data->dmp_ta), &(device_data->dmp_virt), &(device_data->dmp_abs_tc_addr) );
+			iop_get_dmp_parameters(device_data->device_address, device_data->dmp, &(device_data->dmp_tc), &(device_data->dmp_ta), &(device_data->dmp_virt), &(device_data->dmp_abs_tc_addr));
 		}
 		// --------fall through to reset of transfer initiate.
 
@@ -1176,7 +1187,7 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 
 			// --------start a write.
 			if (!(loc_cmd & cmd_read)) {
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 				fprintf(stderr, " Device tape - transfer initiate - write requested.  Dev addr: %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 #endif
 
@@ -1204,7 +1215,7 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 			}
 			// --------start a read.
 			else {
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 				fprintf(stderr, " Device tape - transfer initiate - read requested.  Dev addr: %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 #endif
 
@@ -1258,7 +1269,7 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 			fprintf(stderr, " Device tape - WEOF Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 #endif
 
@@ -1289,159 +1300,167 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		//		Bit 3 - SI enable
 		//		Bit 7 - Enable Single Scan Cycle
 		//	
+	case cmd_cmd_space:		//
+		sub_cmd = loc_cmd & cmd_space_mask;
+		switch (sub_cmd) {
 
-		// --------SPACE record forward command
-		// This command causes forward tape motion and a Write Current Turn-Off.  When
-		// The selected transport is operable and rewiding, an SI is generated and 
-		// the operation is inhibited.  Forward motion continus until an Inter-Record Gap (IRG)
-		// is encountered.  The controller goes Not Busy, the SI is generated and the
-		// dynamic gap window time-out commences, allowing new commands to be accepted.
-		//
-	case cmd_cmd_fwdrec:		//			0x4010		// do a space fwd to eor
+			// --------SPACE record forward command
+			// This command causes forward tape motion and a Write Current Turn-Off.  When
+			// The selected transport is operable and rewiding, an SI is generated and 
+			// the operation is inhibited.  Forward motion continus until an Inter-Record Gap (IRG)
+			// is encountered.  The controller goes Not Busy, the SI is generated and the
+			// dynamic gap window time-out commences, allowing new commands to be accepted.
+			//
+			case cmd_space_fwdrec:
+				// --------only do if controller is not busy!!!
+				if ((loc_status & tapestatus_busy) == 0) {
 
-		// --------only do if controller is not busy!!!
-		if ((loc_status & tapestatus_busy) == 0) {
-
-#if TAPE_DEBUG >= 1
-			fprintf(stderr, " Device tape - FWD REC Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#if DEBUG_TAPE >= 1
+					fprintf(stderr, " Device tape - FWD REC Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 #endif
 
-			// -------- enable or disable interrupts.
-			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
+					// -------- enable or disable interrupts.
+					device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
+	
+					// -------- check prerequisites
+					// TODO: check prerequisites
 
-			// -------- check prerequisites
-			// TODO: check prerequisites
+					// -------- select unit
+					loc_unit = loc_cmd & cmd_unit_mask;
+					loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
+					chg_unit = 1;
 
-			// -------- select unit
-			loc_unit = loc_cmd & cmd_unit_mask;
-			loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
-			chg_unit = 1;
+					loc_io_cmd = locIOcmd_fwdrec;
 
-			loc_io_cmd = locIOcmd_fwdrec;
+					// TODO: if prerequisites not met, generate SI (if enabled?)
+				}	
+				break;
 
-			// TODO: if prerequisites not met, generate SI (if enabled?)
+			// --------SPACE record backward command
+			//  This command operates similarly to and requires the same considerations
+			//  as Space Record Forward with the following exceptions:
+			// 
+			//	-- Motion occurs in a reverse direction
+			// 
+			//	-- The controller goes NOT BUSY and stops in the next IRG after the read
+			//	   logic senses the first character of the respective block.
+			// 
+			//  -- When no IRG is detected, the transport moves the tape backwards until
+			//     the Beginning of Tape (BOT) tab is reached and then stops at the load
+			//     point.  BOT and EOF status bits are set.
+			// 
+			//	-- If the tape is positioned at the BOT tab when the command is given,
+			//	   the operation is inhibited and an SI is generated.  BOT and EOF status
+			//	   bits remain set.
+			//
+			case cmd_space_revrec:		//					// do a space reverse to eor
+
+				// --------only do if controller is not busy!!!
+				if ((loc_status & tapestatus_busy) == 0) {
+
+#if DEBUG_TAPE >= 1
+					fprintf(stderr, " Device tape - REV REC Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
+
+					// -------- enable or disable interrupts.
+					device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);		
+
+					// -------- check prerequisites
+					// TODO: check prerequisites
+	
+					// -------- select unit
+					loc_unit = loc_cmd & cmd_unit_mask;
+					loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
+					chg_unit = 1;
+
+					loc_io_cmd = locIOcmd_bkrec;
+
+					// TODO: if prerequisites not met, generate SI (if enabled?)
+				}
+				break;
+
+			// --------SPACE to EOF Forward Command
+			//  This command operates similarly to and requires the same considerations as
+			//  Space Record Forward with the following exceptions:
+			// 
+			//	-- Blocks are spaced over without stopping until the Read Logic detects the
+			//	   EOF tape-mark, and then stops.  The EOF status is set.
+			//
+			case cmd_space_revfil:		//					// do a space reverse to eof
+
+
+				// --------only do if controller is not busy!!!
+				if ((loc_status & tapestatus_busy) == 0) {
+
+#if DEBUG_TAPE >= 1
+					fprintf(stderr, " Device tape - REV FIL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
+
+					// -------- enable or disable interrupts.
+					device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
+
+					// -------- check prerequisites
+					// TODO: check prerequisites
+
+					// -------- select unit
+					loc_unit = loc_cmd & cmd_unit_mask;
+					loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
+					chg_unit = 1;
+
+					loc_io_cmd = locIOcmd_bkfile;
+
+					// TODO: if prerequisites not met, generate SI (if enabled?)
+				}
+				break;
+
+			// --------SPACE to EOF Backward Command
+			//  This command operates similarly to and requires the same considerations as
+			//  Space Record Backward with the following exception:
+			//
+			//	-- Blocks are spaced over without stopping until the Read Logic detects the
+			//	   EOF tape-mark and then stops.  The EOF status is set.
+			//
+			case cmd_space_fwdfil:		//					// do a space fwd to eof
+
+				// --------only do if controller is not busy!!!
+				if ((loc_status & tapestatus_busy) == 0) {
+
+#if DEBUG_TAPE >= 1
+					fprintf(stderr, " Device tape - FWD FIL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+#endif
+
+					// -------- enable or disable interrupts.
+					device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
+
+					// -------- check prerequisites
+					// TODO: check prerequisites
+
+					// -------- select unit
+					loc_unit = loc_cmd & cmd_unit_mask;
+					loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
+					chg_unit = 1;
+
+					loc_io_cmd = locIOcmd_fwdfile;
+
+					// TODO: if prerequisites not met, generate SI (if enabled?)
+				}
+				break;
+
+			default:
+				msg_unexpected_cmd = true;
+				break;
 		}
 		break;
 
-		// --------SPACE record backward command
-		//  This command operates similarly to and requires the same considerations
-		//  as Space Record Forward with the following exceptions:
-		// 
-		//	-- Motion occurs in a reverse direction
-		// 
-		//	-- The controller goes NOT BUSY and stops in the next IRG after the read
-		//	   logic senses the first character of the respective block.
-		// 
-		//  -- When no IRG is detected, the transport moves the tape backwards until
-		//     the Beginning of Tape (BOT) tab is reached and then stops at the load
-		//     point.  BOT and EOF status bits are set.
-		// 
-		//	-- If the tape is positioned at the BOT tab when the command is given,
-		//	   the operation is inhibited and an SI is generated.  BOT and EOF status
-		//	   bits remain set.
-		//
-	case cmd_cmd_revrec:		//			0x4018		// do a space reverse to eor
-
-		// --------only do if controller is not busy!!!
-		if ((loc_status & tapestatus_busy) == 0) {
-
-#if TAPE_DEBUG >= 1
-			fprintf(stderr, " Device tape - REV REC Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-#endif
-
-			// -------- enable or disable interrupts.
-			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
-
-			// -------- check prerequisites
-			// TODO: check prerequisites
-
-			// -------- select unit
-			loc_unit = loc_cmd & cmd_unit_mask;
-			loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
-			chg_unit = 1;
-
-			loc_io_cmd = locIOcmd_bkrec;
-
-			// TODO: if prerequisites not met, generate SI (if enabled?)
-		}
-		break;
-
-		// --------SPACE to EOF Forward Command
-		//  This command operates similarly to and requires the same considerations as
-		//  Space Record Forward with the following exceptions:
-		// 
-		//	-- Blocks are spaced over without stopping until the Read Logic detects the
-		//	   EOF tape-mark, and then stops.  The EOF status is set.
-		//
-	case cmd_cmd_revfil:		//			0x401C		// do a space reverse to eof
-
-
-		// --------only do if controller is not busy!!!
-		if ((loc_status & tapestatus_busy) == 0) {
-
-#if TAPE_DEBUG >= 1
-			fprintf(stderr, " Device tape - REV FIL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-#endif
-
-			// -------- enable or disable interrupts.
-			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
-
-			// -------- check prerequisites
-			// TODO: check prerequisites
-
-			// -------- select unit
-			loc_unit = loc_cmd & cmd_unit_mask;
-			loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
-			chg_unit = 1;
-
-			loc_io_cmd = locIOcmd_bkfile;
-
-			// TODO: if prerequisites not met, generate SI (if enabled?)
-		}
-		break;
-
-		// --------SPACE to EOF Backward Command
-		//  This command operates similarly to and requires the same considerations as
-		//  Space Record Backward with the following exception:
-		//
-		//	-- Blocks are spaced over without stopping until the Read Logic detects the
-		//	   EOF tape-mark and then stops.  The EOF status is set.
-		//
-	case cmd_cmd_fwdfil:		//			0x4014		// do a space fwd to eof
-
-		// --------only do if controller is not busy!!!
-		if ((loc_status & tapestatus_busy) == 0) {
-
-#if TAPE_DEBUG >= 1
-			fprintf(stderr, " Device tape - FWD FIL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-#endif
-
-			// -------- enable or disable interrupts.
-			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
-
-			// -------- check prerequisites
-			// TODO: check prerequisites
-
-			// -------- select unit
-			loc_unit = loc_cmd & cmd_unit_mask;
-			loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
-			chg_unit = 1;
-
-			loc_io_cmd = locIOcmd_fwdfile;
-
-			// TODO: if prerequisites not met, generate SI (if enabled?)
-		}
-		break;
-
-		// -------- NOOP Command
-		//	The controller accepts the NO-OP command regardless of controller
-		//	busy status.  The data or service interrupts can be enabled or disabled
-		//	as specified by bits 2 and 3.  When the controller is not busy the following
-		//	status bits are reset 1, 2, 4, 7, 9 13
-		// **DONE**
+	// -------- NOOP Command
+	//	The controller accepts the NO-OP command regardless of controller
+	//	busy status.  The data or service interrupts can be enabled or disabled
+	//	as specified by bits 2 and 3.  When the controller is not busy the following
+	//	status bits are reset 1, 2, 4, 7, 9 13
+	// **DONE**
 	case cmd_cmd_noop:  //			0x4000		// do a no-op command
 
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 		fprintf(stderr, " Device tape - NOOP Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 #endif
 
@@ -1462,68 +1481,43 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		}
 		break;
 
-		// -------- REWIND command
-		//  The Rewind Command causes the selected transport to go into the high-speed
-		//	rewind mode.  After teh rewind operation is initiated an SI is generated.  If
-		//	the transport is inoperable or already rewinding, an IS is also generated.
-		//
-		//  Status bit 12, Device Rewinding is set TRUE by the selected transport rewinding,
-		//	the transport rejects commands until BOT is reached.  While a transport is
-		//	rewinding, other transports can be selected and operation can be initiated.
-		//  Options:
-		//		Bit 2 - DI enable
-		//		Bit 3 - SI enable
+	// -------- REWIND command
+	//  The Rewind Command causes the selected transport to go into the high-speed
+	//	rewind mode.  After teh rewind operation is initiated an SI is generated.  If
+	//	the transport is inoperable or already rewinding, an IS is also generated.
+	//
+	//  Status bit 12, Device Rewinding is set TRUE by the selected transport rewinding,
+	//	the transport rejects commands until BOT is reached.  While a transport is
+	//	rewinding, other transports can be selected and operation can be initiated.
+	//  Options:
+	//		Bit 2 - DI enable
+	//		Bit 3 - SI enable
 
-		// --------REWIND with Lockout (offline)
-		//  This command causes the transport to go off-line when the rewind is initiated,
-		//	generates an zSI and rewinds the tape to BOT.  Device status bit 3,
-		//	inoperable is set TRUE after the SI for this command is generated.  To
-		//	return the transport to a ready status requires operator intervention.
-		//
-	case cmd_cmd_rew_lock:		//		0x4180		// do a rewind with offline
+	// --------REWIND with Lockout (offline)
+	//  This command causes the transport to go off-line when the rewind is initiated,
+	//	generates an zSI and rewinds the tape to BOT.  Device status bit 3,
+	//	inoperable is set TRUE after the SI for this command is generated.  To
+	//	return the transport to a ready status requires operator intervention.
+	//
 
-		// --------only do if controller is not busy!!!
-		if ((loc_status & tapestatus_busy) == 0) {
-
-#if TAPE_DEBUG >= 1
-			fprintf(stderr, " Device tape - REW OFL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-#endif
-
-			// -------- enable or disable interrupts.
-			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
-
-			// -------- check prerequisites
-			// TODO: check prerequisites
-
-			// -------- select unit
-			loc_unit = loc_cmd & cmd_unit_mask;
-			loc_status = (loc_status & ~tapestatus_unitsel_mask) | loc_unit;		// set no data ready
-			chg_unit = 1;
-
-			// --------this should already be the case, but stop other io
-			chg_rd = -1;
-			chg_wrt = -1;
-
-			// --------set busy
-			loc_status |= (tapestatus_busy | tapestatus_data_not_ready);
-
-			loc_io_cmd = locIOcmd_rewoff;
-
-			// TODO: if prerequisites not met, generate SI (if enabled?)
-		}
-		break;
-
-		// --------REWIND command.
-		//  
+	// --------REWIND command.
+	//  
 	case cmd_cmd_rew:		//				0x4080		// do a rewind and stay online
-	case cmd_cmd_rew_SAL:	//				0x4280		// SAL uses this. select/rewind.  
+
+		rew_with_lockout = loc_cmd & cmd_rewind_lockout;
+
+#if DEBUG_TAPE >= 1
+		if (rew_with_lockout) {
+			fprintf(stderr, " Device tape - REW OFL Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+		}
+		else {
+			fprintf(stderr, " Device tape - REW Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
+		}
+#endif
 
 		// --------only do if controller is not busy!!!
 		if ((loc_status & tapestatus_busy) == 0) {
 
-#if TAPE_DEBUG >= 1
-			fprintf(stderr, " Device tape - REW Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
-#endif
 
 			// -------- enable or disable interrupts.
 			device_tape_enable_disable_SI_DI(loc_cmd, device_data, &chg_si_ena, &chg_di_ena);
@@ -1543,28 +1537,40 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 			// --------set busy
 			loc_status |= ( tapestatus_busy | tapestatus_data_not_ready);
 
-			loc_io_cmd = locIOcmd_rewon;
+			if (rew_with_lockout) {
+				loc_io_cmd = locIOcmd_rewoff;
+			}
+			else {
+				loc_io_cmd = locIOcmd_rewon;
+			}
 
 			// TODO: if prerequisites not met, generate SI (if enabled?)
 		}
+		// ------- controller is busy, rewind not done..
+		else {
+#if DEBUG_TAPE >= 1
+			fprintf(stderr, " Device tape - REWIND not done.  controller busy \n");
+#endif
+		}
 		break;
 
-		// --------Transport Select Command
-		//  The Transport Select Command causes the controller to store the specified unit
-		//	number (bits 14 and 15) in the unit register, which in turn selects the 
-		//	transport.  The transport unit bits are coded in binary as transports 0 through 3.  
-		//  The command does not cause the controller to go busy or cause an SI.  The
-		//	Transport Select Command resets the following status bits:
-		//		1, 2, 4, 7, 9, 13
-		//	To determine the number of the transport presently being selected, initate n ISA
-		//	instruction at any time.
-		//	Options:
-		//		Bit 2 - DI enable
-		//		Bit 3 - SI enable
-		//		Bit 7 - Continuous Scan
-		//
+	// --------Transport Select Command
+	//  The Transport Select Command causes the controller to store the specified unit
+	//	number (bits 14 and 15) in the unit register, which in turn selects the 
+	//	transport.  The transport unit bits are coded in binary as transports 0 through 3.  
+	//  The command does not cause the controller to go busy or cause an SI.  The
+	//	Transport Select Command resets the following status bits:
+	//		1, 2, 4, 7, 9, 13
+	//	To determine the number of the transport presently being selected, initate n ISA
+	//	instruction at any time.
+	//	Options:
+	//		Bit 2 - DI enable
+	//		Bit 3 - SI enable
+	//		Bit 7 - Continuous Scan
+	//
 	case cmd_cmd_sel_trans:		//		0x4200		// do a select unit command.
-#if TAPE_DEBUG >= 1
+
+#if DEBUG_TAPE >= 1
 		fprintf(stderr, " Device tape - SEL TRANS Command. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 #endif
 		// -------- enable or disable interrupts.
@@ -1586,6 +1592,7 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 		// --------unexpected command...
 	default:
 		msg_unexpected_cmd = true;
+		break;
 
 	}		// -------- END OF COMMAND PROCESSING
 
@@ -1666,18 +1673,31 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 
 	// -------- set new local IO worker command.
 	if (loc_io_cmd != 0) {
-		if (device_data->io_cmd[device_data->cur_sel_unit] != 0)
-			printf(" *** ISSUE *** Device tape - io command over written 0x%04x \n", device_data->io_cmd[device_data->cur_sel_unit]);
-		device_data->io_cmd[device_data->cur_sel_unit] = loc_io_cmd;
-		device_data->ctrl_wake++;
-		WakeByAddressSingle((PVOID) & (device_data->ctrl_wake));
+		boolean not_okay_to_send = true;
+		int max_wait_count = 0;
+		while (not_okay_to_send) {
+			if ((device_data->io_cmd[device_data->cur_sel_unit] != 0) && max_wait_count < 8) {
+				//printf(" *** ISSUE *** Device tape - io command over written 0x%04x \n", device_data->io_cmd[device_data->cur_sel_unit]);
+				Sleep(1);
+				max_wait_count++;
+			}
+			else {
+				if ( max_wait_count >= 8 )
+					printf(" *** ISSUE *** Device tape - io command over written 0x%04x \n", device_data->io_cmd[device_data->cur_sel_unit]);
+				device_data->io_cmd[device_data->cur_sel_unit] = loc_io_cmd;
+				device_data->ctrl_wake++;
+				WakeByAddressSingle((PVOID) & (device_data->ctrl_wake));
 
-		// --------allow other threads to run
-		SwitchToThread();
+				// --------allow other threads to run
+				SwitchToThread();
+				not_okay_to_send = false;
+				max_wait_count = 0;
+			}
+		}
 	}
 
 	// --------diag/debug messages....
-#if TAPE_DEBUG >= 1
+#if DEBUG_TAPE >= 1
 	if (msg_term_icb)
 		fprintf(stderr, " Device tape - terminate w/ICB requested. Dev Addr %d, cmd 0x%04x\n", device_data->device_address, loc_cmd);
 #endif

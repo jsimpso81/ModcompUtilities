@@ -49,7 +49,7 @@ void disp_virtual_map(FILE* io_unit, SIMJ_U16 map ) {
 	cpu_get_virtual_map(map, &loc_map);
 
 	fprintf(io_unit, "\nVirtual Memory Hardware Map Number: %d\n",map);
-	fprintf(io_unit, "   Entry     Access       Shared       Map Page       All \n");
+	fprintf(io_unit, "   Entry     Access  Shared   Map Page   All \n");
 
 	// --------loop over stack;
 	for (j = 0; j < 256; j++) {

@@ -120,7 +120,7 @@ DWORD WINAPI cpu_thread_proc(LPVOID lpParam) {
 
 		// -------- if running or single stepping call the cpu to run.
 		if (gbl_fp_runlight || gbl_fp_single_step) {
-			cpu_classic_7860();
+			cpu_classic_instruction_process();
 		}
 
 		// --------wait for single step to be triggered.

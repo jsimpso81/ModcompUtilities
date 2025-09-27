@@ -307,69 +307,69 @@ void process_user_commands(FILE* cmd_src) {
 				else if (strcmp(cmd_data->cmd_line_parsed[0], "show") == 0) {
 					if (cmd_count_found >= 2) {
 
-						//--------processor status word 
+						//--------show processor status word 
 						// TODO: get and show psw
 						if (strcmp(cmd_data->cmd_line_parsed[1], "psw") == 0) {
 							disp_psw(stdout, cpu_get_current_PSW());
 						}
 
-						//--------clock
+						//--------show clock
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "clock") == 0) {
 							printf(" Clock trigger count: %d\n", cpu_get_clock_trigger_count());
 						}
 
 
-						//--------program counter
+						//--------show program counter
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "pc") == 0) {
 							disp_pc(stdout, cpu_get_program_counter());
 						}
 
-						//--------interrupts
+						//--------show interrupts
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "int") == 0) {
 							disp_interrupts(stdout);
 						}
 
-						//--------devices
+						//--------show devices
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "devices") == 0) {
 							disp_devices(stdout);
 						}
 
-						//--------instruction trace
+						//--------show instruction trace
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "trace") == 0) {
 							disp_instruction_trace(stdout);
 						}
 
-						//--------key
+						//--------show key
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "key") == 0) {
 							printf(" Front panel key is : %s\n", ( gbl_fp_keylocked ? "Locked" : "Unlocked" ));
 						}
 
-						//--------switches
+						//--------show switches
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "switches") == 0) {
 							printf(" Front panel switches 0x%04x\n", gbl_fp_switches);
 						}
 
-						//--------power
+						//--------show power
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "power") == 0) {
 							printf(" CPU Power on state : %s\n", (cpu_get_power_on() ? "On" : "Off"));
 						}
 
-						//--------run
+						//--------show run
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "run") == 0) {
 							printf(" Run / Halt mode :%s\n", (gbl_fp_runlight ? "Run" : "Halt"));
 						}
 
-						//--------verbose
+						//--------show verbose
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "verbose") == 0) {
-							printf(" Verbose debug mode : %s\n", (gbl_verbose_debug ? "On" : "Off"));
+							printf(" Verbose debug mode : %s\n", cpu_get_debug_string() );
 						}
 
-						//--------virtual
+						//--------show virtual
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "virtual") == 0) {
 							printf(" CPU Real/Virtual mode is: %s\n", (cpu_get_virtual_mode() ? "Virtual" : "Real"));
 						}
 
-						//--------reg
+						//--------show reg
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "reg") == 0) {
 							// -------- a particular block...
 							if (cmd_count_found >= 3) {
@@ -388,8 +388,7 @@ void process_user_commands(FILE* cmd_src) {
 							}
 						}
 
-
-						//--------virtual map
+						//--------show virtual map
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "map") == 0) {
 							SIMJ_U32 parm_parse = 0;
 							SIMJ_U16 map = 0;
@@ -405,7 +404,7 @@ void process_user_commands(FILE* cmd_src) {
 						}
 
 
-						//--------mem
+						//--------show mem
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "mem") == 0) {
 							SIMJ_U32 parm_parse = 0;
 							if (cmd_count_found >= 3) {
@@ -428,20 +427,14 @@ void process_user_commands(FILE* cmd_src) {
 							printf(" Memory\n");
 							for (uj = last_starting_mem_address; uj < (last_ending_mem_address + 8); uj += 8) {
 								printf("  0x%04x  |  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  0x%04x  \n", uj,
-									gbl_mem[uj],
-									gbl_mem[uj + 1],
-									gbl_mem[uj + 2],
-									gbl_mem[uj + 3],
-									gbl_mem[uj + 4],
-									gbl_mem[uj + 5],
-									gbl_mem[uj + 6],
-									gbl_mem[uj + 7]
+									gbl_mem[uj],     gbl_mem[uj + 1], gbl_mem[uj + 2], gbl_mem[uj + 3],
+									gbl_mem[uj + 4], gbl_mem[uj + 5], gbl_mem[uj + 6], gbl_mem[uj + 7]
 								);
 							}
 						}
 
 
-						//--------vmem virtual memory via hardware map
+						//--------show vmem virtual memory via hardware map
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "vmem") == 0) {
 							// --------show vmem <map num> <virt addr start> <virt addr end>
 							SIMJ_U32 parm_parse = 0;
@@ -486,26 +479,26 @@ void process_user_commands(FILE* cmd_src) {
 						}
 
 
-						//--------instruction use (deug)
+						//--------show instruction use (deug)
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "inst") == 0) {
 							disp_instruction_use(stdout);
 						}
-						//--------instruction execution count
+						//--------show instruction execution count
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "count") == 0) {
 							printf(" Instruction execution count %d\n", cpu_get_instruction_count());
 						}
 
-						// --------just in case 1
+						// --------show shit just in case 1
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "shit") == 0) {
 							printf(" It is brown gross and smelly.\n");
 						}
 
-						// --------just in case 2
+						// --------show fuck just in case 2
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "fuck") == 0) {
 							printf(" No thanks.  That cant be simulated here.\n");
 						}
 
-						// --------unrecognozed show sub command.
+						// --------show unrecognozed show sub command.
 						else {
 							printf(" *** ERROR *** Unrecognized show sub-command: %s.\n", cmd_data->cmd_line_parsed[1]);
 						}
@@ -540,32 +533,53 @@ void process_user_commands(FILE* cmd_src) {
 
 						//--------set memory
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "mem") == 0) {
-							if (cmd_count_found >= 4) {
-								SIMJ_U32 parm_parse = 0;
-								SIMJ_U32 set_addr = 0;
-								SIMJ_U16 set_value = 0;
-								if (sscanf_s(cmd_data->cmd_line_parsed[2], "%i", &parm_parse) == 1) {
-									set_addr = parm_parse;
-									if (sscanf_s(cmd_data->cmd_line_parsed[3], "%i", &parm_parse) == 1) {
-										set_value = parm_parse;
-										// --------kludge to clear all memory
-										if (set_addr == 0xffffffff) {
-											int j = 0;
-											for (j = 0; j < 2097152; j++) {
-												gbl_mem[j] = 0;
-											}
-										}
-										else {
-											// TODO: check bounds of address value !!
-											gbl_mem[set_addr] = set_value;
-										}
-									}
-									else {
-										printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[3]);
+							// --------only 3 parameters.  It must be a set mem clear command.  otherwise bad.
+							if (cmd_count_found == 3) {
+								if (strcmp(cmd_data->cmd_line_parsed[2], "clear") == 0 ) {
+									// -------- do memory clear....
+									int j = 0;
+									for (j = 0; j < 2097152; j++) {
+										gbl_mem[j] = 0;
 									}
 								}
 								else {
-									printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[2]);
+									printf(" *** ERROR *** Not a valid set mem command.\n");
+								}
+							}
+							else if (cmd_count_found >= 4) {
+								// --------check for set mem save
+								if (strcmp(cmd_data->cmd_line_parsed[2], "save") == 0 ) {
+									// --------cpu must be halted....
+									// --------get file name.
+									// --------process the memory save command.
+									user_cmd_mem_save(cmd_data->cmd_line_parsed[3]);
+								}
+								// --------check for set mem restore
+								else if (strcmp(cmd_data->cmd_line_parsed[2], "restore") == 0 ) {
+									// --------cpu must be halted....
+									// --------get file name.
+									// --------process the memory restore command.
+									user_cmd_mem_restore(cmd_data->cmd_line_parsed[3]);
+								}
+								// --------must be set mem <addr> <value>
+								else {
+									SIMJ_U32 parm_parse = 0;
+									SIMJ_U32 set_addr = 0;
+									SIMJ_U16 set_value = 0;
+									if (sscanf_s(cmd_data->cmd_line_parsed[2], "%i", &parm_parse) == 1) {
+										set_addr = parm_parse;
+										if (sscanf_s(cmd_data->cmd_line_parsed[3], "%i", &parm_parse) == 1) {
+											set_value = parm_parse;
+											// TODO: check bounds of address value !!
+												gbl_mem[set_addr] = set_value;
+										}
+										else {
+											printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[3]);
+										}
+									}
+									else {
+										printf(" *** ERROR *** Expecting a numeric value : %s\n", cmd_data->cmd_line_parsed[2]);
+									}
 								}
 							}
 							else {
@@ -607,13 +621,16 @@ void process_user_commands(FILE* cmd_src) {
 						else if (strcmp(cmd_data->cmd_line_parsed[1], "verbose") == 0) {
 							if (cmd_count_found >= 3) {
 								if (strcmp(cmd_data->cmd_line_parsed[2], "on") == 0) {
-									gbl_verbose_debug = true;
+									gbl_verbose_debug = debugging_on;
 								}
 								else if (strcmp(cmd_data->cmd_line_parsed[2], "off") == 0) {
-									gbl_verbose_debug = false;
+									gbl_verbose_debug = debugging_off;
+								}
+								else if (strcmp(cmd_data->cmd_line_parsed[2], "auto") == 0) {
+									gbl_verbose_debug = debugging_automatic;
 								}
 								else {
-									printf(" *** ERROR *** Expecting either on or off\n");
+									printf(" *** ERROR *** Expecting either on, off, auto\n");
 								}
 							}
 							else {

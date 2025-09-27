@@ -32,7 +32,7 @@
 
 void disp_devices(FILE* io_unit) {
 
-	volatile DEVICE_GENERIC_DATA* ptr_generic_data =(volatile DEVICE_GENERIC_DATA*) NULL;
+	DEVICE_GENERIC_DATA* ptr_generic_data = ( DEVICE_GENERIC_DATA*) NULL;
 	int j = 0;
 	unsigned int rd_buf_count = 0;
 	unsigned int wr_buf_count = 0;

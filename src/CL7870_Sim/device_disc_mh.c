@@ -33,13 +33,6 @@
 
 // -------- DEVICE DISC
 
-// -------- DEFINE DEBUG LEVEL
-// ---------1 - physical IO transfers
-// ---------2 - commands and 1
-// ---------3 - 1 and 2 and much more
-// ---------4 ludicous mode.
-#define DEBUG_DISC_MH 1
-
 
 // -------- 
 // -------- status

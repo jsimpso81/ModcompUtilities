@@ -30,6 +30,8 @@
 
 #include "simj_base.h"
 
+// DEBUG_TAPE_COMMON is set > 0 for debugging
+
 // -------- open a raw tcp socket, listen for connections, and accept a connection.
 int device_common_tape_open(char* tape_filename, bool read_only, FILE** tape_file_handle, 
                             SIMJ_TAPE_DPI* tape_dpi, SIMJ_TAPE_ERR* last_error) {
@@ -152,8 +154,10 @@ int device_common_tape_read_record(
 	err_stat = device_common_tape_read_header(tape_file_handle, current_file_position,
 		&loc_header_record_bytes, end_of_file);
 	// --------debug
-	//--debug--printf(" --- tape image read -- record header read record_bytes %d, error stat %d, eof %d\n", 
-	//--debug--					loc_header_record_bytes, err_stat, *end_of_file);
+#if DEBUG_TAPE_COMMON > 0
+	printf(" --- tape image read -- record header read record_bytes %d, error stat %d, eof %d\n", 
+				loc_header_record_bytes, err_stat, *end_of_file);
+#endif
 
 	// --------some kind of error occured.
 	if (err_stat != 0) {
@@ -186,15 +190,19 @@ int device_common_tape_read_record(
 
 	// -------- read tape record 
 	// --------debug
-	//--debug--printf(" --- tape image before read -- buf size %zd, ele size %zd, ele cnt %zd\n",
-	//--debug--		buffer_size, element_size, element_count);
+#if	DEBUG_TAPE_COMMON > 0
+	printf(" --- tape image before read -- buf size %zd, ele size %zd, ele cnt %zd\n",
+			buffer_size, element_size, element_count);
+#endif
 	return_count = fread_s(buf, buffer_size, element_size,
-		element_count, *tape_file_handle);
+		element_count, (FILE*)*tape_file_handle);
 	// --------debug
-	//--debug--printf(" --- tape image read -- bytes read %zd\n", return_count);
+#if	DEBUG_TAPE_COMMON > 0
+	printf(" --- tape image read -- bytes read %zd\n", return_count);
+#endif
 
 	//io_error = ferror(tape_file_handle);
-	*end_of_file = feof(*tape_file_handle);
+	*end_of_file = feof((FILE*)*tape_file_handle);
 
 	// --------everything was returned...
 	// --------return non adjusted byte count..
@@ -213,8 +221,10 @@ int device_common_tape_read_record(
 	err_stat = device_common_tape_read_header(tape_file_handle, current_file_position,
 		&loc_footer_record_bytes, end_of_file);
 	// --------debug
-	//--debug--printf(" --- tape image read -- record footer read record_bytes %d, error stat %d, eof %d\n", 
-	//--debug--			loc_footer_record_bytes, err_stat, *end_of_file);
+#if	DEBUG_TAPE_COMMON > 0
+	printf(" --- tape image read -- record footer read record_bytes %d, error stat %d, eof %d\n", 
+			loc_footer_record_bytes, err_stat, *end_of_file);
+#endif
 
 	// --------some kind of error occured.  bad footer
 	if (err_stat != 0) {
@@ -233,7 +243,7 @@ int device_common_tape_read_record(
 			loc_header_record_bytes, loc_footer_record_bytes);
 
 	//io_error = ferror(tape_file_handle);
-	*end_of_file = feof(*tape_file_handle);
+	*end_of_file = feof((FILE*)*tape_file_handle);
 
 	return 0;
 }
@@ -259,20 +269,33 @@ int device_common_tape_close(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi) {
 
 // -------- open a raw tcp socket, listen for connections, and accept a connection.
 int device_common_tape_rewind(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi) {
+#if	DEBUG_TAPE_COMMON > 0
+	printf(" tape_common - rewind - called\n");
+#endif
 
 	int stat_err = 0;
 
 	// --------see if we have an open file.  If not, return error.
 	if (*tape_file_handle == NULL) {
+#if	DEBUG_TAPE_COMMON > 0
+		printf(" tape_common - rewind - bad file handle\n");
+#endif
 		return 1;
 	}
 
 	// --------set pos at beginning of file.
+	*tape_dpi = 0;
 	stat_err = _fseeki64(*tape_file_handle, *tape_dpi, SEEK_SET);
 	if (stat_err != 0) {
+#if	DEBUG_TAPE_COMMON > 0
+		printf(" tape_common - rewind - bad return from seek, stat %d \n", stat_err);
+#endif
 		return 1;
 	}
 	*tape_dpi = _ftelli64(*tape_file_handle);
+#if	DEBUG_TAPE_COMMON > 0
+	printf(" tape_common - rewind - new tape dpi, stat %lld \n", *tape_dpi);
+#endif
 	return 0;
 }
 
@@ -299,12 +322,16 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 	// -------- get current position
 	current_pos = _ftelli64(*tape_file_handle);
 	*tape_dpi = current_pos;
+#if DEBUG_TAPE > 0
 	printf(" Tape BCK REC - current position %zd\n", current_pos);
+#endif
 
 	// -------- are we already at the beginning of the tape.
 	// -------- nothing to do,,
 	if (current_pos <= 0) {
+#if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - beginning of tape\n");
+#endif
 		*end_of_file = false;
 		*begin_of_tape = true;
 		return 0;
@@ -314,19 +341,25 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 	offset_bytes = -4;
 	seek_stat = _fseeki64(*tape_file_handle, offset_bytes, SEEK_CUR);
 	if (seek_stat != 0) {
+#if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - fseeki64 error %d\n", seek_stat);
+#endif
 		*end_of_file = false;
 		*begin_of_tape = false;
 		return 1;
 	}
 	current_pos = _ftelli64(*tape_file_handle);
 	*tape_dpi = current_pos;
+#if DEBUG_TAPE > 0
 	printf(" Tape BCK REC - position after move backwards. %zd\n", current_pos);
+#endif
 
 	// -------- read the file footer record.  calc record size.
 	header_stat = device_common_tape_read_header( tape_file_handle, tape_dpi, &record_bytes, end_of_file);
 	if (header_stat != 0) {
+#if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - read footer error %d\n", header_stat);
+#endif
 		*end_of_file = false;
 		*begin_of_tape = false;
 		return 1;
@@ -335,7 +368,9 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 	// -------- are we at the begining of the tape.
 	// -------- this is an error since there should have been a record here..
 	if (*tape_dpi <= 0) {
+#if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - beginning of tape\n");
+#endif
 		*end_of_file = false;
 		*begin_of_tape = true;
 		return 1;
@@ -356,7 +391,9 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 	// -------- backup record_size (made even) + 4 header bytes + 4 footer bytes.
 	seek_stat = _fseeki64(*tape_file_handle, offset_bytes, SEEK_CUR);
 	if (seek_stat != 0) {
+#if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - fseeki64 error %d\n", seek_stat);
+#endif
 		*end_of_file = false;
 		*begin_of_tape = false;
 		return 1;
@@ -365,7 +402,9 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 	// -------- get current position
 	current_pos = _ftelli64(*tape_file_handle);
 	*tape_dpi = current_pos;
+#if DEBUG_TAPE > 0
 	printf(" Tape BCK REC - current position %zd\n", current_pos);
+#endif
 
 	// -------- are we at the beginning of the date.
 	if (current_pos <= 0) {

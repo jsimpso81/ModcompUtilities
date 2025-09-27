@@ -103,7 +103,7 @@ void UPDATE_DATA_READY_FUNC(SIMJ_U16* loc_ctrl_status, DEVICE_CONSOLE_DATA* devi
 
 	// -------- if reading and data available, update status.
 	//if (device_data->read_in_progress || !device_data->write_in_progress) {
-	// --------if not writing...
+	// --------if not writing...  (reading or nothing)
 	if (!device_data->write_in_progress) {
 		// --------nothing ready.
 		if (device_common_buffer_isempty(&device_data->in_buff)) {
@@ -126,7 +126,7 @@ void UPDATE_DATA_READY_FUNC(SIMJ_U16* loc_ctrl_status, DEVICE_CONSOLE_DATA* devi
 			*loc_ctrl_status &= (~status_data_not_ready); // can write
 		}
 	}
-	// --------update input ready status regardless.
+	// --------update input ready status regardless of IO operation
 	if (device_common_buffer_isempty(&device_data->in_buff)) {
 		*loc_ctrl_status &= ~status_input_ready;
 	}
@@ -460,7 +460,8 @@ DWORD WINAPI IO_THREAD_FUNC(LPVOID lpParam) {
 			bytes_to_write = 0;
 
 			// -------- for now limit bytes written to 500
-			while (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 500) {
+			// -------- change to 1000
+			while (!device_common_buffer_isempty(&device_data->out_buff) && bytes_to_write < 1000) {
 				if (device_common_buffer_get(&device_data->out_buff, &loc_write_data[bytes_to_write])) {
 					// --------DEBUG
 					// fprintf(stderr, "%c", loc_write_data[bytes_to_write]);
@@ -469,7 +470,31 @@ DWORD WINAPI IO_THREAD_FUNC(LPVOID lpParam) {
 				}
 			}
 
+
+			// -------- something to write...
 			if (bytes_to_write > 0) {
+
+				// --------once we have the bytes, signal back to cpu that it can proceed.
+				// --------BUT only if a write was in progress...
+				if (device_data->write_in_progress) {
+
+					// -------- Request ownership of the resource.
+					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
+
+					// --------signal buffer not full -- ready for more.
+					if (device_data->write_in_progress) {
+						device_data->ctrl_status &= (~status_data_not_ready);
+					}
+					// -------- Release ownership of the resource.
+					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
+
+					// --------initiate DI to get more
+					if (device_data->write_in_progress && device_data->DI_enabled) {
+						cpu_request_DI(device_data->bus, device_data->pri, device_data->device_address);
+					}
+				}
+
+
 #ifdef CONSOLE_TYPE_TCP
 				write_status = device_common_raw_socket_write(loc_socket, bytes_to_write,
 					(void*)(&loc_write_data), &bytes_written, &last_error);
@@ -479,27 +504,13 @@ DWORD WINAPI IO_THREAD_FUNC(LPVOID lpParam) {
 					&bytes_written, NULL);
 #endif
 				// fprintf(stderr, " Console bytes write requested %d, written %d.  Device Addr %d\n", bytes_to_write, bytes_written, loc_device_addr);
-
-				// -------- Request ownership of the resource.
-				TAKE_RESOURCE(device_data->ResourceStatusUpdate);
-
-				// --------signal buffer not full -- ready for more.
-				if (device_data->write_in_progress) {
-					device_data->ctrl_status &= (~status_data_not_ready);
-				}
-				// -------- Release ownership of the resource.
-				GIVE_RESOURCE(device_data->ResourceStatusUpdate);
-
-				// --------initiate DI to get more
-				if (device_data->write_in_progress && device_data->DI_enabled) {
-					cpu_request_DI(device_data->bus, device_data->pri, device_data->device_address);
-				}
 			}
 
 			// -------- Request ownership of the resource.
 			TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 
 			// --------signal buffer not full -- ready for more. -- JUST IN CASE.
+			// TODO: Is this needed???
 			if (device_data->write_in_progress && device_common_buffer_isempty(&device_data->out_buff)) {
 				device_data->ctrl_status &= (~status_data_not_ready);
 			}
@@ -570,7 +581,14 @@ DWORD WINAPI IO_THREAD_FUNC(LPVOID lpParam) {
 				if (read_status != 0) {
 					DWORD my_last_error = 0;
 					my_last_error = GetLastError();
+#ifdef CONSOLE_TYPE_TCP
 					fprintf(stderr, " *** ERROR *** Console read error 0x%08x\n", my_last_error);
+#endif
+#ifdef CONSOLE_TYPE_SERIAL
+					if (my_last_error != ERROR_TIMEOUT) {
+						fprintf(stderr, " *** ERROR *** Console read error 0x%08x\n", my_last_error);
+					}
+#endif
 				}
 			}
 

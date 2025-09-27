@@ -17,6 +17,8 @@
 //		6/20/2024	JAS		Added header
 // ================================================================================================
 
+// TODO: Move mounted file information here.
+
 SIMJ_U16 device_address;
 volatile SIMJ_U16 ctrl_wake;
 volatile SIMJ_U16 ctrl_status;

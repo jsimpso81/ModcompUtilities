@@ -58,6 +58,7 @@ void user_cmd_print_help() {
 	printf("      attach device tape <dev addr> <bus> <prio> <dmp>\n");
 	printf("      mount device <dev addr> <unit> <image_file> <ro/readonly>\n");
 	printf("      dismount device <dev addr> <unit>\n");
+	//printf("      rewind device <dev addr> <unit>\n");
 
 	printf("\n");
 
@@ -75,7 +76,10 @@ void user_cmd_print_help() {
 	printf("\n");
 	printf("      set key lock - lock front panel\n");
 	printf("      set key unlock - unlock front panel\n");
-	printf("      set mem <addr> <value> - set memory value. Addr 0xffffffff to clear all mem.\n");
+	printf("      set mem clear - set all memory values to zero.\n");
+	printf("      set mem save <file> - save all memory, registers, pc, and ps to a file.\n");
+	printf("      set mem restore <file> - restore all memory, registers, pc, and ps to a file.\n");
+	printf("      set mem <addr> <value> - set memory value.\n");
 	printf("      set pc <value> - set program counter value\n");
 	printf("      set reg <reg> <value> - set register value\n");
 	printf("      set switches <value> - set console switches\n");

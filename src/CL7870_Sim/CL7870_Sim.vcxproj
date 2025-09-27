@@ -140,6 +140,7 @@
     <ClCompile Include="device_common_disc_functions.c" />
     <ClCompile Include="device_common_raw_socket_functions.c" />
     <ClCompile Include="device_common_tape_functions.c" />
+    <ClInclude Include="debug_flags.h" />
     <ClInclude Include="device_console_common.h">
       <FileType>Text</FileType>
     </ClInclude>
@@ -150,9 +151,12 @@
     <ClCompile Include="disp_instruction_trace.c" />
     <ClCompile Include="disp_interrupts.c" />
     <ClCompile Include="disp_virtual_map.c" />
+    <ClCompile Include="format_psw.c" />
+    <ClCompile Include="frontpanel_start_thread.c" />
     <ClCompile Include="memory_plane_status.c" />
+    <ClCompile Include="opcode_functions.c" />
     <ClCompile Include="rtclock_start_thread.c" />
-    <ClCompile Include="cpu_classic_7860.c" />
+    <ClCompile Include="cpu_classic_instruction_process.c" />
     <ClCompile Include="cpu_set_switches.c" />
     <ClCompile Include="device_common_buffer_functions.c" />
     <ClCompile Include="device_common_device_buffer_allocate.c" />
@@ -173,6 +177,7 @@
     <ClCompile Include="user_cmd_attach_device.c" />
     <ClCompile Include="user_cmd_config_execute.c" />
     <ClCompile Include="user_cmd_dismount_device.c" />
+    <ClCompile Include="user_cmd_mem_save_restore.c" />
     <ClCompile Include="user_cmd_mount_device.c" />
     <ClCompile Include="user_cmd_parse.c" />
     <ClCompile Include="user_cmd_parse_device_type.c" />

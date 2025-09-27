@@ -66,10 +66,9 @@ void device_common_capture_console(SIMJ_U8 in_data) {
 			fprintf(text_file, "\n");
 			item_count = 0;
 		}
-		//bytes_to_write = 1;
 		fwrite(&loc_data, sizeof(loc_data), 1, bin_file);
 		//bin_write_status = WriteFile(bin_file, &loc_data, bytes_to_write,
-		//	&bin_bytes_written, NULL);
+		//			&bin_bytes_written, NULL);
 		//if (bin_bytes_written != 1) {
 		//	printf(" *** ERROR *** Didnt write to console_capture.dat - %s\n",GetLastError());
 		//}

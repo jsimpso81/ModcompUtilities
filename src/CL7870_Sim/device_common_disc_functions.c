@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <memory.h>
 
-#define DEBUG_DISC_COMMON 0
 
 #define RAW_SECTOR_BYTES (size_t)256
 #define MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES (size_t)258

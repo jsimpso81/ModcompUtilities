@@ -227,7 +227,7 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 	loc_status = (status_exists | status_data_not_ready);
 	device_data->ctrl_status = loc_status;
 
-
+	// --------fill the buffer with our data....
 	// device_null_load_sal( device_data );
 	device_null_load_sal_new( device_data );
 
@@ -265,32 +265,37 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 					// -- abort Terminate with bit 7 set.
 					if ((loc_cmd & ctrl_terminate) != 0) {
 						if ((loc_cmd & ctrl_icb) != 0) {
+#if DEBUG_NULL >= 1
 							fprintf(stderr, " Device null - terminate w/ICB requested: 0x%04x.\n", loc_cmd );
+#endif
 							dev_reading = false;
 							dev_writing = false;
-							//				console_input_buffer_count = 0;
-							//				console_input_buffer_index = 0;
 							loc_status |= (status_data_not_ready);
 							loc_status &= (~status_busy);
 							si_enabled = false;
 							di_enabled = false;
-							// device_data->ctrl_input_buffer_count = 0;
-							// device_data->ctrl_input_buffer_index = 0;
-							// device_data->ctrl_output_buffer_count = 0;
-							// device_data->ctrl_output_buffer_index = 0;
 						}
 						else {
-							// printf("\n Device null - terminate requested.\n");
+#if DEBUG_NULL >= 1
+							printf("\n Device null - terminate requested.\n");
+#endif
 							dev_reading = false;
 							dev_writing = false;
-							//				console_input_buffer_count = 0;
-							//				console_input_buffer_index = 0;
 							loc_status |= (status_data_not_ready);
 							loc_status &= (~status_busy);
 							if (si_enabled) {
 								// TODO: Cause SI
 							}
 						}
+
+						// --------common null device terminate actins
+						// --------clear buffer
+						device_common_buffer_set_empty( &device_data->in_buff );
+						// --------load buffer
+						// --------fill the buffer with our data....
+						// device_null_load_sal( device_data );
+						device_null_load_sal_new(device_data);
+
 					}
 
 
@@ -342,7 +347,7 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 							case ctrl_si_rel:
 								break;
 							default:
-								fprintf(stderr, " Device null - invalid noop break select command 0x%04x \n", loc_cmd);
+								fprintf(stderr, " *** ERROR ***  Device null - invalid noop break select command 0x%04x \n", loc_cmd);
 							}
 						}
 
@@ -353,12 +358,16 @@ DWORD WINAPI device_null_worker_thread(LPVOID lpParam) {
 				case cmd_transfer_initiate:
 
 					if ( loc_cmd & transinit_write ) {
-						// printf("\n Device null - transfer initiate - write requested.\n");
+#if DEBUG_NULL >= 2
+						printf("\n Device null - transfer initiate - write requested.\n");
+#endif
 						dev_reading = false;
 						dev_writing = true;	// not full duplex?? so can't do both.
 					}
 					else {
-						// printf("\n Device null - transfer initiate - read requested.\n");
+#if DEBUG_NULL >= 2
+						printf("\n Device null - transfer initiate - read requested.\n");
+#endif
 						dev_reading = true;
 						dev_writing = false;	// not full duplex?? so can't do both.
 						loc_status |= status_data_not_ready;

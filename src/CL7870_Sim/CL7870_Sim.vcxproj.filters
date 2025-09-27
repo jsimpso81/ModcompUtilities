@@ -18,7 +18,7 @@
     <ClCompile Include="CL7870_Sim.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cpu_classic_7860.c">
+    <ClCompile Include="cpu_classic_instruction_process.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="user_cmd_print_prompt.c">
@@ -177,6 +177,18 @@
     <ClCompile Include="device_console_serial.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="frontpanel_start_thread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="format_psw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opcode_functions.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="user_cmd_mem_save_restore.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_globals.h">
@@ -216,6 +228,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="device_console_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="debug_flags.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

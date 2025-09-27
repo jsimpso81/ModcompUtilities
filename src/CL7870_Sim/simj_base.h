@@ -35,6 +35,7 @@
 // =====================================================================================================================
 // --------define simulation customizations ---- later these can be moved to the build routines
 #define SIMJ_SIM_CPU 7830		// values are "7860" "7830" "II15" "3285"
+// #define SIMJ_SIM_CPU 7860		// values are "7860" "7830" "II15" "3285"
 #define SIMJ_SIM_HAS_EAU false	// values are true, false
 #define SIMJ_SIM_CPU_1MEGMAX	// force memory to be one meg max.
 
@@ -49,35 +50,49 @@
 
 #pragma once
 
+#include <stdint.h>
+#include <inttypes.h>
 #include <windows.h>
 #include <synchapi.h>
 #pragma comment(lib, "ws2_32.lib") // Link with ws2_32.lib
 
 // ---------- simulator data types.
+// TODO: These types may be portable...
 // -- 8 bit unsigned integer
-#define SIMJ_U8	unsigned __int8
+//#define SIMJ_U8	unsigned __int8
+#define SIMJ_U8 uint8_t
 // -- 8 bit signed integer
-#define SIMJ_S8	signed __int8
+// #define SIMJ_S8	signed __int8
+#define SIMJ_S8	int8_t
 // -- 16 bit unsigned integer
-#define SIMJ_U16 unsigned __int16
+// #define SIMJ_U16 unsigned __int16
+#define SIMJ_U16 uint16_t
 // -- 16 bit signed integer
-#define SIMJ_S16 signed __int16
+// #define SIMJ_S16 signed __int16
+#define SIMJ_S16 int16_t
 // -- 32 bit unsigned integer
-#define SIMJ_U32 unsigned __int32
+// #define SIMJ_U32 unsigned __int32
+#define SIMJ_U32 uint32_t
 // -- 32 bit signed integer
-#define SIMJ_S32 signed __int32
+// #define SIMJ_S32 signed __int32
+#define SIMJ_S32 int32_t
 // -- 64 bit unsigned integer
-#define SIMJ_U64 unsigned __int64
+// #define SIMJ_U64 unsigned __int64
+#define SIMJ_U64 uint64_t
 // -- 64 bit signed integer
-#define SIMJ_S64 signed __int64
+//#define SIMJ_S64 signed __int64
+#define SIMJ_S64 int64_t
+
 // -- 8 bit unsigned character
 #define SIMJ_UC unsigned char
 // -- 8 bit signed character
 #define SIMJ_SC signed char
+
 // -- 32 bit IEEE float
 #define SIMJ_F32 float 
 // -- 64 bit IEEE float
 #define SIMJ_F64 double
+
 // -- 32 bit Modcomp float storage
 #define SIMJ_M32 SIMJ_U32
 // -- 48 bit Modcomp float storage
@@ -90,10 +105,10 @@
 
 // -------- Resource 
 #define DEFINE_RESOURCE( NAME )  CRITICAL_SECTION NAME
-#define INIT_RESOURCE( NAME ) InitializeCriticalSectionAndSpinCount(&NAME, 0x00000400);
-#define DELETE_RESOURCE( NAME ) DeleteCriticalSection(&NAME)
-#define TAKE_RESOURCE( NAME ) 	EnterCriticalSection(&NAME)
-#define GIVE_RESOURCE( NAME )  LeaveCriticalSection(&NAME)
+#define INIT_RESOURCE( NAME ) InitializeCriticalSectionAndSpinCount((LPCRITICAL_SECTION)&NAME, 0x00000400);
+#define DELETE_RESOURCE( NAME ) DeleteCriticalSection((LPCRITICAL_SECTION)&NAME)
+#define TAKE_RESOURCE( NAME ) 	EnterCriticalSection((LPCRITICAL_SECTION)&NAME)
+#define GIVE_RESOURCE( NAME )  LeaveCriticalSection((LPCRITICAL_SECTION)&NAME)
 
 #else
 #error SIMJ  simj_base.h - Runtime platform not defined.   Compile aborted.
@@ -103,6 +118,14 @@
 // -------- includes always used.
 #include <stdbool.h>
 #include <stdio.h>
+#include "debug_flags.h"			// defines used to conditionally compile debug code
+
+
+// =====================================================================================================================
+// -------- constants for various things
+#define NUMB_OPSI					0x01ab	// 427  --- count of instrustion list
+#define NUMB_OP						256		// count of base opcodes before parsing.
+
 
 // =====================================================================================================================
 // -------- simulator data types.
@@ -220,6 +243,15 @@ typedef union {
 	SIMJ_U32 reg32[8];
 	SIMJ_U64 reg64[4];
 } REG_BLOCK;
+
+
+// -------- Typedef for instruction debugging
+typedef enum {
+	debugging_off = 0,
+	debugging_automatic = 1,
+	debugging_on = 2,
+} VERBOSE_DEBUGGING;
+
 
 // -------- IO procedures
 typedef void (*DEVICE_OUTPUT_DATA)(SIMJ_U16 device_address, SIMJ_U16 data_word);
@@ -346,6 +378,7 @@ void cpu_init_data();
 void cpu_do_fill(SIMJ_U16 new_switch_value);
 void cpu_do_run();
 void cpu_do_step(SIMJ_U16 step_count);
+char* cpu_get_debug_string();
 SIMJ_U16 cpu_get_program_counter();
 PSW cpu_get_current_PSW();
 void cpu_get_instruction_trace(SIMJ_U16* inx,
@@ -353,6 +386,7 @@ void cpu_get_instruction_trace(SIMJ_U16* inx,
 	SIMJ_U32 trace[1024], SIMJ_U32 trace_w1[1024], SIMJ_U32 trace_w2[1024],
 	SIMJ_U32 trace_w3[1024], SIMJ_U32 trace_w4[1024]);
 bool cpu_get_virtual_mode();
+bool cpu_get_pipeline_mode();
 void cpu_get_virtual_map(SIMJ_U16 map, MEM_MAP* copied_map);
 SIMJ_U16 cpu_get_register_value(SIMJ_U16 reg_index);
 SIMJ_U16 cpu_get_register_block_value(SIMJ_U16 reg_block_numb, SIMJ_U16 reg_numb);
@@ -360,8 +394,10 @@ bool cpu_get_power_on();
 void cpu_set_register_value(SIMJ_U16 reg_index, SIMJ_U16 reg_value);
 void cpu_set_power_on();
 void cpu_set_program_counter(SIMJ_U16 pc);
-void cpu_set_switches(SIMJ_U16 switch_value);
-void cpu_classic_7860();
+void cpu_classic_instruction_process();
+SIMJ_U32 cpu_get_last_om_abs_addr();
+SIMJ_U32 cpu_get_last_im_abs_addr();
+SIMJ_U32 cpu_get_last_abs_addr();
 void cpu_start_thread();
 void cpu_stop_thread();
 void cpu_stop_data();
@@ -376,18 +412,27 @@ void cpu_request_DI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
 void cpu_request_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
 void cpu_reset_DI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
 void cpu_reset_SI(SIMJ_U16 bus, SIMJ_U16 prio, SIMJ_U16 dev_addr);
+void cpu_get_active_interrupt(SIMJ_U16* act);
 void cpu_get_interrupt(SIMJ_U16* act, SIMJ_U16* req, SIMJ_U16* ena,
 	SIMJ_U32* di_req, SIMJ_U32* di_prc, SIMJ_U32* si_req, SIMJ_U32* si_prc);
 void cpu_master_clear();
 SIMJ_U16 cpu_get_virtual_mem(SIMJ_U16 map_numb, SIMJ_U16 virt_addr);
 
+void cpu_set_switches(SIMJ_U16 switch_value);
+
 // -------- Real time clock
 void rtclock_start_thread();
 void rtclock_stop_thread();
 
+// -------- front panel communcations
+void frontpanel_start_thread();
+void frontpanel_stop_thread();
+
 // -------- user command
 void process_user_commands(FILE* cmd_src);
 void user_cmd_config_execute(char* input_file_name);
+void user_cmd_mem_save(char* input_file_name);
+void user_cmd_mem_restore(char* input_file_name);
 void user_cmd_print_help();
 void cmd_process_print_prompt();
 void cmd_process_parse(char* cmd_line, int max_len, char* cmd_line_parse[], int max_items, int* count_found);
@@ -478,10 +523,14 @@ void disp_cur_reg(FILE* io_unit);
 void disp_reg_block(FILE* io_unit, SIMJ_U16 register_block);
 void disp_interrupts(FILE* io_unit);
 void disp_pc(FILE* io_unit, SIMJ_U16 loc_pc);
+void format_psw(char* disp_string, size_t string_len, PSW loc_psw);
 void disp_psw(FILE* io_unit, PSW loc_psw);
 void disp_instruction_use(FILE* io_unit);
 void disp_instruction_trace(FILE* io_unit);
 void disp_virtual_map(FILE* io_unit, SIMJ_U16 map);
+
+// -------- opcode
+SIMJ_U16 opcode_get_opcode_index(SIMJ_U16 instruction);
 
 // -------- util
 unsigned __int16  bswap16(unsigned __int16 a);
