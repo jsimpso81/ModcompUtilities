@@ -43,19 +43,38 @@ Public Class RockerSwitch
         Dim g As Graphics = e.Graphics
         g.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias
 
-        ' Background
-        Dim bgColor As Color = If(_isOn, Color.Orange, Color.DarkOrange)
-        g.FillRectangle(New SolidBrush(bgColor), Me.ClientRectangle)
+        ' -------- Background
+        '--Dim bgColor As Color = If(_isOn, Color.Orange, Color.DarkOrange)
+        '--g.FillRectangle(New SolidBrush(bgColor), Me.ClientRectangle)
+        Dim bgColor0 As Color = Color.Goldenrod
+        Dim bgColor1 As Color = If(_isOn, Color.Gold, Color.Goldenrod)          ' light     medium
+        Dim bgColor2 As Color = If(_isOn, Color.DarkGoldenrod, Color.Gold)               ' dark      light
+        Dim bgColor3 As Color = If(_isOn, Color.Goldenrod, Color.DarkGoldenrod)         ' medium,   dark
+        g.FillRectangle(New SolidBrush(bgColor0), Me.ClientRectangle)
 
-        ' Rocker switch
-        Dim switchRect As Rectangle
+        ' -------- Rocker switch
+        ' -------- 47 x 70                      1,12,35,57,69
+        Dim switchRect1 As Rectangle
+        Dim switchRect2 As Rectangle
+        Dim switchRect3 As Rectangle
+        '-------- ON
         If _isOn Then
-            switchRect = New Rectangle(2, 2, Me.Width - 4, Me.Height \ 2 - 4)
+            ' -------                  x y wid height
+            switchRect1 = New Rectangle(1, 1, Me.Width - 3, 11)
+            switchRect2 = New Rectangle(1, 12, Me.Width - 3, 23)
+            switchRect3 = New Rectangle(1, 36, Me.Width - 3, 35)
         Else
-            switchRect = New Rectangle(2, Me.Height \ 2 + 2, Me.Width - 4, Me.Height \ 2 - 4)
+            ' -------                  x y wid height
+            switchRect1 = New Rectangle(1, 1, Me.Width - 3, 35)
+            switchRect2 = New Rectangle(1, 36, Me.Width - 3, 23)
+            switchRect3 = New Rectangle(1, 58, Me.Width - 3, 11)
         End If
-        g.FillRectangle(Brushes.White, switchRect)
-        g.DrawRectangle(Pens.Black, switchRect)
+        g.FillRectangle(New SolidBrush(bgColor1), switchRect1)
+        g.FillRectangle(New SolidBrush(bgColor2), switchRect2)
+        g.FillRectangle(New SolidBrush(bgColor3), switchRect3)
+        g.DrawRectangle(Pens.Black, switchRect1)
+        g.DrawRectangle(Pens.Black, switchRect2)
+        g.DrawRectangle(Pens.Black, switchRect3)
 
         ' Border
         g.DrawRectangle(Pens.Black, 0, 0, Me.Width - 1, Me.Height - 1)

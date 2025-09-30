@@ -490,7 +490,56 @@ Public Class frmMain
         frmSettings.ShowDialog()
     End Sub
 
-    Private Sub RegSelSwitch01_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch08.MouseClick
+    Private Sub RegSelSwitch01_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch01.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch01.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch02_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch02.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch02.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch03_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch03.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch03.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch04_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch04.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch04.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch05_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch05.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch05.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch06_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch06.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch06.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch07_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch07.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch07.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch08_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch08.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch08.Toggle()
         '--------update switch value
@@ -498,14 +547,33 @@ Public Class frmMain
     End Sub
 
 
-    '--Private Sub RockerSwitch1_Toggled(sender As Object, e As EventArgs) Handles RockerSwitch1.Toggled
-    '--    Debug.WriteLine("got toggle")
-    '--    RockerSwitch1.Toggle()
-    '--End Sub
+    Private Sub RegSelSwitch09_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch09.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch09.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
 
-    '--Private Sub RockerSwitch1_Click(sender As Object, e As EventArgs) Handles RockerSwitch1.Click
-    '--    Debug.WriteLine("got click")
-    '--    RockerSwitch1.Toggle()
-    '--End Sub
+    Private Sub RegSelSwitch10_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch10.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch10.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch11_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch11.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch11.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
+    Private Sub RegSelSwitch12_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch12.MouseClick
+        Debug.WriteLine("got mouseclick")
+        RegSelSwitch12.Toggle()
+        '--------update switch value
+        '--------send new value to simulator..
+    End Sub
+
 End Class
 

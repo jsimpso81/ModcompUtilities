@@ -112,6 +112,10 @@ Partial Class frmMain
         RegSelSwitch03 = New RockerSwitch()
         RegSelSwitch02 = New RockerSwitch()
         RegSelSwitch01 = New RockerSwitch()
+        RegSelSwitch09 = New RockerSwitch()
+        RegSelSwitch10 = New RockerSwitch()
+        RegSelSwitch11 = New RockerSwitch()
+        RegSelSwitch12 = New RockerSwitch()
         StatusStrip1.SuspendLayout()
         MenuStrip1.SuspendLayout()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
@@ -882,11 +886,51 @@ Partial Class frmMain
         RegSelSwitch01.Size = New Size(45, 70)
         RegSelSwitch01.TabIndex = 78
         ' 
+        ' RegSelSwitch09
+        ' 
+        RegSelSwitch09.BackColor = Color.FromArgb(CByte(192), CByte(192), CByte(0))
+        RegSelSwitch09.IsOn = False
+        RegSelSwitch09.Location = New Point(523, 478)
+        RegSelSwitch09.Name = "RegSelSwitch09"
+        RegSelSwitch09.Size = New Size(45, 70)
+        RegSelSwitch09.TabIndex = 79
+        ' 
+        ' RegSelSwitch10
+        ' 
+        RegSelSwitch10.BackColor = Color.FromArgb(CByte(192), CByte(192), CByte(0))
+        RegSelSwitch10.IsOn = False
+        RegSelSwitch10.Location = New Point(473, 478)
+        RegSelSwitch10.Name = "RegSelSwitch10"
+        RegSelSwitch10.Size = New Size(45, 70)
+        RegSelSwitch10.TabIndex = 80
+        ' 
+        ' RegSelSwitch11
+        ' 
+        RegSelSwitch11.BackColor = Color.FromArgb(CByte(192), CByte(192), CByte(0))
+        RegSelSwitch11.IsOn = False
+        RegSelSwitch11.Location = New Point(423, 478)
+        RegSelSwitch11.Name = "RegSelSwitch11"
+        RegSelSwitch11.Size = New Size(45, 70)
+        RegSelSwitch11.TabIndex = 81
+        ' 
+        ' RegSelSwitch12
+        ' 
+        RegSelSwitch12.BackColor = Color.FromArgb(CByte(192), CByte(192), CByte(0))
+        RegSelSwitch12.IsOn = False
+        RegSelSwitch12.Location = New Point(373, 478)
+        RegSelSwitch12.Name = "RegSelSwitch12"
+        RegSelSwitch12.Size = New Size(45, 70)
+        RegSelSwitch12.TabIndex = 82
+        ' 
         ' frmMain
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(1297, 664)
+        Controls.Add(RegSelSwitch12)
+        Controls.Add(RegSelSwitch11)
+        Controls.Add(RegSelSwitch10)
+        Controls.Add(RegSelSwitch09)
         Controls.Add(RegSelSwitch01)
         Controls.Add(RegSelSwitch02)
         Controls.Add(RegSelSwitch03)
@@ -1066,5 +1110,9 @@ Partial Class frmMain
     Friend WithEvents RegSelSwitch03 As RockerSwitch
     Friend WithEvents RegSelSwitch02 As RockerSwitch
     Friend WithEvents RegSelSwitch01 As RockerSwitch
+    Friend WithEvents RegSelSwitch09 As RockerSwitch
+    Friend WithEvents RegSelSwitch10 As RockerSwitch
+    Friend WithEvents RegSelSwitch11 As RockerSwitch
+    Friend WithEvents RegSelSwitch12 As RockerSwitch
 
 End Class
