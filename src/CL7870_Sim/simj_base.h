@@ -50,6 +50,7 @@
 
 #pragma once
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <windows.h>
@@ -449,6 +450,9 @@ void iop_init_data();
 int iop_finish_dmp_read(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 abs_tc_addr,
 	SIMJ_U16 vdmp_miap_page, SIMJ_U16 vdmp_miap_length,
 	SIMJ_U16* databuffer, int words_in_buffer);
+int iop_start_dmp_write(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_addr,
+	SIMJ_U16 vdmp_miap_page, SIMJ_U16 vdmp_miap_length,
+	SIMJ_U16* databuffer, int words_out_buffer);
 int iop_get_dmp_word_count(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_addr,
 	SIMJ_U16 vdmp_miap_page, SIMJ_U16 vdmp_miap_length,
 	SIMJ_U16* dmp_words_requested);
@@ -485,6 +489,7 @@ int device_common_tape_read_record( FILE** tape_file_handle, SIMJ_TAPE_DPI* curr
 // --------disc image file processing routines.
 int device_common_disc_open(char* disc_filename, bool read_only, FILE** disc_file_handle, DWORD* last_error);
 int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, void* raw_sector_buf, unsigned __int16* flags);
+int device_common_disc_write_sector(FILE* fp, unsigned __int64 sector, void* raw_sector_buf, unsigned __int16 flags);
 
 void device_common_buffer_init(volatile DEVICE_BUFFER* buff);
 bool device_common_buffer_isempty(volatile DEVICE_BUFFER* buff);

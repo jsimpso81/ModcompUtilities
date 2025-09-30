@@ -543,8 +543,9 @@ void device_null_load_sal( DEVICE_NULL_DATA* device_data ) {
 		chksum.uword += tmp16.uword;
 	}
 	chksum_neg.word = -1 * chksum.word;	// so it adds up to zero.
+#if DEBUG_NULL > 0
 	fprintf(stderr, " 100 block checksum = 0x%04hx\n", chksum.uword);
-
+#endif
 	// --------store in buffer.
 	// boot100_data[maxj - 4] = chksum_neg.byte[1];
 	// boot100_data[maxj - 3] = chksum_neg.byte[0];
@@ -554,26 +555,31 @@ void device_null_load_sal( DEVICE_NULL_DATA* device_data ) {
 	for (j = 0; j < maxj; j++) {
 		device_common_buffer_put(&device_data->in_buff, initial_boot_block[j]);
 	}
+#if DEBUG_NULL > 0
 	fprintf(stderr, " initial boot block - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
-
+#endif
 	// --------copy 100 boot block start and size to device input data global.
 	maxj = sizeof(boot100_loc_size);
 	for (j = 0; j < maxj; j++) {
 		device_common_buffer_put(&device_data->in_buff, boot100_loc_size[j]);
 	}
+#if DEBUG_NULL > 0
 	fprintf(stderr, " 100 boot block offset / size  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
-
+#endif
 	// --------copy 100 boot block to device input data global.
 	maxj = sizeof(boot100_data);
 	for (j = 0; j < maxj; j++) {
 		device_common_buffer_put(&device_data->in_buff, boot100_data[j]);
 	}
+#if DEBUG_NULL > 0
 	fprintf(stderr, " 100 boot block   - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+#endif
 
 	// boot100_data[maxj - 4] = chksum_neg.byte[1];
 	// boot100_data[maxj - 3] = chksum_neg.byte[0];
+#if DEBUG_NULL > 0
 	fprintf(stderr, " 100 block checksum = 0x%04hx\n", chksum_neg.word);
-
+#endif
 	device_common_buffer_put(&device_data->in_buff, chksum_neg.byte[1]);
 	device_common_buffer_put(&device_data->in_buff, chksum_neg.byte[0]);
 
@@ -593,7 +599,9 @@ void device_null_load_sal( DEVICE_NULL_DATA* device_data ) {
 	for (j = 0; j < maxj; j++) {
 		device_common_buffer_put(&device_data->in_buff, salprep_data[j]);
 	}
+#if DEBUG_NULL > 0
 	fprintf(stderr, " salprep - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+#endif
 
 	// --------calculate word checksum of 400 boot block.
 	chksum2.uword = 0;
@@ -606,7 +614,9 @@ void device_null_load_sal( DEVICE_NULL_DATA* device_data ) {
 
 	chksum.word = chksum2.word * -1;
 
+#if DEBUG_NULL > 0
 	fprintf(stderr, " 400 block (salprep) checksum = 0x%04hx\n", chksum.uword);
+#endif
 
 	//  device_common_buffer_put(&device_data->in_buff, chksum2.byte[1] );
 	//  device_common_buffer_put(&device_data->in_buff, chksum2.byte[0] );
@@ -620,7 +630,9 @@ void device_null_load_sal( DEVICE_NULL_DATA* device_data ) {
 	for (j = 0; j < maxj; j++) {
 		device_common_buffer_put(&device_data->in_buff, sal_data[j]);
 	}
+#if DEBUG_NULL > 0
 	fprintf(stderr, " sal  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+#endif
 
 	// --------calculate word checksum of sal block.
 	// -------- this is a running checksum so dont start at zero.
@@ -634,11 +646,15 @@ void device_null_load_sal( DEVICE_NULL_DATA* device_data ) {
 
 	chksum.uword = chksum3.word * -1;
 
+#if DEBUG_NULL > 0
 	fprintf(stderr, " sal checksum = 0x%04hx\n", chksum.uword);
+#endif
 
 	chksum.uword = chksum2.uword + chksum3.uword;
 	chksum.word *= -1;
+#if DEBUG_NULL > 0
 	fprintf(stderr, " 400 boot (salprep) and sal overall checksum = 0x%04hx\n", chksum.uword);
+#endif
 
 	// --------copy running 400 (salprep) boot and sal checksum to input buffer.
 	device_common_buffer_put(&device_data->in_buff, chksum.byte[1]);
@@ -647,7 +663,9 @@ void device_null_load_sal( DEVICE_NULL_DATA* device_data ) {
 	device_common_buffer_put(&device_data->in_buff, 0);
 
 
+#if DEBUG_NULL > 0
 	fprintf(stderr, " Null device -- input buffer data filled size = %d\n", device_data->in_buff.last_byte_writen_index);
+#endif
 
 }
 
@@ -665,6 +683,9 @@ void device_null_load_sal_new(DEVICE_NULL_DATA* device_data) {
 	for (j = 0; j < maxj; j++) {
 		device_common_buffer_put(&device_data->in_buff, sal_data[j]);
 	}
+
+#if DEBUG_NULL > 0
 	fprintf(stderr, " salnew  - bytes %d, buffer end %d\n", maxj, device_data->in_buff.last_byte_writen_index);
+#endif
 
 }

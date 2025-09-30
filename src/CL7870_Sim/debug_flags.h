@@ -63,7 +63,7 @@
 #define DEBUG_ZOMP				0
 
 // ======== common device disc functions
-#define DEBUG_DISC_COMMON		0
+#define DEBUG_DISC_COMMON		1
 
 // ======== device disc_mh
 // -------- DEFINE DEBUG LEVEL
@@ -71,7 +71,7 @@
 // ---------2 - commands and 1
 // ---------3 - 1 and 2 and much more
 // ---------4 ludicous mode.
-#define DEBUG_DISC_MH			0
+#define DEBUG_DISC_MH			2
 
 // ======== device null
 #define DEBUG_NULL				0

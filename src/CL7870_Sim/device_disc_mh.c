@@ -526,6 +526,109 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 				// --------do a write.  Once done say data is available and cause interrupts..
 			case locIOcmd_write:
 			case locIOcmd_writeDMP:
+
+				// --------only for valid unit
+				if (device_data->disc_file_handle[j_unit] != NULL) {
+
+					// --------set initial number of sectors to write...
+					SIMJ_U16 sectors_to_write = 1;
+
+					// --------if transfer is DMP, calculate number of words and sectors to write.
+					if (loc_cmd == locIOcmd_writeDMP) {
+						SIMJ_U16 dmp_words_requested = 0;
+						// --------find out how many words to write..
+						iop_get_dmp_word_count(device_data->dmp_virt, device_data->dmp_tc, device_data->dmp_ta,
+							device_data->dmp_abs_tc_addr, iop_vdmp_miap_page[device_data->dmp], iop_vdmp_miap_length[device_data->dmp],
+							&dmp_words_requested);
+
+						// --------need to be a whole number of sectors.
+						sectors_to_write = dmp_words_requested / 128;
+						if ((dmp_words_requested % 128) != 0)
+							sectors_to_write++;
+					}
+#if DEBUG_DISC_MH >= 1
+					printf(" device_disc_mh - sectors to write %d\n", sectors_to_write);
+#endif
+
+					// --------if DMP process...   Gather the data from main memory to disk buffer.
+					if (loc_cmd == locIOcmd_writeDMP) {
+						iop_start_dmp_write(device_data->dmp_virt, device_data->dmp_tc, device_data->dmp_ta,
+							device_data->dmp_abs_tc_addr, iop_vdmp_miap_page[device_data->dmp], iop_vdmp_miap_length[device_data->dmp],
+							&(disc_sector_buffer[0].words[0]), (int)(bytes_read[j_unit] / 2));
+
+					}
+					// --------REG IO, copy to buffer.
+					else {
+						// TODO: mh.device check for empty buffer on reg IO write.
+						SIMJ_U64 bytes_to_write = sectors_to_write * (SIMJ_U64)256;
+						for (j = 0; j < bytes_to_write; j++) {
+							device_common_buffer_get(&device_data->out_buff, &(disc_sector_buffer[0].ubytes[j]));
+						}
+					}
+
+					SIMJ_U64 j = 0;
+					SIMJ_U16 flags = 0;
+
+					bytes_read[j_unit] = 0;
+					end_of_file[j_unit] = -1;
+
+
+					// TODO: fix flags on write.  for now zero.
+					flags = 0;
+					for (j = 0; j < sectors_to_write; j++) {
+						stat[j_unit] = device_common_disc_write_sector(device_data->disc_file_handle[j_unit],
+							device_data->dpi[j_unit] + j,
+							&(disc_sector_buffer[j]), flags);
+
+#if DEBUG_DISC_MH >= 1
+						printf(" device_disc_mh - write record -- status %d flags %d sector %zd\n",
+							stat[j_unit], flags, (device_data->dpi[j_unit] + j));
+#endif
+						if (flags != 0) {
+							end_of_file[j_unit] = true;
+							break;
+						}
+						// -------- KLUDGE
+						// TODO: Deal with bytes written...
+						if (stat[j_unit] == 0) {
+							// bytes_read[j_unit] += 256;
+						}
+					}
+
+				}
+
+				// --------try to read with no image file open
+				else {
+					printf(" *** ERROR *** disk try to write without image file.\n");
+				}
+
+
+				// TODO: fix end of disc and end of file bits!!
+				// --------set data ready in status word.
+				// -------- Request ownership of the resource.
+				TAKE_RESOURCE(device_data->ResourceStatusUpdate);
+				// --------signal buffer not full -- ready for more.
+				loc_status = device_data->ctrl_status;
+				loc_status &= (~(discstatus_datanotready | discstatus_ctrlbusy | discstatus_eof));
+				if (device_data->eof[j_unit]) {
+					loc_status |= discstatus_eof;
+				}
+				else {
+					loc_status &= (~discstatus_eof);
+				}
+				device_data->ctrl_status = loc_status;
+				// -------- Release ownership of the resource.
+				GIVE_RESOURCE(device_data->ResourceStatusUpdate);
+
+				// --------generate DI if enabled.
+				// TODO: MH END OF READ DI.  do we need SI
+				if (device_data->DI_enabled) {
+					cpu_request_DI(device_data->bus, device_data->pri, device_data->device_address);
+				}
+				if (device_data->SI_enabled) {
+					cpu_request_SI(device_data->bus, device_data->pri, device_data->device_address);
+				}
+
 				break;
 
 			//case locIOcmd_rewon:
@@ -1128,9 +1231,10 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 	SIMJ_U16 subcmd_type = 0;
 	SIMJ_U64 loc_sector = 0;	// sector within track
 	SIMJ_U64 loc_device_sector = 0;	// abs disk sector.
-#define SEC_PER_TRACK	24
-#define TRK_PER_HEAD	408
-#define TRK_PER_PLAT	816
+#define SEC_PER_TRACK	((SIMJ_U64)24)
+#define TRK_PER_HEAD	((SIMJ_U64)408)
+#define TRK_PER_PLAT	((SIMJ_U64)816)
+#define SEC_PER_PLAT	((SIMJ_U64)19584)
 
 
 	// --------get the type of command.
@@ -1176,12 +1280,14 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 			// -------- get local sector number from command, then form abs sector number
 			loc_sector = loc_cmd & cmd_ti_sectormask;
 			loc_unit = device_data->cur_sel_unit;
-			loc_device_sector = loc_sector + ( device_data->cyl[loc_unit] * 2 + ((device_data->head[loc_unit] != 0) ? 1 : 0)) * SEC_PER_TRACK +
-				((device_data->plat[loc_unit] != 0) ? TRK_PER_PLAT : 0);
+			loc_device_sector = loc_sector + 
+					( device_data->cyl[loc_unit] * (SIMJ_U64)2 * SEC_PER_TRACK +
+					((device_data->head[loc_unit] != 0) ? SEC_PER_TRACK : (SIMJ_U64)0))  +
+					((device_data->plat[loc_unit] != 0) ? SEC_PER_PLAT : (SIMJ_U64)0);
 #if DEBUG_DISC_MH >= 2
 			fprintf(stderr, " device_disc_mh - transfer initiate - Dev addr: %d, cmd 0x%04x, unit %d, device sector %I64u\n",
 				device_data->device_address, loc_cmd, loc_unit, loc_device_sector);
-			fprintf(stderr, " device_disc_mh - transfer initiate - plat: %zd, head: %zd, cyl: %zd, sect: %zd\n",
+			fprintf(stderr, " device_disc_mh - transfer initiate - plat: %I64d, head: %I64d, cyl: %I64d, sect: %I64d\n",
 				device_data->plat[loc_unit], device_data->head[loc_unit], device_data->cyl[loc_unit], loc_sector);
 #endif
 			device_data->dpi[loc_unit] = loc_device_sector;
@@ -1241,7 +1347,7 @@ void device_disc_mh_process_command(SIMJ_U16 loc_cmd, DEVICE_DISC_DATA* device_d
 				chg_wrt = -1;
 				loc_status |= (discstatus_ctrlbusy | discstatus_datanotready);
 
-				// --------indicate write command
+				// --------indicate read command
 				if (cmd_type == cmd_cmd_ti_dmp) {
 					loc_io_cmd = locIOcmd_readDMP;
 				}

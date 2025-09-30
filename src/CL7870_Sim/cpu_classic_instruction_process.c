@@ -2913,84 +2913,79 @@ void cpu_classic_instruction_process() {
 
 				// -------- 7	MBVV  -- Move Virtual Block to Virtual Block       
 			case 7:
-				if (IS_PRIV_MODE) {
-					tmp16_val1.uval = GET_DESTINATION_REGISTER_NUMB & 0xC;
-					tmp16_val2.uval = GET_REGISTER_VALUE(tmp16_val1.uval);		// implied neg transfer
-					tmp16_val3.uval = GET_REGISTER_VALUE(tmp16_val1.uval|1);	// source virt address
-					tmp16_val4.uval = GET_REGISTER_VALUE(tmp16_val1.uval|2);	// destination virt address
-					tmp32_val2.uval = (SIMJ_U32)0xffff0000 | (tmp16_val2.uval & (SIMJ_U32)0x0000ffff); // make neg tranfer 32 bit
-					tmp32_val2.sval *= -1;										// positive tranfer count.
-					tmp32_val5.uval = 0;		// starting loop index
+				tmp16_val1.uval = GET_DESTINATION_REGISTER_NUMB & 0xC;
+				tmp16_val2.uval = GET_REGISTER_VALUE(tmp16_val1.uval);		// implied neg transfer
+				tmp16_val3.uval = GET_REGISTER_VALUE(tmp16_val1.uval|1);	// source virt address
+				tmp16_val4.uval = GET_REGISTER_VALUE(tmp16_val1.uval|2);	// destination virt address
+				tmp32_val2.uval = (SIMJ_U32)0xffff0000 | (tmp16_val2.uval & (SIMJ_U32)0x0000ffff); // make neg tranfer 32 bit
+				tmp32_val2.sval *= -1;										// positive tranfer count.
+				tmp32_val5.uval = 0;		// starting loop index
 #if DEBUG_MBVV > 0
-					util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
-					fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x ",
-						program_counter, junkxx, instruction.all);
-					fprintf(stderr, " impl neg xfer:0x%04x, src addr:0x%04x, dst addr:0x%04x, cnt:0x%08x\n",
-						tmp16_val2.uval, tmp16_val3.uval, tmp16_val4.uval, tmp32_val2.uval);
+				util_get_opcode_disp(instruction.all, &junkxx[0], (size_t)200);
+				fprintf(stderr, " pc: 0x%04x, %s inst: 0x%04x ",
+					program_counter, junkxx, instruction.all);
+				fprintf(stderr, " impl neg xfer:0x%04x, src addr:0x%04x, dst addr:0x%04x, cnt:0x%08x\n",
+					tmp16_val2.uval, tmp16_val3.uval, tmp16_val4.uval, tmp32_val2.uval);
 #endif
 
-					RESTART_INSTRUCTION_SETUP(program_counter, (instruction.all), 0, tmp32_val5.uval, tmp32_val2.sval)
-					RESTART_INSTRUCTION_GET_LOOP(tmp32_val5.uval, tmp32_val2.sval)
+				RESTART_INSTRUCTION_SETUP(program_counter, (instruction.all), 0, tmp32_val5.uval, tmp32_val2.sval)
+				RESTART_INSTRUCTION_GET_LOOP(tmp32_val5.uval, tmp32_val2.sval)
 
-					// --------since the src and dest addresses are updated and the transfer count is too
-					// --------the start should always be zero...
-					for (j = tmp32_val5.uval; j < tmp32_val2.sval; j++ ) {
-						GET_MEMORY_VALUE_OM(tmp16_val6.uval, (tmp16_val3.uval + (SIMJ_U16)j));
-						SET_MEMORY_VALUE_OM( (tmp16_val4.uval + (SIMJ_U16)j), tmp16_val6.uval);
+				// --------since the src and dest addresses are updated and the transfer count is too
+				// --------the start should always be zero...
+				for (j = tmp32_val5.uval; j < tmp32_val2.sval; j++ ) {
+					GET_MEMORY_VALUE_OM(tmp16_val6.uval, (tmp16_val3.uval + (SIMJ_U16)j));
+					SET_MEMORY_VALUE_OM( (tmp16_val4.uval + (SIMJ_U16)j), tmp16_val6.uval);
 #if DEBUG_MBVV > 0
-						fprintf(stderr, "       src addr:0x%04x, dst addr:0x%04x, val:0x%04x \n",
-							(tmp16_val3.uval + (SIMJ_U16)j), (tmp16_val4.uval + (SIMJ_U16)j),
-							tmp16_val6.uval );
+					fprintf(stderr, "       src addr:0x%04x, dst addr:0x%04x, val:0x%04x \n",
+						(tmp16_val3.uval + (SIMJ_U16)j), (tmp16_val4.uval + (SIMJ_U16)j),
+						tmp16_val6.uval );
 #endif
-						// --------see if time to check interrupts.
-						if (j > 0 && (((j+1) % 16) == 0) && ((j + 1) < tmp32_val2.sval)) {
-						// if (j > 0 && (((j+1) % 8) == 0) && ((j + 1) < tmp32_val2.sval)) {
-							// --------see there is a new interrupt.
-							IS_THERE_A_NEW_INTERRUPT
-								// --------update transfer count and src and dest addresses.
-								tmp16_val2.uval = GET_REGISTER_VALUE(tmp16_val1.uval);
-								tmp16_val2.uval += (j + 1);
-								SET_REGISTER_VALUE(tmp16_val1.uval, tmp16_val2.uval);
-								// --------src address
-								tmp16_val3.uval = GET_REGISTER_VALUE((tmp16_val1.uval| (SIMJ_U16)1));
-								tmp16_val3.uval += (j + 1);
-								SET_REGISTER_VALUE((tmp16_val1.uval|(SIMJ_U16)(SIMJ_U16)1), tmp16_val3.uval);
-								// --------dest address
-								tmp16_val4.uval = GET_REGISTER_VALUE((tmp16_val1.uval| (SIMJ_U16)2));
-								tmp16_val4.uval += (j + 1);
-								SET_REGISTER_VALUE((tmp16_val1.uval| (SIMJ_U16)2), tmp16_val4.uval);
-								// -------- update register with new starting offset and length, then quit instruction
-								RESTART_INSTRUCTION_SAVE_LOOP(0, (tmp32_val2.sval - (SIMJ_S32)(j + 1)))
+					// --------see if time to check interrupts.
+					if (j > 0 && (((j+1) % 16) == 0) && ((j + 1) < tmp32_val2.sval)) {
+					// if (j > 0 && (((j+1) % 8) == 0) && ((j + 1) < tmp32_val2.sval)) {
+						// --------see there is a new interrupt.
+						IS_THERE_A_NEW_INTERRUPT
+							// --------update transfer count and src and dest addresses.
+							tmp16_val2.uval = GET_REGISTER_VALUE(tmp16_val1.uval);
+							tmp16_val2.uval += (j + 1);
+							SET_REGISTER_VALUE(tmp16_val1.uval, tmp16_val2.uval);
+							// --------src address
+							tmp16_val3.uval = GET_REGISTER_VALUE((tmp16_val1.uval| (SIMJ_U16)1));
+							tmp16_val3.uval += (j + 1);
+							SET_REGISTER_VALUE((tmp16_val1.uval|(SIMJ_U16)(SIMJ_U16)1), tmp16_val3.uval);
+							// --------dest address
+							tmp16_val4.uval = GET_REGISTER_VALUE((tmp16_val1.uval| (SIMJ_U16)2));
+							tmp16_val4.uval += (j + 1);
+							SET_REGISTER_VALUE((tmp16_val1.uval| (SIMJ_U16)2), tmp16_val4.uval);
+							// -------- update register with new starting offset and length, then quit instruction
+							RESTART_INSTRUCTION_SAVE_LOOP(0, (tmp32_val2.sval - (SIMJ_S32)(j + 1)))
 #if DEBUG_MBVV >= 1
-								fprintf(stderr, "       interrupting   next start: %d, next end: %d \n", 0, tmp32_val2.sval-16);
+							fprintf(stderr, "       interrupting   next start: %d, next end: %d \n", 0, tmp32_val2.sval-16);
 #endif
-							END_IS_THERE_A_NEW_INTERRUPT
-						}
+						END_IS_THERE_A_NEW_INTERRUPT
 					}
-					// --------update transfer count and src and dest addresses.
-					tmp16_val2.uval = GET_REGISTER_VALUE(tmp16_val1.uval);
-					tmp16_val2.uval += j;
-					SET_REGISTER_VALUE(tmp16_val1.uval, tmp16_val2.uval);
-					// --------src address
-					tmp16_val3.uval = GET_REGISTER_VALUE((tmp16_val1.uval | (SIMJ_U16)1));
-					tmp16_val3.uval += j;
-					SET_REGISTER_VALUE((tmp16_val1.uval | (SIMJ_U16)(SIMJ_U16)1), tmp16_val3.uval);
-					// --------dest address
-					tmp16_val4.uval = GET_REGISTER_VALUE((tmp16_val1.uval | (SIMJ_U16)2));
-					tmp16_val4.uval += j;
-					SET_REGISTER_VALUE((tmp16_val1.uval | (SIMJ_U16)2), tmp16_val4.uval);
-					// --------set condition codes
-					SET_CC_N(false);
-					SET_CC_Z(true);
-					RESTART_INSTRUCTION_COMPLETE
-					SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
+				}
+				// --------update transfer count and src and dest addresses.
+				tmp16_val2.uval = GET_REGISTER_VALUE(tmp16_val1.uval);
+				tmp16_val2.uval += j;
+				SET_REGISTER_VALUE(tmp16_val1.uval, tmp16_val2.uval);
+				// --------src address
+				tmp16_val3.uval = GET_REGISTER_VALUE((tmp16_val1.uval | (SIMJ_U16)1));
+				tmp16_val3.uval += j;
+				SET_REGISTER_VALUE((tmp16_val1.uval | (SIMJ_U16)(SIMJ_U16)1), tmp16_val3.uval);
+				// --------dest address
+				tmp16_val4.uval = GET_REGISTER_VALUE((tmp16_val1.uval | (SIMJ_U16)2));
+				tmp16_val4.uval += j;
+				SET_REGISTER_VALUE((tmp16_val1.uval | (SIMJ_U16)2), tmp16_val4.uval);
+				// --------set condition codes
+				SET_CC_N(false);
+				SET_CC_Z(true);
+				RESTART_INSTRUCTION_COMPLETE
+				SET_NEXT_PROGRAM_COUNTER(PROGRAM_COUNTER_ONE_WORD_INSTRUCT);
 #if DEBUG_MBVV >= 1
-					fprintf(stderr, "       MBVV done\n");
+				fprintf(stderr, "       MBVV done\n");
 #endif
-				}
-				else {
-					PRIV_INSTR_TRAP;
-				}
 				break;
 
 				// -------- 8	MBVE  -- Move Block from Virtual to Extended Memory     
