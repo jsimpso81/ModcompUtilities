@@ -45,9 +45,6 @@
     <ClCompile Include="device_common_stop_all.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="user_cmd_print_help.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="device_common_serial_functions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -189,6 +186,12 @@
     <ClCompile Include="user_cmd_mem_save_restore.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="user_cmd_functions.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="user_cmd_execute_functions.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modcomp_sim_globals.h">
@@ -233,5 +236,8 @@
     <ClInclude Include="debug_flags.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="user_command_process_OLD.txt" />
   </ItemGroup>
 </Project>

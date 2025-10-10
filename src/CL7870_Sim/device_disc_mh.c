@@ -414,7 +414,8 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 			device_data->io_cmd[j_unit] = 0;	// reset command
 			switch (loc_cmd) {
 
-				// --------do a read.  Once done say data is available and cause interrupts..
+			// ------------------------------------------------------------------------
+			// --------do a read.  Once done say data is available and cause interrupts..
 			case locIOcmd_read:
 			case locIOcmd_readDMP:
 
@@ -448,12 +449,17 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 							&(disc_sector_buffer[j]), &flags);
 
 #if DEBUG_DISC_MH >= 1
-						printf(" device_disc_mh - read record -- status %d flags %d sector %zd\n", 
+						printf(" device_disc_mh - read record -- status:%d flags:%d sector:%I64u\n", 
 								stat[j_unit], flags, (device_data->dpi[j_unit] + j) );
 #endif
 						if (flags != 0) {
 							end_of_file[j_unit] = true;
-							break;
+							device_data->eof[j_unit] = true;
+							break;		// stop loop on end of file.. or end of media...
+						}
+						else {
+							end_of_file[j_unit] = false;
+							device_data->eof[j_unit] = false;
 						}
 						// -------- KLUDGE
 						if (stat[j_unit] == 0) {
@@ -464,11 +470,8 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 					// --------copy to buffer.
 					if (bytes_read[j_unit] > 0) {
 
-						device_data->eof[j_unit] = false;
-
 						// --------if DMP process...
 						if (loc_cmd == locIOcmd_readDMP) {
-							// iop_finish_dmp_read(device_data->device_address, device_data->dmp, &(disc_sector_buffer.words[0]), (int)(bytes_read[j_unit] / 2));
 							iop_finish_dmp_read(device_data->dmp_virt, device_data->dmp_tc, device_data->dmp_ta,
 								device_data->dmp_abs_tc_addr, iop_vdmp_miap_page[device_data->dmp], iop_vdmp_miap_length[device_data->dmp],
 								&(disc_sector_buffer[0].words[0]), (int)(bytes_read[j_unit] / 2));
@@ -481,10 +484,13 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 								device_common_buffer_put(&device_data->in_buff, disc_sector_buffer[0].ubytes[j]);
 							}
 						}
-						device_data->eof[j_unit] = false;
+						// TODO: MH is this correct... For now comment out.
+						// device_data->eof[j_unit] = false; 
 					}
 					// --------got either end of record or end of file  -- same thing for tape
 					else {
+						// TODO: MH is this eof on read redundant??
+						end_of_file[j_unit] = true;
 						device_data->eof[j_unit] = true;
 					}
 				}
@@ -501,12 +507,9 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 				TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 				// --------signal buffer not full -- ready for more.
 				loc_status = device_data->ctrl_status;
-				loc_status &= (~(discstatus_datanotready | discstatus_ctrlbusy | discstatus_eof));
+				loc_status &= (~(discstatus_datanotready | discstatus_ctrlbusy | discstatus_eof | discstatus_eod | discstatus_eor));
 				if (device_data->eof[j_unit]) {
-					loc_status |= discstatus_eof;
-				}
-				else {
-					loc_status &= (~discstatus_eof);
+					loc_status |= ( discstatus_eof | discstatus_eor );
 				}
 				device_data->ctrl_status = loc_status;
 				// -------- Release ownership of the resource.
@@ -523,7 +526,8 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 
 				break;
 
-				// --------do a write.  Once done say data is available and cause interrupts..
+			// ------------------------------------------------------------------------
+			// --------do a write.  Once done say data is available and cause interrupts..
 			case locIOcmd_write:
 			case locIOcmd_writeDMP:
 
@@ -609,12 +613,9 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 				TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 				// --------signal buffer not full -- ready for more.
 				loc_status = device_data->ctrl_status;
-				loc_status &= (~(discstatus_datanotready | discstatus_ctrlbusy | discstatus_eof));
+				loc_status &= (~(discstatus_datanotready | discstatus_ctrlbusy | discstatus_eof | discstatus_eor | discstatus_eod));
 				if (device_data->eof[j_unit]) {
-					loc_status |= discstatus_eof;
-				}
-				else {
-					loc_status &= (~discstatus_eof);
+					loc_status |= ( discstatus_eof | discstatus_eor );
 				}
 				device_data->ctrl_status = loc_status;
 				// -------- Release ownership of the resource.
@@ -631,30 +632,39 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 
 				break;
 
+			// ------------------------------------------------------------------------
 			//case locIOcmd_rewon:
 			//	current_file_pos[j_unit] = 0;
 			//	device_data->eof[j_unit] = true;
 			//	break;
 
+			// ------------------------------------------------------------------------
 			//case locIOcmd_rewoff:
 			//	current_file_pos[j_unit] = 0;
 			//	device_data->eof[j_unit] = true;
 			//	device_data->online[j_unit] = false;
 			//	break;
 
+			// ------------------------------------------------------------------------
 			//case locIOcmd_bkfile:
 			//	break;
 
+			// ------------------------------------------------------------------------
 			//case locIOcmd_fwdfile:
 			//	break;
 
+			// ------------------------------------------------------------------------
 			//case locIOcmd_bkrec:
 			//	break;
 
 			//case locIOcmd_fwdrec:
 			//	break;
 
+			// ------------------------------------------------------------------------
 			case locIOcmd_weof:
+#if DEBUG_DISC_MH >= 1
+				printf(" device_disc_mh - locIOCMD_WEOF - not completed yet. unit:%d\n", j_unit);
+#endif
 				break;
 
 				// -------- no outstanding command for this unit
@@ -662,6 +672,9 @@ static DWORD WINAPI device_disc_mh_local_IO_worker_thread(LPVOID lpParam) {
 				break;
 
 			default:
+#if DEBUG_DISC_MH >= 1
+				printf(" device_disc_mh - Unknown command unit:%d, cmd:%d\n",j_unit,loc_cmd);
+#endif
 				break;
 
 				// --------init -- do flush, start read.

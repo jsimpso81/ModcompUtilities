@@ -179,12 +179,12 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 #define MAX_COUNT 25
 
 	// --------local temporary data 
-	boolean loc_vir_mode = false;
-	boolean loc_cpu_run = false;
-	boolean loc_cpu_power = false;
-	boolean loc_mem_error = false;
-	boolean loc_standby = false;
-	boolean loc_standby_power_fail = false;
+	bool loc_vir_mode = false;
+	bool loc_cpu_run = false;
+	bool loc_cpu_power = false;
+	bool loc_mem_error = false;
+	bool loc_standby = false;
+	bool loc_standby_power_fail = false;
 	PSW loc_psw = { 0 };
 	SIMJ_U16 loc_int_active = 0;
 	SIMJ_U32 loc_loop_count = 0;

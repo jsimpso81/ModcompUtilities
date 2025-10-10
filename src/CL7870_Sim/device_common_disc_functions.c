@@ -81,19 +81,19 @@ int device_common_disc_open(char* disc_filename, bool read_only, FILE** disc_fil
 
 
 // ================================================================================================
-int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, void* raw_sector_buf, unsigned __int16* flags) {
+int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, unsigned __int16* raw_sector_buf, unsigned __int16* flags) {
 
 	__int64 pos;
 	__int64 desired_pos;
 	int stat;
 	size_t return_count;
-	// int j;
 
 	MODCOMP_EMUL_DISC_SECTOR disk_buff = { 0 };
 
 	desired_pos = sector * (__int64)MODCOMP_EMUL_DISK_IMG_SECTOR_BYTES;
 	pos = _ftelli64(fp);
 
+	// -------- for now always do the seek...
 	//if (pos != desired_pos)
 		stat = _fseeki64(fp, desired_pos, SEEK_SET);
 	//else
@@ -121,10 +121,14 @@ int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, void* raw_
 	for (j = 0; j < 128; j++) {
 		// disk_buff.rawsectbuffer[j] = bswap16(disk_buff.rawsectbuffer[j]);
 		// --------use library function.
-		disk_buff.rawsectbuffer[j] = _byteswap_ushort(disk_buff.rawsectbuffer[j]);
+		// disk_buff.rawsectbuffer[j] = _byteswap_ushort(disk_buff.rawsectbuffer[j]);
+		raw_sector_buf[j] = _byteswap_ushort(disk_buff.rawsectbuffer[j]);
 	}
 
-	memcpy(raw_sector_buf, disk_buff.rawsectbuffer, (size_t)RAW_SECTOR_BYTES);
+	// TODO: disc functions - read does two copies, one byte swap, then copy.  Optimize this.
+	// memcpy(raw_sector_buf, disk_buff.rawsectbuffer, (size_t)RAW_SECTOR_BYTES);
+
+	// --------set flags value....
 	*flags = disk_buff.flags;
 
 	return stat;

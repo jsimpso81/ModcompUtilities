@@ -1673,7 +1673,7 @@ void device_tape_process_command(SIMJ_U16 loc_cmd, DEVICE_TAPE_DATA* device_data
 
 	// -------- set new local IO worker command.
 	if (loc_io_cmd != 0) {
-		boolean not_okay_to_send = true;
+		bool not_okay_to_send = true;
 		int max_wait_count = 0;
 		while (not_okay_to_send) {
 			if ((device_data->io_cmd[device_data->cur_sel_unit] != 0) && max_wait_count < 8) {

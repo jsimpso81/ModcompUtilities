@@ -177,12 +177,13 @@
     <ClCompile Include="user_cmd_attach_device.c" />
     <ClCompile Include="user_cmd_config_execute.c" />
     <ClCompile Include="user_cmd_dismount_device.c" />
+    <ClCompile Include="user_cmd_execute_functions.c" />
     <ClCompile Include="user_cmd_mem_save_restore.c" />
     <ClCompile Include="user_cmd_mount_device.c" />
     <ClCompile Include="user_cmd_parse.c" />
     <ClCompile Include="user_cmd_parse_device_type.c" />
+    <ClCompile Include="user_cmd_functions.c" />
     <ClCompile Include="user_cmd_parse_u16.c" />
-    <ClCompile Include="user_cmd_print_help.c" />
     <ClCompile Include="user_cmd_print_prompt.c" />
     <ClCompile Include="device_null.c" />
     <ClCompile Include="iop_functions.c" />
@@ -207,6 +208,9 @@
     <ClInclude Include="modcomp_opcodes.h" />
     <ClInclude Include="modcomp_opcode_string.h" />
     <ClInclude Include="modcomp_sim_globals.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="user_command_process_OLD.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

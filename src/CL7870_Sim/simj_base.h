@@ -162,7 +162,7 @@ typedef struct {
 	SIMJ_U8 im : 3;
 }  PSW_BITS;
 
-typedef union {
+typedef   union {
 	SIMJ_U16 all;
 	PSW_BITS sep;
 } PSW;
@@ -594,6 +594,74 @@ void rmi_request(SIMJ_U16 rmi_request);
 SIMJ_U16 memory_plane_RMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg);
 void memory_plane_WMPS(SIMJ_U16 first_reg, SIMJ_U16 second_reg, SIMJ_U16 data_register);
 void memory_plane_init();
+
+// --------user_cmd_functions
+bool user_cmd_find_and_execute(SIMJ_S32 cmd_count_found, char** cmd_line_parsed);
+
+// --------user_cmd_execute  functions
+int cmd_execute_attach_device_a4808(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_a4811(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_console(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_consoletcp(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_disc_ips(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_disc_lx(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_disc_mh(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_modacs1600(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_modacsIII(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_null(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_attach_device_tape(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_cc(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_ci(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_config_file(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_dismount_device(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_exit(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_fill(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_halt(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_help(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_key_lock(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_key_unlock(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_master_clear(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_mount_device(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_power_off(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_power_on(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_rewind_device(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_run(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_badword1(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_badword2(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_mem(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_mem_clear(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_mem_restore(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_mem_save(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_pc(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_reg(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_set_switches(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_badword1(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_badword2(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_clock(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_devices(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_inst_count(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_inst_use(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_interrupts(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_key_lock(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_mem(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_magic(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_mmem(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_pc(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_power(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_psw(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_reg(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_run(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_switches(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_trace(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_verbose(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_virt_mode(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_vmap(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_show_vmem(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_step(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_verbose_auto(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_verbose_off(int cmd_cnt_found, char** cmd_line_parsed);
+int cmd_execute_verbose_on(int cmd_cnt_found, char** cmd_line_parsed);
+
 
 // =====================================================================================================================
 // -------- global data.
