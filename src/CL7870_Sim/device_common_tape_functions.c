@@ -1,6 +1,6 @@
 // ================================================================================================
 //
-//		Copyright 2023, 2024 James A. Simpson, all rights reserved.
+//		Copyright 2025 James A. Simpson, all rights reserved.
 //
 // ================================================================================================
 //
@@ -9,16 +9,32 @@
 //	Description:	Functions to process tape .TAP image files.
 //
 //  Routines:
-//			device_common_tape_open
-//			device_common_tape_close
-//			device_common_tape_rewind
-//			device_common_tape_read_record
+//			int device_common_tape_close(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi);
+//			int device_common_tape_open(char* tape_filename, bool read_only, FILE** tape_file_handle,
+//										SIMJ_TAPE_DPI* tape_dpi, SIMJ_TAPE_ERR* last_error)
+//			int device_common_tape_read_record(
+//										FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position,
+//										void* buf, SIMJ_U32 max_buf_bytes, SIMJ_U32* bytes_read,
+//										bool* end_of_file);
+//			int device_common_tape_rewind(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi);
+//			int device_common_tape_advance_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position, 
+//										bool* end_of_file); 
+//			int device_common_tape_eof(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position);
 // 
 //	Externally accessible routines:
 //					None - only file library routines.
 // 
 // Internal only routines:
-//					None.
+//			int device_common_tape_read_header(
+//							FILE** tape_file_handle,
+//							SIMJ_TAPE_DPI* current_file_position,
+//							SIMJ_U32* record_bytes,
+//							bool* end_of_file);
+//			static int device_common_tape_write_header(
+//							FILE** tape_file_handle,
+//							SIMJ_TAPE_DPI* current_file_position,
+//							SIMJ_U32 record_bytes,
+//							bool end_of_file, bool end_of_tape );
 //
 // Notes:
 //	    DWORD last_error may be MS windows specific.
@@ -32,6 +48,117 @@
 
 // DEBUG_TAPE_COMMON is set > 0 for debugging
 
+// ==========================================================================================
+// --------local function to read tape header...
+static int device_common_tape_read_header(
+	FILE** tape_file_handle,
+	SIMJ_TAPE_DPI* current_file_position,
+	SIMJ_U32* record_bytes,
+	bool* end_of_file) {
+
+	SIMJ_U16 header_footer_tape_record[2] = { 0, 0 };
+	size_t return_count = 0;	// number of elements returned...
+
+	SIMJ_U32 temp_low = 0;
+	SIMJ_U32 temp_high = 0;
+
+	SIMJ_U32 record_header_value = 0;
+
+	// -------- read record header.  It could also be a file mark.
+	size_t buffer_size = 4;
+	size_t element_size = 1;	// bytes..
+	size_t element_count = 4;
+	return_count = fread_s(&(header_footer_tape_record[0]), buffer_size,
+		element_size, element_count, *tape_file_handle);
+
+	// --------some kind of error occured.  See if it is end of file.
+	if (return_count != element_count) {
+		int int_eof = feof(*tape_file_handle);
+		// --------yes end of file
+		if (int_eof != 0) {
+			*record_bytes = 0;
+			*end_of_file = true;
+			return 0;	// consider this a good return...???
+		}
+		else {
+			// err_stat = ferror(fp);
+			*record_bytes = 0;
+			*end_of_file = true;
+			return 1;	// something bad happened.		}
+		}
+	}
+
+	// --------we have a good read.  translate the data...endianess
+	temp_low = header_footer_tape_record[0];
+	temp_high = header_footer_tape_record[1];
+	record_header_value = ((temp_high << 16) & 0xffff0000) | (temp_low & 0x0000ffff);
+
+	*record_bytes = record_header_value & 0x00ffffff;
+	*current_file_position += 4;
+	if (*record_bytes == 0) {
+		*end_of_file = true;
+	}
+	else {
+		*end_of_file = false;
+	}
+	return 0;
+}
+
+
+// ==========================================================================================
+// --------local function to write tape header...
+static int device_common_tape_write_header(
+	FILE** tape_file_handle,
+	SIMJ_TAPE_DPI* current_file_position,
+	SIMJ_U32 record_bytes,
+	bool end_of_file, bool end_of_tape ) {
+
+	SIMJ_U16 header_footer_tape_record[2] = { 0, 0 };
+	size_t return_count = 0;	// number of elements returned...
+	SIMJ_U32 loc_record_bytes;
+
+	SIMJ_U32 temp_low = 0;
+	SIMJ_U32 temp_high = 0;
+
+	// --------get number of bytes for this record...
+	loc_record_bytes = record_bytes;
+
+	// --------if end of file set record bytes = 0
+	if (end_of_file) {
+		loc_record_bytes = 0;
+	}
+
+	// --------if end of medium set record bytes = 0xffffffff;
+	if (end_of_tape) {
+		loc_record_bytes = 0xffffffff;
+	}
+
+	// --------set value into buffer...
+	temp_low = loc_record_bytes & 0xffff;
+	temp_high = (loc_record_bytes >> 16) & 0xffff;
+	header_footer_tape_record[0] = temp_low;
+	header_footer_tape_record[1] = temp_high;
+
+	// -------- read record header.  It could also be a file mark.
+	size_t element_size = 1;	// bytes..
+	size_t element_count = 4;
+	return_count = fwrite(&(header_footer_tape_record[0]), element_size,
+		element_count, *tape_file_handle);
+
+	// --------some kind of error occured.  See if it is end of file.
+	if (return_count != element_count) {
+		return 1;
+	}
+
+	*current_file_position += 4;
+
+	return 0;
+}
+
+
+
+
+// ==========================================================================================
 // -------- open a raw tcp socket, listen for connections, and accept a connection.
 int device_common_tape_open(char* tape_filename, bool read_only, FILE** tape_file_handle, 
                             SIMJ_TAPE_DPI* tape_dpi, SIMJ_TAPE_ERR* last_error) {
@@ -72,62 +199,6 @@ int device_common_tape_open(char* tape_filename, bool read_only, FILE** tape_fil
 }
 
 
-// ==========================================================================================
-// --------local function to read tape header...
-int device_common_tape_read_header(
-	FILE** tape_file_handle,
-	SIMJ_TAPE_DPI* current_file_position,
-	SIMJ_U32* record_bytes,
-	bool* end_of_file) {
-
-	SIMJ_U16 header_footer_tape_record[2] = { 0, 0 };
-	size_t return_count = 0;	// number of elements returned...
-
-	SIMJ_U32 temp_low = 0;
-	SIMJ_U32 temp_high = 0;
-
-	SIMJ_U32 record_header_value = 0;
-
-	// -------- read record header.  It could also be a file mark.
-	size_t buffer_size = 4;
-	size_t element_size = 1;	// bytes..
-	size_t element_count = 4;
-	return_count = fread_s(&(header_footer_tape_record[0]), buffer_size,
-		element_size, element_count, *tape_file_handle);
-
-	// --------some kind of error occured.  See if it is end of file.
-	if (return_count != element_count) {
-		int int_eof = feof(*tape_file_handle);
-		// --------yes end of file
-		if (int_eof != 0) {
-			*record_bytes = 0;
-			*end_of_file = true;
-			return 0;	// consider this a good return...???
-		}
-		else {
-			// err_stat = ferror(fp);
-			*record_bytes = 0;
-			*end_of_file = true;
-			return 1;	// something bad happened.		}
-		}
-	}
-
-	// --------we have a good read.  translate the data...endianess
-
-	temp_low = header_footer_tape_record[0];
-	temp_high = header_footer_tape_record[1];
-	record_header_value = ((temp_high << 16) & 0xffff0000) | (temp_low & 0x0000ffff);
-
-	*record_bytes = record_header_value & 0x00ffffff;
-	*current_file_position += 4;
-	if (*record_bytes == 0) {
-		*end_of_file = true;
-	}
-	else {
-		*end_of_file = false;
-	}
-	return 0;
-}
 
 // ==========================================================================================
 // --------read the next sequential tape record...
@@ -250,7 +321,6 @@ int device_common_tape_read_record(
 
 
 // ==========================================================================================
-
 // -------- close the tape image file..  good status = 0
 int device_common_tape_close(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi) {
 
@@ -266,8 +336,7 @@ int device_common_tape_close(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi) {
 }
 
 // ==========================================================================================
-
-// -------- open a raw tcp socket, listen for connections, and accept a connection.
+// -------- rewind tape.   good status = 0
 int device_common_tape_rewind(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi) {
 #if	DEBUG_TAPE_COMMON > 0
 	printf(" tape_common - rewind - called\n");
@@ -300,18 +369,90 @@ int device_common_tape_rewind(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi) 
 }
 
 // ==========================================================================================
+// -------- tape advance record
+// -------- this should be just like read, but without any data transfer.
+// -------- 	does this go past eof ?
+int device_common_tape_advance_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position, bool* end_of_file) {
 
-// -------- 
-// TODO: tape_advance_record(file* fp, int 64 dpi, bool* eof)	does this go past eof ?
-// ==========================================================================================
+	SIMJ_U32 loc_header_record_bytes = 0;
+	SIMJ_U32 loc_footer_record_bytes = 0;
+	SIMJ_U32 j = 0;
+	int err_stat = 1;
+	int stat = 0;
 
-// -------- 
-// TODO: tape_advance_file(file * fp, int 64 * dpi)
+	// -------- make sure we have a valid file handle
+	if (*tape_file_handle == NULL) {
+		*end_of_file = true;
+		return 1;
+	}
+	// --------read the header record.
+	loc_header_record_bytes = 0;
+	err_stat = device_common_tape_read_header(tape_file_handle, current_file_position,
+		&loc_header_record_bytes, end_of_file);
+	// --------debug
+#if DEBUG_TAPE_COMMON > 0
+	printf(" --- tape advance record -- record header read record_bytes %d, error stat %d, eof %d\n",
+		loc_header_record_bytes, err_stat, *end_of_file);
+#endif
 
+	// --------some kind of error occured.
+	if (err_stat != 0) {
+		return 1;
+	}
+	// --------got an end of file or end of file record.
+	else if (*end_of_file) {
+		return 0;
+	}
+
+	// --------check to see if file position is still valid.  If not, correct.
+	SIMJ_U64 check_cur_dpi = _ftelli64(*tape_file_handle);
+	if (check_cur_dpi != *current_file_position) {
+		printf(" ---- tape advance record - file pos mismatch %I64d, %I64d \n", check_cur_dpi, *current_file_position);
+		*current_file_position = check_cur_dpi;
+	}
+
+	SIMJ_U64 element_count = loc_header_record_bytes;
+	// --------for whatever reason the data is stored as an even number of bytes..
+	if (element_count % 2 != 0)
+		element_count++;
+
+	// --------have a real data record, skip over it...
+	*current_file_position += element_count;
+	stat = _fseeki64(*tape_file_handle, *current_file_position, SEEK_SET);
+
+	// --------read trailing footer record.
+	loc_footer_record_bytes = 0;
+	err_stat = device_common_tape_read_header(tape_file_handle, current_file_position,
+		&loc_footer_record_bytes, end_of_file);
+	// --------debug
+#if	DEBUG_TAPE_COMMON > 0
+	printf(" --- tape advance record -- record footer read record_bytes %d, error stat %d, eof %d\n",
+		loc_footer_record_bytes, err_stat, *end_of_file);
+#endif
+
+	// --------some kind of error occured.  bad footer
+	if (err_stat != 0) {
+		return 1;
+	}
+	// --------got an end of file or end of file record.
+	// --------really shouldn't get this on footer!!!
+	else if (*end_of_file) {
+		return 1;
+	}
+
+	if (loc_header_record_bytes != loc_footer_record_bytes)
+		printf(" *** ERROR *** Tape device record size mis-match on tape image %d not equal to %d\n",
+			loc_header_record_bytes, loc_footer_record_bytes);
+
+	//io_error = ferror(tape_file_handle);
+	*end_of_file = feof((FILE*)*tape_file_handle);
+
+	return 0;
+}
 
 // ==========================================================================================
 // -------- tape back record...
-int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end_of_file, bool* begin_of_tape) {
+int device_common_tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end_of_file, bool* begin_of_tape) {
 
 	__int64 current_pos = 0;
 	__int64 offset_bytes = 0;
@@ -332,7 +473,7 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 #if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - beginning of tape\n");
 #endif
-		*end_of_file = false;
+		* end_of_file = false;
 		*begin_of_tape = true;
 		return 0;
 	}
@@ -344,7 +485,7 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 #if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - fseeki64 error %d\n", seek_stat);
 #endif
-		*end_of_file = false;
+		* end_of_file = false;
 		*begin_of_tape = false;
 		return 1;
 	}
@@ -355,12 +496,12 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 #endif
 
 	// -------- read the file footer record.  calc record size.
-	header_stat = device_common_tape_read_header( tape_file_handle, tape_dpi, &record_bytes, end_of_file);
+	header_stat = device_common_tape_read_header(tape_file_handle, tape_dpi, &record_bytes, end_of_file);
 	if (header_stat != 0) {
 #if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - read footer error %d\n", header_stat);
 #endif
-		*end_of_file = false;
+		* end_of_file = false;
 		*begin_of_tape = false;
 		return 1;
 	}
@@ -371,7 +512,7 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 #if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - beginning of tape\n");
 #endif
-		*end_of_file = false;
+		* end_of_file = false;
 		*begin_of_tape = true;
 		return 1;
 	}
@@ -379,12 +520,12 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 	// --------check for file mark.
 	// --------move back to the file mark.
 	if (record_bytes == 0) {
-		offset_bytes = -4;
+		offset_bytes = -4LL;
 		*end_of_file = true;
 	}
 	// --------move to the beginning of the record.
 	else {
-		offset_bytes = (record_bytes + 8) * -1;
+		offset_bytes = (record_bytes + 8LL) * -1LL;
 		*end_of_file = false;
 	}
 
@@ -394,7 +535,7 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 #if DEBUG_TAPE > 0
 		printf(" Tape BCK REC - fseeki64 error %d\n", seek_stat);
 #endif
-		*end_of_file = false;
+		* end_of_file = false;
 		*begin_of_tape = false;
 		return 1;
 	}
@@ -412,19 +553,38 @@ int tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi, bool* end
 	}
 	return 0;
 }
+
+// ==========================================================================================
+// -------- 
+// TODO: tape_advance_file(file * fp, int 64 * dpi)
  
  
 // ==========================================================================================
-
 // -------- 
 // TODO: tape_back_file
 // ==========================================================================================
 
 // -------- 
 // TODO: tape_write_next_record(
+// 
+// --------create header
+// --------write header
+// --------get record length and make even
+// --------copy buffer and swap bytes
+// --------write record
+// --------write trailer
+// --------should eof be set??
+
 // ==========================================================================================
+// --------write end of file to tape..
+int device_common_tape_eof(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position) {
 
-// -------- 
-// TODO: tape_write_eof(file * fp, int64 * dpi)
+	int ret_value = 0;
+	bool end_of_file = true;
+	bool end_of_tape = false;
+	SIMJ_U32 record_bytes = 0;
+	ret_value = device_common_tape_write_header( tape_file_handle, current_file_position,
+								record_bytes, end_of_file, end_of_tape);
 
-
+	return ret_value;
+}
