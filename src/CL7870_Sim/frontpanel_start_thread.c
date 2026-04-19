@@ -32,7 +32,11 @@
 //			3		0x0040	Task interrupt active (15)
 //			3		0x0020	Memory ECC error
 //			3		0x001f	EMA - Extended Memory address (5 bits for 7870, 4 bits for 7830)
-//			4
+//			4		0x8000	Power on
+//			4		0x4000	Standby (7870 only)
+//			4		0x2000	Backup Failure (7870 only)
+//			4		0x1000	Run
+//			4		0x0fff	--future use
 //			5		
 // 
 // ================================================================================================
@@ -46,14 +50,19 @@
 #include <stdbool.h>
 #include <process.h>
 
-uintptr_t   frontpanel_thread_handle;
-DWORD   frontpanel_thread_id;
+uintptr_t   frontpanel_writethread_handle;
+uintptr_t   frontpanel_readthread_handle;
+DWORD   frontpanel_writethread_id;
+DWORD   frontpanel_readthread_id;
 
-volatile static int frontpanel_thread_stop_request = 0;
+volatile static int frontpanel_writethread_stop_request = 0;
+volatile static int frontpanel_readthread_stop_request = 0;
 
-HANDLE frontpanel_timer_handle = NULL;
+HANDLE frontpanel_writetimer_handle = NULL;
+HANDLE frontpanel_readtimer_handle = NULL;
 
-DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam);
+DWORD WINAPI frontpanel_writethread_proc(LPVOID lpParam);
+DWORD WINAPI frontpanel_readthread_proc(LPVOID lpParam);
 
 // --  typedef struct _MYDATA {
 // --  	LPCTSTR szText;
@@ -67,20 +76,22 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam);
 void frontpanel_start_thread() {
 
 	bool status = false;
-	// const LARGE_INTEGER due_time = { .QuadPart = -500000LL };	// 50 milliseconds
-	// const LONG periodic_time = 50;			// 50 milliseconds
-	const LARGE_INTEGER due_time = { .QuadPart = -040000LL };	// 4 milliseconds
-	const LONG periodic_time = 4;			// 4 milliseconds
+
+	// const LARGE_INTEGER write_due_time = { .QuadPart = -500000LL };	// 50 milliseconds
+	// const LONG write_periodic_time = 50;			// 50 milliseconds
+	const LARGE_INTEGER write_due_time = { .QuadPart = -040000LL };	// 4 milliseconds
+	const LONG write_periodic_time = 4;			// 4 milliseconds
+
+	const LARGE_INTEGER read_due_time = { .QuadPart = -200000LL };	// 20 milliseconds
+	const LONG read_periodic_time = 20;			// 20 milliseconds
 
 	// -------- initialize the stop request
-	frontpanel_thread_stop_request = 0;
+	frontpanel_writethread_stop_request = 0;
+	frontpanel_readthread_stop_request = 0;
 
+	// -------- WRITE 
 	// -------- create timer
-	frontpanel_timer_handle =
-		// -- CreateWaitableTimerW(
-		// -- NULL,
-		// -- false,
-		// -- NULL);
+	frontpanel_writetimer_handle =
 		CreateWaitableTimerExW(
 			NULL,			// security attributes
 			NULL,				// timer name
@@ -88,16 +99,16 @@ void frontpanel_start_thread() {
 			TIMER_ALL_ACCESS | TIMER_MODIFY_STATE);		// 
 
 	// -------- check and deal with error
-	if (frontpanel_timer_handle == NULL) {
-		printf(" *** ERROR *** Front Panel Communications CreateWaitableTimerEx failed: 0x%08x\n", GetLastError());
+	if (frontpanel_writetimer_handle == NULL) {
+		printf(" *** ERROR *** Front Panel Write Communications CreateWaitableTimerEx failed: 0x%08x\n", GetLastError());
 	}
 	else {
 
 		// -------- Schedule the wait
 		status = SetWaitableTimer(
-			frontpanel_timer_handle,	// handle
-			&due_time,				// due time 
-			periodic_time,			// periodic time
+			frontpanel_writetimer_handle,	// handle
+			&write_due_time,				// due time 
+			write_periodic_time,			// periodic time
 			NULL,			// [in, optional] PTIMERAPCROUTINE    pfnCompletionRoutine,
 			NULL,		// [in, optional] LPVOID              lpArgToCompletionRoutine,
 			FALSE);					// [in] BOOL                fResume
@@ -105,34 +116,25 @@ void frontpanel_start_thread() {
 		// -------- timer scheduled okay.
 		if (status) {
 
-			frontpanel_thread_handle = _beginthreadex(NULL,
+			frontpanel_writethread_handle = _beginthreadex(NULL,
 				0,
-				frontpanel_thread_proc,
+				frontpanel_writethread_proc,
 				NULL,
 				0,
-				&frontpanel_thread_id);
-
-			//  --  frontpanel_thread_handle = CreateThread(
-			//  --  		NULL,			// default security attributes
-			//  --  		0,					// use default stack size	
-			//  --  		frontpanel_thread_proc,	// thread function name			
-			//  --  		NULL,					// argument to thread function 
-			//  --  		0,					// use default creation flags 
-			//  --  		&frontpanel_thread_id);		// returns the thread identifier 
-
+				&frontpanel_writethread_id);
 
 				// Check the return value for success.
 				// If C	reateThread fails, terminate execution. 
 				// This will automatically clean up threads and memory. 
 
-			if (frontpanel_thread_handle == 0) {
-				printf("\n *** ERROR *** Trouble creating front panel communications thread.  Error: 0x%08x\n", errno);
+			if (frontpanel_writethread_handle == 0) {
+				printf("\n *** ERROR *** Trouble creating front panel write communications thread.  Error: 0x%08x\n", errno);
 				frontpanel_stop_thread();
 			}
 			else {
 
-				printf(" Front Panel communications started.\n");
-				printf(" Front Panel communications thread created.  ID = %d\n", frontpanel_thread_id);
+				printf(" Front Panel write communications started.\n");
+				printf(" Front Panel write communications thread created.  ID = %d\n", frontpanel_writethread_id);
 			}
 		}
 		else {
@@ -140,36 +142,111 @@ void frontpanel_start_thread() {
 			frontpanel_stop_thread();
 		}
 	}
+
+	// -------- READ
+	// -------- create timer
+	frontpanel_readtimer_handle =
+		CreateWaitableTimerExW(
+			NULL,			// security attributes
+			NULL,				// timer name
+			CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,	// flags
+			TIMER_ALL_ACCESS | TIMER_MODIFY_STATE);		// 
+
+	// -------- check and deal with error
+	if (frontpanel_readtimer_handle == NULL) {
+		printf(" *** ERROR *** Front Panel Read Communications CreateWaitableTimerEx failed: 0x%08x\n", GetLastError());
+	}
+	else {
+
+		// -------- Schedule the wait
+		status = SetWaitableTimer(
+			frontpanel_readtimer_handle,	// handle
+			&read_due_time,				// due time 
+			read_periodic_time,			// periodic time
+			NULL,			// [in, optional] PTIMERAPCROUTINE    pfnCompletionRoutine,
+			NULL,		// [in, optional] LPVOID              lpArgToCompletionRoutine,
+			FALSE);					// [in] BOOL                fResume
+
+		// -------- timer scheduled okay.
+		if (status) {
+
+			frontpanel_readthread_handle = _beginthreadex(NULL,
+				0,
+				frontpanel_readthread_proc,
+				NULL,
+				0,
+				&frontpanel_readthread_id);
+
+				// Check the return value for success.
+				// If C	reateThread fails, terminate execution. 
+				// This will automatically clean up threads and memory. 
+
+			if (frontpanel_readthread_handle == 0) {
+				printf("\n *** ERROR *** Trouble creating front panel read communications thread.  Error: 0x%08x\n", errno);
+				frontpanel_stop_thread();
+			}
+			else {
+
+				printf(" Front Panel read communications started.\n");
+				printf(" Front Panel read communications thread created.  ID = %d\n", frontpanel_readthread_id);
+			}
+		}
+		else {
+			printf("SetWaitableTimer failed with error %d\n", GetLastError());
+			frontpanel_stop_thread();
+		}
+	}
+
+
 }
 
 
 // =============================================================================================================
 void frontpanel_stop_thread() {
 
-	int stop_compare = 0;
+	int stop_writecompare = 0;
+	int stop_readcompare = 0;
 
 	// -------- request the thread to exit
-	frontpanel_thread_stop_request = 1;
-	stop_compare = frontpanel_thread_stop_request;
+	frontpanel_writethread_stop_request = 1;
+	frontpanel_readthread_stop_request = 1;
 
-	// -------- wait a little bit for the clock to exit.
-	WaitOnAddress(&frontpanel_thread_stop_request, &stop_compare, sizeof(frontpanel_thread_stop_request), 500);
+	stop_writecompare = 1; // frontpanel_writethread_stop_request;
+	stop_readcompare = 1; // frontpanel_readthread_stop_request;
+
+	// -------- wait a little bit for the write thread to exit.
+	WaitOnAddress(&frontpanel_writethread_stop_request, &stop_writecompare, 
+		sizeof(frontpanel_writethread_stop_request), 500);
 
 	// -------- it didn't stop -- force it to terminate 
-	if (frontpanel_thread_stop_request != 0) {
-		TerminateThread((HANDLE)frontpanel_thread_handle, 0); // Dangerous source of errors!
-		CloseHandle((HANDLE)frontpanel_thread_handle);
-		printf("\n *** ERROR *** Front Panel Communications thread didnt respond normally.  It was forcefully terminated.\n");
+	if (frontpanel_writethread_stop_request != 0) {
+		TerminateThread((HANDLE)frontpanel_writethread_handle, 0); // Dangerous source of errors!
+		CloseHandle((HANDLE)frontpanel_writethread_handle);
+		printf("\n *** ERROR *** Front Panel Write Communications thread didnt respond normally.  It was forcefully terminated.\n");
 	}
 	else {
-		printf(" Front Panel communications thread stopped.\n");
+		printf(" Front Panel write communications thread stopped.\n");
+	}
+
+	// -------- wait a little bit for the read thread to exit.
+	WaitOnAddress(&frontpanel_readthread_stop_request, &stop_readcompare,
+		sizeof(frontpanel_readthread_stop_request), 500);
+
+	// -------- it didn't stop -- force it to terminate 
+	if (frontpanel_readthread_stop_request != 0) {
+		TerminateThread((HANDLE)frontpanel_readthread_handle, 0); // Dangerous source of errors!
+		CloseHandle((HANDLE)frontpanel_readthread_handle);
+		printf("\n *** ERROR *** Front Panel Read Communications thread didnt respond normally.  It was forcefully terminated.\n");
+	}
+	else {
+		printf(" Front Panel read communications thread stopped.\n");
 	}
 
 }
 
 
 // =============================================================================================================
-DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
+DWORD WINAPI frontpanel_writethread_proc(LPVOID lpParam) {
 
 	bool status = false;
 
@@ -201,7 +278,7 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 #define BRIGHT_MISC4_START (BRIGHT_MISC3_START+8)
 
 	// -------- raise the priority of this thread.
-	status = SetThreadPriority((HANDLE)frontpanel_thread_handle, THREAD_PRIORITY_TIME_CRITICAL);
+	status = SetThreadPriority((HANDLE)frontpanel_writethread_handle, THREAD_PRIORITY_TIME_CRITICAL);
 	if (!status) {
 		printf(" *** ERROR *** Failed to raise priority of Front Panel communications thread.  Status 0x%08x\n", GetLastError());
 	}
@@ -216,11 +293,11 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 
 	// -------- 1. Initialize Winsock library
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-			fprintf(stderr, " *** ERROR *** front_panel_thread_proc - WSAStartup failed: %d\n", WSAGetLastError());
+			fprintf(stderr, " *** ERROR *** front_panel_writethread_proc - WSAStartup failed: %d\n", WSAGetLastError());
 			loc_last_error = WSAGetLastError();
 			printf(" Front Panel communications thread exiting.\n");
 			// -------- indicate we are exiting.
-			frontpanel_thread_stop_request = 0;
+			frontpanel_writethread_stop_request = 0;
 			// --------exit thread.
 			//  --  ExitThread(0);
 			_endthreadex(0);
@@ -230,11 +307,11 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 	// -------- 2. Create a UDP socket
 	loc_send_udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (loc_send_udp_socket == INVALID_SOCKET) {
-			fprintf(stderr, " *** ERROR *** front_panel_thread_proc - socket failed: %d\n", WSAGetLastError());
+			fprintf(stderr, " *** ERROR *** front_panel_writethread_proc - socket failed: %d\n", WSAGetLastError());
 			loc_last_error = WSAGetLastError();
 			WSACleanup();
 			// -------- indicate we are exiting.
-			frontpanel_thread_stop_request = 0;
+			frontpanel_writethread_stop_request = 0;
 			// --------exit thread.
 			//  --  ExitThread(0);
 			_endthreadex(0);
@@ -245,7 +322,7 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 	int sndBufferSize = 4096;
 	int iResult = setsockopt(loc_send_udp_socket, SOL_SOCKET, SO_SNDBUF, (char*)&sndBufferSize, sizeof(sndBufferSize));
 	if (iResult == SOCKET_ERROR) {
-		fprintf(stderr, " *** ERROR *** front_panel_thread_proc setsockopt SO_SNDBUF failed: %ld\n", WSAGetLastError());
+		fprintf(stderr, " *** ERROR *** front_panel_writethread_proc setsockopt SO_SNDBUF failed: %ld\n", WSAGetLastError());
 		closesocket(loc_send_udp_socket);
 		WSACleanup();
 		_endthreadex(0);
@@ -257,12 +334,12 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 	int ioctl_return = 0;
 	ioctl_return = ioctlsocket(loc_send_udp_socket, FIONBIO, &nonBlocking);
 	if (ioctl_return == SOCKET_ERROR) {
-		fprintf(stderr, " *** ERROR *** front_panel_thread_proc - socket non block set failed: %d\n", WSAGetLastError());
+		fprintf(stderr, " *** ERROR *** front_panel_writethread_proc - socket non block set failed: %d\n", WSAGetLastError());
 		loc_last_error = WSAGetLastError();
 		closesocket(loc_send_udp_socket);
 		WSACleanup();
 		// -------- indicate we are exiting.
-		frontpanel_thread_stop_request = 0;
+		frontpanel_writethread_stop_request = 0;
 		// --------exit thread.
 		//  --  ExitThread(0);
 		_endthreadex(0);
@@ -277,9 +354,9 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 
 
 	// -------- loop until requested to stop
-	while (frontpanel_thread_stop_request == 0) {
+	while (frontpanel_writethread_stop_request == 0) {
 
-		WaitForSingleObject(frontpanel_timer_handle, 10);
+		WaitForSingleObject(frontpanel_writetimer_handle, 10);
 
 		// --------increment loop count
 		loc_loop_count++;
@@ -460,7 +537,7 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 			// -------- send udp packet (without waiting)
 			if (sendto(loc_send_udp_socket, (const char*)(&send_words[0]), BYTES_TO_SEND, 0, (struct sockaddr*)&loc_udp_send_serverAddr, loc_send_addr_len) == SOCKET_ERROR) {
 				// TODO: for now ignore error...
-				//printf(" frontpanel_thread_proc  Failed to send data. Error Code: %d\n", WSAGetLastError());
+				//printf(" frontpanel_writethread_proc  Failed to send data. Error Code: %d\n", WSAGetLastError());
 				//closesocket(loc_send_udp_socket);
 				//WSACleanup();
 				//return 1;
@@ -481,8 +558,8 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 	}	// -------- processing loop
 
 	// -------- waitable timer clock the clock handle
-	if (frontpanel_timer_handle != NULL) {
-		CloseHandle(frontpanel_timer_handle);
+	if (frontpanel_writetimer_handle != NULL) {
+		CloseHandle(frontpanel_writetimer_handle);
 	}
 	
 	closesocket(loc_send_udp_socket);
@@ -491,7 +568,127 @@ DWORD WINAPI frontpanel_thread_proc(LPVOID lpParam) {
 	printf(" Front Panel communications thread exiting.\n");
 
 	// -------- indicate we are exiting.
-	frontpanel_thread_stop_request = 0;
+	frontpanel_writethread_stop_request = 0;
+
+	// --------exit thread.
+	//  --  ExitThread(0);
+	_endthreadex(0);
+
+	return 0;
+
+}
+
+
+// =============================================================================================================
+DWORD WINAPI frontpanel_readthread_proc(LPVOID lpParam) {
+
+	bool status = false;
+
+
+	// --------local temporary data 
+	SIMJ_U32 loc_loop_count = 0;
+
+
+	// --------- buffer word indexes...
+
+	// -------- raise the priority of this thread.
+	status = SetThreadPriority((HANDLE)frontpanel_readthread_handle, THREAD_PRIORITY_TIME_CRITICAL);
+	if (!status) {
+		printf(" *** ERROR *** Failed to raise priority of Front Panel read communications thread.  Status 0x%08x\n", GetLastError());
+	}
+
+	// --------Open the input UDP socket.
+	WSADATA		wsaData;
+	u_short		loc_recv_port = 57831;
+	SOCKET		loc_recv_udp_socket = INVALID_SOCKET;
+	DWORD		loc_last_error = 9999;
+	struct sockaddr_in loc_udp_recv_serverAddr = { 0 };
+	int			loc_send_addr_len = sizeof(loc_udp_recv_serverAddr);
+
+	// -------- 1. Initialize Winsock library
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+		fprintf(stderr, " *** ERROR *** front_panel_readthread_proc - WSAStartup failed: %d\n", WSAGetLastError());
+		loc_last_error = WSAGetLastError();
+		printf(" Front Panel read communications thread exiting.\n");
+		// -------- indicate we are exiting.
+		frontpanel_readthread_stop_request = 0;
+		// --------exit thread.
+		//  --  ExitThread(0);
+		_endthreadex(0);
+		return 0;
+	}
+
+	// -------- 2. Create a UDP socket
+	loc_recv_udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (loc_recv_udp_socket == INVALID_SOCKET) {
+		fprintf(stderr, " *** ERROR *** front_panel_readthread_proc - socket failed: %d\n", WSAGetLastError());
+		loc_last_error = WSAGetLastError();
+		WSACleanup();
+		// -------- indicate we are exiting.
+		frontpanel_readthread_stop_request = 0;
+		// --------exit thread.
+		//  --  ExitThread(0);
+		_endthreadex(0);
+		return 0;
+	}
+
+	// -------- 3. Set the recv buffer size to 4096 (this should be much bigger than the 4 bytes needed each time)
+	int recvBufferSize = 4096;
+	int iResult = setsockopt(loc_recv_udp_socket, SOL_SOCKET, SO_SNDBUF, (char*)&recvBufferSize, sizeof(recvBufferSize));
+	if (iResult == SOCKET_ERROR) {
+		fprintf(stderr, " *** ERROR *** front_panel_readthread_proc setsockopt SO_SNDBUF failed: %ld\n", WSAGetLastError());
+		closesocket(loc_recv_udp_socket);
+		WSACleanup();
+		_endthreadex(0);
+		return 0;
+	}
+
+	// --------4. set the send socket to be non-blocking..
+	unsigned long nonBlocking = 1;
+	int ioctl_return = 0;
+	ioctl_return = ioctlsocket(loc_recv_udp_socket, FIONBIO, &nonBlocking);
+	if (ioctl_return == SOCKET_ERROR) {
+		fprintf(stderr, " *** ERROR *** front_panel_readthread_proc - socket non block set failed: %d\n", WSAGetLastError());
+		loc_last_error = WSAGetLastError();
+		closesocket(loc_recv_udp_socket);
+		WSACleanup();
+		// -------- indicate we are exiting.
+		frontpanel_readthread_stop_request = 0;
+		// --------exit thread.
+		//  --  ExitThread(0);
+		_endthreadex(0);
+		return 0;
+	}
+
+
+	// -------- 3. Set up the server address structure
+	loc_udp_recv_serverAddr.sin_family = AF_INET;
+	loc_udp_recv_serverAddr.sin_port = htons(loc_recv_port); // Source port
+	loc_udp_recv_serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); //INADDR_BROADCAST;	//    
+
+
+	// -------- loop until requested to stop
+	while (frontpanel_readthread_stop_request == 0) {
+
+		WaitForSingleObject(frontpanel_readtimer_handle, 10);
+
+		// --------increment loop count
+		loc_loop_count++;
+
+	}	// -------- processing loop
+
+	// -------- waitable timer clock the clock handle
+	if (frontpanel_readtimer_handle != NULL) {
+		CloseHandle(frontpanel_readtimer_handle);
+	}
+
+	closesocket(loc_recv_udp_socket);
+	WSACleanup();
+
+	printf(" Front Panel read communications thread exiting.\n");
+
+	// -------- indicate we are exiting.
+	frontpanel_readthread_stop_request = 0;
 
 	// --------exit thread.
 	//  --  ExitThread(0);

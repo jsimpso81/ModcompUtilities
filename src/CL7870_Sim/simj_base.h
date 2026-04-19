@@ -479,16 +479,21 @@ int device_common_raw_socket_write(SOCKET tcp_socket, DWORD desired_write_bytes,
 	SIMJ_U8* loc_write_data, DWORD* actual_written_bytes, DWORD* last_error);
 
 // --------tape image file processing routines...
+int device_common_tape_advance_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position,
+							bool* end_of_file);
 int device_common_tape_close(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi);
 int device_common_tape_open(char* tape_filename, bool read_only, FILE** tape_file_handle,
-	SIMJ_TAPE_DPI* tape_dpi, SIMJ_TAPE_ERR* last_error);
-int device_common_tape_rewind(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi);
+							SIMJ_TAPE_DPI* tape_dpi, SIMJ_TAPE_ERR* last_error);
 int device_common_tape_read_record( FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position,
-	void* buf, SIMJ_U32 max_buf_bytes, SIMJ_U32* bytes_read, bool* end_of_file);
+							void* buf, SIMJ_U32 max_buf_bytes, SIMJ_U32* bytes_read, bool* end_of_file);
+int device_common_tape_rewind(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi);
+int device_common_tape_weof(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position);
+int device_common_tape_write_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position,
+							void* buf, SIMJ_U32 bytes_to_write);
 
 // --------disc image file processing routines.
 int device_common_disc_open(char* disc_filename, bool read_only, FILE** disc_file_handle, DWORD* last_error);
-int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, void* raw_sector_buf, unsigned __int16* flags);
+int device_common_disc_read_sector(FILE* fp, unsigned __int64 sector, unsigned __int16* raw_sector_buf, unsigned __int16* flags);
 int device_common_disc_write_sector(FILE* fp, unsigned __int64 sector, void* raw_sector_buf, unsigned __int16 flags);
 
 void device_common_buffer_init(volatile DEVICE_BUFFER* buff);

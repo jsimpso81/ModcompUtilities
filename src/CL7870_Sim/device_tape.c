@@ -364,6 +364,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 			device_data->io_cmd[j_unit] = 0;	// reset command
 			switch (loc_cmd) {
 
+				// -------------------------------------------------
 				// --------do a read.  Once done say data is available and cause interrupts..
 				case locIOcmd_read:
 				case locIOcmd_readDMP:
@@ -473,12 +474,39 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 					break;
 
-				// --------do a read.  Once done say data is available and cause interrupts..
+				// -------------------------------------------------
+				// --------do a write. 
 				case locIOcmd_write:
 				case locIOcmd_writeDMP:
 					printf(" device tape WRITE - IO entered -- not finished yet.....\n");
+
+					// --------if DMP process... get data from users buffer.
+					if (loc_cmd == locIOcmd_readDMP) {
+						iop_start_dmp_write( device_data->device_address, device_data->dmp_tc, device_data->dmp_ta,
+							device_data->dmp_abs_tc_addr, 
+							iop_vdmp_miap_page[device_data->dmp], iop_vdmp_miap_length[device_data->dmp],
+							&tape_buffer, 65536); // words_out_buffer );
+					}
+					// --------REG IO, copy to buffer.
+					// TODO: There is only one tape buffer, not one for each unit !!!
+					else {
+						// -------- Request ownership of the resource.
+						TAKE_RESOURCE(device_data->ResourceStatusUpdate);
+	
+						// device_common_buffer_set_empty(&device_data->in_buff); // set buffer empty
+						// --------get data, swapping bytes as we go.
+						for (j = 0; j < bytes_read[j_unit]; j += 2) {
+							device_common_buffer_put(&device_data->in_buff, tape_buffer.ubytes[j + 1]);
+							device_common_buffer_put(&device_data->in_buff, tape_buffer.ubytes[j]);
+							junk2_debug += 2;
+						}
+						// -------- Release ownership of the resource.
+						GIVE_RESOURCE(device_data->ResourceStatusUpdate);
+					}
+
 					break;
 
+				// -------------------------------------------------
 				// --------REWIND
 				case locIOcmd_rewon:
 #if DEBUG_TAPE >= 1
@@ -511,6 +539,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 					break;
 
+				// -------------------------------------------------
 				case locIOcmd_rewoff:
 #if DEBUG_TAPE >= 1
 					printf(" device tape REWIND OFF - IO entered\n");
@@ -543,10 +572,12 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 
 					break;
 
+				// -------------------------------------------------
 				case locIOcmd_bkfile:
 #if DEBUG_TAPE >= 1
 					printf(" device tape BCK FILE - IO entered\n");
 #endif
+					// TODO implement BK FILE
 					printf(" device tape BCK FILE not implemented yet!\n");
 					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 					// --------signal not busy.
@@ -560,10 +591,12 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 					break;
 
+				// -------------------------------------------------
 				case locIOcmd_fwdfile:
 #if DEBUG_TAPE >= 1
 					printf(" device tape FWD FILE - IO entered\n");
 #endif
+					// TODO implement FWD FILE
 					printf(" device tape FWD FILE not implemented yet!\n");
 					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 					// --------signal not busy.
@@ -577,10 +610,12 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 					break;
 
+				// -------------------------------------------------
 				case locIOcmd_bkrec:
 #if DEBUG_TAPE >= 1
 					printf(" device tape BCK RECORD - IO entered\n");
 #endif
+					// TODO implement BK RECORD
 					printf(" device tape BCK RECORD not implemented yet!\n");
 					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 					// --------signal not busy.
@@ -598,6 +633,7 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 #if DEBUG_TAPE >= 1
 					printf(" device tape FWD RECORD - IO entered\n");
 #endif
+					// TODO implement FWD RECORD
 					printf(" device tape FWD RECORD not implemented yet!\n");
 					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 					// --------signal not busy.
@@ -611,10 +647,12 @@ static DWORD WINAPI device_tape_local_IO_worker_thread(LPVOID lpParam) {
 					GIVE_RESOURCE(device_data->ResourceStatusUpdate);
 					break;
 
+				// -------------------------------------------------
 				case locIOcmd_weof:
 #if DEBUG_TAPE >= 1
 					printf(" device tape WRT EOF - IO entered\n");
 #endif
+					// TODO implement WEOF
 					printf(" device tape WRT EOF not implemented yet!\n");
 					TAKE_RESOURCE(device_data->ResourceStatusUpdate);
 					// --------signal not busy.

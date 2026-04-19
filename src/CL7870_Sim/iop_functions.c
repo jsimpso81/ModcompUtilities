@@ -562,6 +562,14 @@ int iop_finish_dmp_read(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_add
 // ================================================================================================
 // --------status 0=good, others=error
 // TODO: DMP has to update the tc and ta!!!
+// virt - bool - true if virtual
+// tc - int16 - transfer count
+// ta - uint16 - transfer address (64k)
+// tc_abs_addr - uint32 - absolute mem address of transfer count
+// vdmp_miap_page - uint16 - page number of miap
+// vdmp_miap_length - uint16 - length (words?) of miap
+// databuffer - uint16* - data buffer 
+// words_out_buffer - int - size of data buffer ???? 
 int iop_start_dmp_write(bool virt, SIMJ_S16 tc, SIMJ_U16 ta, SIMJ_U32 tc_abs_addr,
 	SIMJ_U16 vdmp_miap_page, SIMJ_U16 vdmp_miap_length,
 	SIMJ_U16* databuffer, int words_out_buffer) {

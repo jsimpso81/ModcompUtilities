@@ -19,7 +19,10 @@
 //			int device_common_tape_rewind(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_dpi);
 //			int device_common_tape_advance_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position, 
 //										bool* end_of_file); 
-//			int device_common_tape_eof(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position);
+//			int device_common_tape_weof(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position);
+//			int device_common_tape_write_record(
+//										FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position,
+//										void* buf, SIMJ_U32 bytes_to_write) {
 // 
 //	Externally accessible routines:
 //					None - only file library routines.
@@ -562,22 +565,71 @@ int device_common_tape_back_record(FILE** tape_file_handle, SIMJ_TAPE_DPI* tape_
 // ==========================================================================================
 // -------- 
 // TODO: tape_back_file
-// ==========================================================================================
 
+
+// ==========================================================================================
 // -------- 
 // TODO: tape_write_next_record(
 // 
-// --------create header
-// --------write header
-// --------get record length and make even
-// --------copy buffer and swap bytes
-// --------write record
-// --------write trailer
-// --------should eof be set??
+int device_common_tape_write_record(
+	FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position,
+	void* buf, SIMJ_U32 bytes_to_write) {
+
+	int suberr = 0;
+	SIMJ_U32 loc_bytes_to_write = bytes_to_write;
+	SIMJ_U32 loc_words_to_write = 0;
+	SIMJ_U16 loc_buffer[32768] = { 0 };
+	size_t element_size = 1;	// bytes..
+	size_t element_count = 0;
+	size_t return_count = 0;	// number of elements returned...
+	unsigned int j = 0;
+
+	// --------create header
+	// --------write header
+	suberr = device_common_tape_write_header(tape_file_handle, current_file_position,
+		bytes_to_write, false, false);
+
+	// --------get record length and make even
+	if (bytes_to_write % 2 != 0)
+		loc_bytes_to_write++;
+	loc_words_to_write = loc_bytes_to_write / 2;
+
+	// --------copy buffer and swap bytes
+	for (j = 0; j < loc_words_to_write; j++) {
+		loc_buffer[j] = _byteswap_ushort(  ((SIMJ_U16*)buf)[j]);
+	}
+
+	// --------write record
+	// --------debug
+#if	DEBUG_TAPE_COMMON > 0
+	printf(" --- tape image before write -- buf size %zd, ele size %zd, ele cnt %zd\n",
+		buffer_size, element_size, element_count);
+#endif
+	element_size = 1;
+	element_count = loc_bytes_to_write;
+
+	return_count = fwrite(loc_buffer, element_size,
+		element_count, (FILE*)*tape_file_handle);
+	// --------debug
+#if	DEBUG_TAPE_COMMON > 0
+	printf(" --- tape image write -- bytes read %zd\n", return_count);
+#endif
+
+	// --------deal with error.
+	//io_error = ferror(tape_file_handle);
+
+	// --------write trailer
+	suberr = device_common_tape_write_header(tape_file_handle, current_file_position,
+		bytes_to_write, false, false);
+
+	// --------should eof be set??
+
+	return 0;
+}
 
 // ==========================================================================================
 // --------write end of file to tape..
-int device_common_tape_eof(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position) {
+int device_common_tape_weof(FILE** tape_file_handle, SIMJ_TAPE_DPI* current_file_position) {
 
 	int ret_value = 0;
 	bool end_of_file = true;
