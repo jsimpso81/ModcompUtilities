@@ -1,11 +1,12 @@
 ﻿Option Strict On
 
-Imports System.ComponentModel
 Imports System
+Imports System.ComponentModel
 Imports System.Net
 Imports System.Net.Sockets
-Imports System.Text
 Imports System.Numerics
+Imports System.Text
+Imports System.Threading
 
 
 
@@ -13,8 +14,8 @@ Public Class frmMain
 
     Private DemoIndex As Integer = 0
 
-    Private WithEvents udpSendClient As UdpClient
-    Private WithEvents remoteSendEndPoint As IPEndPoint
+    Private WithEvents UdpSendClient As UdpClient
+    Private WithEvents RemoteSendEndPoint As IPEndPoint
     Private SendPort As Integer = 57831
     '--------implement a blocking concurrent queue...... for the data...
 
@@ -87,13 +88,13 @@ Public Class frmMain
         lblComBytes.Text = CStr(parm_recv_bytes.Length)
         '--------ensure we have some bytes and copy to local.
         If parm_recv_bytes.Length > 9 Then
-            If parm_recv_bytes.Length <> locByteArray.Length Then
-                ReDim Preserve locByteArray(parm_recv_bytes.Length - 1)
+            If parm_recv_bytes.Length <> LocByteArray.Length Then
+                ReDim Preserve LocByteArray(parm_recv_bytes.Length - 1)
             End If
-            If parm_recv_bytes.Length <> locLastByteArray.Length Then
-                ReDim Preserve locLastByteArray(parm_recv_bytes.Length - 1)
+            If parm_recv_bytes.Length <> LocLastByteArray.Length Then
+                ReDim Preserve LocLastByteArray(parm_recv_bytes.Length - 1)
             End If
-            Buffer.BlockCopy(parm_recv_bytes, 0, locByteArray, 0, parm_recv_bytes.Length)
+            Buffer.BlockCopy(parm_recv_bytes, 0, LocByteArray, 0, parm_recv_bytes.Length)
         End If
 
         '--------old version, just on or off...
@@ -102,59 +103,59 @@ Public Class frmMain
             '--------BYTES are backwards....
 
             '--------16 bit address
-            If (locByteArray(1) <> locLastByteArray(1)) Then
-                LED_Addr15.Brightness = If((locByteArray(1) And &H80) <> 0, 100, 0)
-                LED_Addr14.Brightness = If((locByteArray(1) And &H40) <> 0, 100, 0)
-                LED_Addr13.Brightness = If((locByteArray(1) And &H20) <> 0, 100, 0)
-                LED_Addr12.Brightness = If((locByteArray(1) And &H10) <> 0, 100, 0)
+            If (LocByteArray(1) <> LocLastByteArray(1)) Then
+                LED_Addr15.Brightness = If((LocByteArray(1) And &H80) <> 0, 100, 0)
+                LED_Addr14.Brightness = If((LocByteArray(1) And &H40) <> 0, 100, 0)
+                LED_Addr13.Brightness = If((LocByteArray(1) And &H20) <> 0, 100, 0)
+                LED_Addr12.Brightness = If((LocByteArray(1) And &H10) <> 0, 100, 0)
 
-                LED_Addr11.Brightness = If((locByteArray(1) And &H8) <> 0, 100, 0)
-                LED_Addr10.Brightness = If((locByteArray(1) And &H4) <> 0, 100, 0)
-                LED_Addr09.Brightness = If((locByteArray(1) And &H2) <> 0, 100, 0)
-                LED_Addr08.Brightness = If((locByteArray(1) And &H1) <> 0, 100, 0)
-                locLastByteArray(1) = locByteArray(1)
+                LED_Addr11.Brightness = If((LocByteArray(1) And &H8) <> 0, 100, 0)
+                LED_Addr10.Brightness = If((LocByteArray(1) And &H4) <> 0, 100, 0)
+                LED_Addr09.Brightness = If((LocByteArray(1) And &H2) <> 0, 100, 0)
+                LED_Addr08.Brightness = If((LocByteArray(1) And &H1) <> 0, 100, 0)
+                LocLastByteArray(1) = LocByteArray(1)
             End If
 
 
-            If (locByteArray(0) <> locLastByteArray(0)) Then
-                LED_Addr07.Brightness = If((locByteArray(0) And &H80) <> 0, 100, 0)
-                LED_Addr06.Brightness = If((locByteArray(0) And &H40) <> 0, 100, 0)
-                LED_Addr05.Brightness = If((locByteArray(0) And &H20) <> 0, 100, 0)
-                LED_Addr04.Brightness = If((locByteArray(0) And &H10) <> 0, 100, 0)
+            If (LocByteArray(0) <> LocLastByteArray(0)) Then
+                LED_Addr07.Brightness = If((LocByteArray(0) And &H80) <> 0, 100, 0)
+                LED_Addr06.Brightness = If((LocByteArray(0) And &H40) <> 0, 100, 0)
+                LED_Addr05.Brightness = If((LocByteArray(0) And &H20) <> 0, 100, 0)
+                LED_Addr04.Brightness = If((LocByteArray(0) And &H10) <> 0, 100, 0)
 
-                LED_Addr03.Brightness = If((locByteArray(0) And &H8) <> 0, 100, 0)
-                LED_Addr02.Brightness = If((locByteArray(0) And &H4) <> 0, 100, 0)
-                LED_Addr01.Brightness = If((locByteArray(0) And &H2) <> 0, 100, 0)
-                LED_Addr00.Brightness = If((locByteArray(0) And &H1) <> 0, 100, 0)
-                locLastByteArray(0) = locByteArray(0)
+                LED_Addr03.Brightness = If((LocByteArray(0) And &H8) <> 0, 100, 0)
+                LED_Addr02.Brightness = If((LocByteArray(0) And &H4) <> 0, 100, 0)
+                LED_Addr01.Brightness = If((LocByteArray(0) And &H2) <> 0, 100, 0)
+                LED_Addr00.Brightness = If((LocByteArray(0) And &H1) <> 0, 100, 0)
+                LocLastByteArray(0) = LocByteArray(0)
             End If
 
 
             '--------16 bit data
-            If (locByteArray(3) <> locLastByteArray(3)) Then
-                LED_Data15.Brightness = If((locByteArray(3) And &H80) <> 0, 100, 0)
-                LED_Data14.Brightness = If((locByteArray(3) And &H40) <> 0, 100, 0)
-                LED_Data13.Brightness = If((locByteArray(3) And &H20) <> 0, 100, 0)
-                LED_Data12.Brightness = If((locByteArray(3) And &H10) <> 0, 100, 0)
+            If (LocByteArray(3) <> LocLastByteArray(3)) Then
+                LED_Data15.Brightness = If((LocByteArray(3) And &H80) <> 0, 100, 0)
+                LED_Data14.Brightness = If((LocByteArray(3) And &H40) <> 0, 100, 0)
+                LED_Data13.Brightness = If((LocByteArray(3) And &H20) <> 0, 100, 0)
+                LED_Data12.Brightness = If((LocByteArray(3) And &H10) <> 0, 100, 0)
 
-                LED_Data11.Brightness = If((locByteArray(3) And &H8) <> 0, 100, 0)
-                LED_Data10.Brightness = If((locByteArray(3) And &H4) <> 0, 100, 0)
-                LED_Data09.Brightness = If((locByteArray(3) And &H2) <> 0, 100, 0)
-                LED_Data08.Brightness = If((locByteArray(3) And &H1) <> 0, 100, 0)
-                locLastByteArray(3) = locByteArray(3)
+                LED_Data11.Brightness = If((LocByteArray(3) And &H8) <> 0, 100, 0)
+                LED_Data10.Brightness = If((LocByteArray(3) And &H4) <> 0, 100, 0)
+                LED_Data09.Brightness = If((LocByteArray(3) And &H2) <> 0, 100, 0)
+                LED_Data08.Brightness = If((LocByteArray(3) And &H1) <> 0, 100, 0)
+                LocLastByteArray(3) = LocByteArray(3)
             End If
 
-            If (locByteArray(2) <> locLastByteArray(2)) Then
-                LED_Data07.Brightness = If((locByteArray(2) And &H80) <> 0, 100, 0)
-                LED_Data06.Brightness = If((locByteArray(2) And &H40) <> 0, 100, 0)
-                LED_Data05.Brightness = If((locByteArray(2) And &H20) <> 0, 100, 0)
-                LED_Data04.Brightness = If((locByteArray(2) And &H10) <> 0, 100, 0)
+            If (LocByteArray(2) <> LocLastByteArray(2)) Then
+                LED_Data07.Brightness = If((LocByteArray(2) And &H80) <> 0, 100, 0)
+                LED_Data06.Brightness = If((LocByteArray(2) And &H40) <> 0, 100, 0)
+                LED_Data05.Brightness = If((LocByteArray(2) And &H20) <> 0, 100, 0)
+                LED_Data04.Brightness = If((LocByteArray(2) And &H10) <> 0, 100, 0)
 
-                LED_Data03.Brightness = If((locByteArray(2) And &H8) <> 0, 100, 0)
-                LED_Data02.Brightness = If((locByteArray(2) And &H4) <> 0, 100, 0)
-                LED_Data01.Brightness = If((locByteArray(2) And &H2) <> 0, 100, 0)
-                LED_Data00.Brightness = If((locByteArray(2) And &H1) <> 0, 100, 0)
-                locLastByteArray(2) = locByteArray(2)
+                LED_Data03.Brightness = If((LocByteArray(2) And &H8) <> 0, 100, 0)
+                LED_Data02.Brightness = If((LocByteArray(2) And &H4) <> 0, 100, 0)
+                LED_Data01.Brightness = If((LocByteArray(2) And &H2) <> 0, 100, 0)
+                LED_Data00.Brightness = If((LocByteArray(2) And &H1) <> 0, 100, 0)
+                LocLastByteArray(2) = LocByteArray(2)
             End If
 
             '--------16 bit switch register.
@@ -171,57 +172,64 @@ Public Class frmMain
                 LocLastByteArray(5) = LocByteArray(5)
             End If
 
-            If (locByteArray(4) <> locLastByteArray(4)) Then
-                LED_Switch07.Brightness = If((locByteArray(4) And &H80) <> 0, 100, 0)
-                LED_Switch06.Brightness = If((locByteArray(4) And &H40) <> 0, 100, 0)
-                LED_Switch05.Brightness = If((locByteArray(4) And &H20) <> 0, 100, 0)
-                LED_Switch04.Brightness = If((locByteArray(4) And &H10) <> 0, 100, 0)
+            If (LocByteArray(4) <> LocLastByteArray(4)) Then
+                LED_Switch07.Brightness = If((LocByteArray(4) And &H80) <> 0, 100, 0)
+                LED_Switch06.Brightness = If((LocByteArray(4) And &H40) <> 0, 100, 0)
+                LED_Switch05.Brightness = If((LocByteArray(4) And &H20) <> 0, 100, 0)
+                LED_Switch04.Brightness = If((LocByteArray(4) And &H10) <> 0, 100, 0)
 
-                LED_Switch03.Brightness = If((locByteArray(4) And &H8) <> 0, 100, 0)
-                LED_Switch02.Brightness = If((locByteArray(4) And &H4) <> 0, 100, 0)
-                LED_Switch01.Brightness = If((locByteArray(4) And &H2) <> 0, 100, 0)
-                LED_Switch00.Brightness = If((locByteArray(4) And &H1) <> 0, 100, 0)
-                locLastByteArray(4) = locByteArray(4)
+                LED_Switch03.Brightness = If((LocByteArray(4) And &H8) <> 0, 100, 0)
+                LED_Switch02.Brightness = If((LocByteArray(4) And &H4) <> 0, 100, 0)
+                LED_Switch01.Brightness = If((LocByteArray(4) And &H2) <> 0, 100, 0)
+                LED_Switch00.Brightness = If((LocByteArray(4) And &H1) <> 0, 100, 0)
+                LocLastByteArray(4) = LocByteArray(4)
             End If
 
             '--------Misc
-            If (locByteArray(7) <> locLastByteArray(7)) Then
-                LED_CC_N.Brightness = If((locByteArray(7) And &H80) <> 0, 100, 0)
-                LED_CC_Z.Brightness = If((locByteArray(7) And &H40) <> 0, 100, 0)
-                LED_CC_O.Brightness = If((locByteArray(7) And &H20) <> 0, 100, 0)
-                LED_CC_C.Brightness = If((locByteArray(7) And &H10) <> 0, 100, 0)
+            If (LocByteArray(7) <> LocLastByteArray(7)) Then
+                LED_CC_N.Brightness = If((LocByteArray(7) And &H80) <> 0, 100, 0)
+                LED_CC_Z.Brightness = If((LocByteArray(7) And &H40) <> 0, 100, 0)
+                LED_CC_O.Brightness = If((LocByteArray(7) And &H20) <> 0, 100, 0)
+                LED_CC_C.Brightness = If((LocByteArray(7) And &H10) <> 0, 100, 0)
 
-                LED_MemProt.Brightness = If((locByteArray(7) And &H8) <> 0, 100, 0)
-                LED_Priv.Brightness = If((locByteArray(7) And &H4) <> 0, 100, 0)
-                LED_PM.Brightness = If((locByteArray(7) And &H2) <> 0, 100, 0)
-                LED_Virt.Brightness = If((locByteArray(7) And &H1) <> 0, 100, 0)
-                locLastByteArray(7) = locByteArray(7)
+                LED_MemProt.Brightness = If((LocByteArray(7) And &H8) <> 0, 100, 0)
+                LED_Priv.Brightness = If((LocByteArray(7) And &H4) <> 0, 100, 0)
+                LED_PM.Brightness = If((LocByteArray(7) And &H2) <> 0, 100, 0)
+                LED_Virt.Brightness = If((LocByteArray(7) And &H1) <> 0, 100, 0)
+                LocLastByteArray(7) = LocByteArray(7)
             End If
 
-            If (locByteArray(6) <> locLastByteArray(6)) Then
-                LED_IoInt.Brightness = If((locByteArray(6) And &H80) <> 0, 100, 0)
-                LED_TaskInt.Brightness = If((locByteArray(6) And &H40) <> 0, 100, 0)
-                LED_MemErr.Brightness = If((locByteArray(6) And &H20) <> 0, 100, 0)
+            If (LocByteArray(6) <> LocLastByteArray(6)) Then
+                LED_IoInt.Brightness = If((LocByteArray(6) And &H80) <> 0, 100, 0)
+                LED_TaskInt.Brightness = If((LocByteArray(6) And &H40) <> 0, 100, 0)
+                LED_MemErr.Brightness = If((LocByteArray(6) And &H20) <> 0, 100, 0)
                 '--LED_EMA04.Brightness = If((locByteArray(6) And &H10) <> 0, 100, 0) '-- reserved for 7860
 
-                LED_EMA03.Brightness = If((locByteArray(6) And &H8) <> 0, 100, 0)
-                LED_EMA02.Brightness = If((locByteArray(6) And &H4) <> 0, 100, 0)
-                LED_EMA01.Brightness = If((locByteArray(6) And &H2) <> 0, 100, 0)
-                LED_EMA00.Brightness = If((locByteArray(6) And &H1) <> 0, 100, 0)
-                locLastByteArray(6) = locByteArray(6)
+                LED_EMA03.Brightness = If((LocByteArray(6) And &H8) <> 0, 100, 0)
+                LED_EMA02.Brightness = If((LocByteArray(6) And &H4) <> 0, 100, 0)
+                LED_EMA01.Brightness = If((LocByteArray(6) And &H2) <> 0, 100, 0)
+                LED_EMA00.Brightness = If((LocByteArray(6) And &H1) <> 0, 100, 0)
+                LocLastByteArray(6) = LocByteArray(6)
             End If
 
-            If (locByteArray(9) <> locLastByteArray(9)) Then
-                LED_Power.Brightness = If((locByteArray(9) And &H80) <> 0, 100, 0)
-                LED_Standby.Brightness = If((locByteArray(9) And &H40) <> 0, 100, 0)
-                LED_BackupFailure.Brightness = If((locByteArray(9) And &H20) <> 0, 100, 0)
-                LED_Run.Brightness = If((locByteArray(9) And &H10) <> 0, 100, 0) '-- reserved for 7860
+            If (LocByteArray(9) <> LocLastByteArray(9)) Then
+                LED_Power.Brightness = If((LocByteArray(9) And &H80) <> 0, 100, 0)
+                LED_Standby.Brightness = If((LocByteArray(9) And &H40) <> 0, 100, 0)
+                LED_BackupFailure.Brightness = If((LocByteArray(9) And &H20) <> 0, 100, 0)
+                '--------update LED and switch
+                If (LocByteArray(9) And &H10) <> 0 Then
+                    LED_Run.Brightness = 100
+                    RunHaltSwitch.IsOn = True
+                Else
+                    LED_Run.Brightness = 0
+                    RunHaltSwitch.IsOn = False
+                End If
 
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H8) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H4) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H2) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H1) <> 0, 100, 0)
-                locLastByteArray(9) = locByteArray(9)
+                LocLastByteArray(9) = LocByteArray(9)
             End If
 
             '--------nothing defined in byte 8 yet.
@@ -234,26 +242,26 @@ Public Class frmMain
             '--------BYTES are backwards....
 
             '--------16 bit address
-            LED_Addr15.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 1))
-            LED_Addr14.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 0))
-            LED_Addr13.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 3))
-            LED_Addr12.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 2))
+            LED_Addr15.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 1))
+            LED_Addr14.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 0))
+            LED_Addr13.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 3))
+            LED_Addr12.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 2))
 
-            LED_Addr11.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 5))
-            LED_Addr10.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 4))
-            LED_Addr09.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 7))
-            LED_Addr08.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 6))
+            LED_Addr11.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 5))
+            LED_Addr10.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 4))
+            LED_Addr09.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 7))
+            LED_Addr08.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 6))
 
 
-            LED_Addr07.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 9))
-            LED_Addr06.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 8))
-            LED_Addr05.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 11))
-            LED_Addr04.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 10))
+            LED_Addr07.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 9))
+            LED_Addr06.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 8))
+            LED_Addr05.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 11))
+            LED_Addr04.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 10))
 
-            LED_Addr03.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 13))
-            LED_Addr02.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 12))
-            LED_Addr01.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 15))
-            LED_Addr00.Brightness = CInt(locByteArray(BRIGHT_ADDR_START + 14))
+            LED_Addr03.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 13))
+            LED_Addr02.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 12))
+            LED_Addr01.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 15))
+            LED_Addr00.Brightness = CInt(LocByteArray(BRIGHT_ADDR_START + 14))
 
             '--------debug
             '--LED_Data15.Brightness = 0
@@ -277,26 +285,26 @@ Public Class frmMain
             '--LED_Data00.Brightness = 65
 
             '--------16 bit data
-            LED_Data15.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 1))
-            LED_Data14.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 0))
-            LED_Data13.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 3))
-            LED_Data12.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 2))
+            LED_Data15.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 1))
+            LED_Data14.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 0))
+            LED_Data13.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 3))
+            LED_Data12.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 2))
 
-            LED_Data11.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 5))
-            LED_Data10.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 4))
-            LED_Data09.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 7))
-            LED_Data08.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 6))
+            LED_Data11.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 5))
+            LED_Data10.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 4))
+            LED_Data09.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 7))
+            LED_Data08.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 6))
 
 
-            LED_Data07.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 9))
-            LED_Data06.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 8))
-            LED_Data05.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 11))
-            LED_Data04.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 10))
+            LED_Data07.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 9))
+            LED_Data06.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 8))
+            LED_Data05.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 11))
+            LED_Data04.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 10))
 
-            LED_Data03.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 13))
-            LED_Data02.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 12))
-            LED_Data01.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 15))
-            LED_Data00.Brightness = CInt(locByteArray(BRIGHT_DATA_START + 14))
+            LED_Data03.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 13))
+            LED_Data02.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 12))
+            LED_Data01.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 15))
+            LED_Data00.Brightness = CInt(LocByteArray(BRIGHT_DATA_START + 14))
 
             '--------16 bit switch register.   It doesn't change much so just use off / on
             If (LocByteArray(5) <> LocLastByteArray(5)) Then
@@ -313,53 +321,60 @@ Public Class frmMain
                 LocLastByteArray(5) = LocByteArray(5)
             End If
 
-            If (locByteArray(4) <> locLastByteArray(4)) Then
-                LED_Switch07.Brightness = If((locByteArray(4) And &H80) <> 0, 100, 0)
-                LED_Switch06.Brightness = If((locByteArray(4) And &H40) <> 0, 100, 0)
-                LED_Switch05.Brightness = If((locByteArray(4) And &H20) <> 0, 100, 0)
-                LED_Switch04.Brightness = If((locByteArray(4) And &H10) <> 0, 100, 0)
+            If (LocByteArray(4) <> LocLastByteArray(4)) Then
+                LED_Switch07.Brightness = If((LocByteArray(4) And &H80) <> 0, 100, 0)
+                LED_Switch06.Brightness = If((LocByteArray(4) And &H40) <> 0, 100, 0)
+                LED_Switch05.Brightness = If((LocByteArray(4) And &H20) <> 0, 100, 0)
+                LED_Switch04.Brightness = If((LocByteArray(4) And &H10) <> 0, 100, 0)
 
-                LED_Switch03.Brightness = If((locByteArray(4) And &H8) <> 0, 100, 0)
-                LED_Switch02.Brightness = If((locByteArray(4) And &H4) <> 0, 100, 0)
-                LED_Switch01.Brightness = If((locByteArray(4) And &H2) <> 0, 100, 0)
-                LED_Switch00.Brightness = If((locByteArray(4) And &H1) <> 0, 100, 0)
+                LED_Switch03.Brightness = If((LocByteArray(4) And &H8) <> 0, 100, 0)
+                LED_Switch02.Brightness = If((LocByteArray(4) And &H4) <> 0, 100, 0)
+                LED_Switch01.Brightness = If((LocByteArray(4) And &H2) <> 0, 100, 0)
+                LED_Switch00.Brightness = If((LocByteArray(4) And &H1) <> 0, 100, 0)
 
-                locLastByteArray(4) = locByteArray(4)
+                LocLastByteArray(4) = LocByteArray(4)
             End If
 
             '--------Misc 3
             LED_CC_N.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 1)) '--If((locByteArray(7) And &H80) <> 0, 100, 0)
-            LED_CC_Z.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 0)) '--If((locByteArray(7) And &H40) <> 0, 100, 0)
-            LED_CC_O.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 3)) '--If((locByteArray(7) And &H20) <> 0, 100, 0)
-            LED_CC_C.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 2)) '--If((locByteArray(7) And &H10) <> 0, 100, 0)
+            LED_CC_Z.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 0)) '--If((locByteArray(7) And &H40) <> 0, 100, 0)
+            LED_CC_O.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 3)) '--If((locByteArray(7) And &H20) <> 0, 100, 0)
+            LED_CC_C.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 2)) '--If((locByteArray(7) And &H10) <> 0, 100, 0)
 
-            LED_MemProt.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 5)) '--If((locByteArray(7) And &H8) <> 0, 100, 0)
-            LED_Priv.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 4)) '--If((locByteArray(7) And &H4) <> 0, 100, 0)
-            LED_PM.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 7)) '--If((locByteArray(7) And &H2) <> 0, 100, 0)
-            LED_Virt.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 6)) '--If((locByteArray(7) And &H1) <> 0, 100, 0)
+            LED_MemProt.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 5)) '--If((locByteArray(7) And &H8) <> 0, 100, 0)
+            LED_Priv.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 4)) '--If((locByteArray(7) And &H4) <> 0, 100, 0)
+            LED_PM.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 7)) '--If((locByteArray(7) And &H2) <> 0, 100, 0)
+            LED_Virt.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 6)) '--If((locByteArray(7) And &H1) <> 0, 100, 0)
 
             LED_IoInt.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 9)) '--If((locByteArray(6) And &H80) <> 0, 100, 0)
-            LED_TaskInt.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 8)) '--If((locByteArray(6) And &H40) <> 0, 100, 0)
-            LED_MemErr.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 11)) '--If((locByteArray(6) And &H20) <> 0, 100, 0)
+            LED_TaskInt.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 8)) '--If((locByteArray(6) And &H40) <> 0, 100, 0)
+            LED_MemErr.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 11)) '--If((locByteArray(6) And &H20) <> 0, 100, 0)
             '--LED_EMA04.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 10)) '--If((locByteArray(6) And &H10) <> 0, 100, 0) '-- reserved for 7860
 
-            LED_EMA03.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 13)) '--If((locByteArray(6) And &H8) <> 0, 100, 0)
-            LED_EMA02.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 12)) '--If((locByteArray(6) And &H4) <> 0, 100, 0)
-            LED_EMA01.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 15)) '--If((locByteArray(6) And &H2) <> 0, 100, 0)
-            LED_EMA00.Brightness = CInt(locByteArray(BRIGHT_MISC3_START + 14)) '--If((locByteArray(6) And &H1) <> 0, 100, 0)
+            LED_EMA03.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 13)) '--If((locByteArray(6) And &H8) <> 0, 100, 0)
+            LED_EMA02.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 12)) '--If((locByteArray(6) And &H4) <> 0, 100, 0)
+            LED_EMA01.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 15)) '--If((locByteArray(6) And &H2) <> 0, 100, 0)
+            LED_EMA00.Brightness = CInt(LocByteArray(BRIGHT_MISC3_START + 14)) '--If((locByteArray(6) And &H1) <> 0, 100, 0)
 
             ' --------MISC4.   These values don't change quickly.   Just use on/off.
-            If (locByteArray(9) <> locLastByteArray(9)) Then
-                LED_Power.Brightness = If((locByteArray(9) And &H80) <> 0, 100, 0)
-                LED_Standby.Brightness = If((locByteArray(9) And &H40) <> 0, 100, 0)
-                LED_BackupFailure.Brightness = If((locByteArray(9) And &H20) <> 0, 100, 0)
-                LED_Run.Brightness = If((locByteArray(9) And &H10) <> 0, 100, 0) '-- reserved for 7860
+            If (LocByteArray(9) <> LocLastByteArray(9)) Then
+                LED_Power.Brightness = If((LocByteArray(9) And &H80) <> 0, 100, 0)
+                LED_Standby.Brightness = If((LocByteArray(9) And &H40) <> 0, 100, 0)
+                LED_BackupFailure.Brightness = If((LocByteArray(9) And &H20) <> 0, 100, 0)
+                '--------update led and switch
+                If (LocByteArray(9) And &H10) <> 0 Then
+                    LED_Run.Brightness = 100
+                    RunHaltSwitch.IsOn = True
+                Else
+                    LED_Run.Brightness = 0
+                    RunHaltSwitch.IsOn = False
+                End If
 
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H8) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H4) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H2) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H1) <> 0, 100, 0)
-                locLastByteArray(9) = locByteArray(9)
+                LocLastByteArray(9) = LocByteArray(9)
             End If
 
             '--------nothing defined in byte 8 yet.
@@ -416,15 +431,15 @@ Public Class frmMain
         Do While Not CloseNetwork
 
             Try
-                Dim udpRecvBytes As Byte()
+                Dim UdpRecvBytes As Byte()
                 '---Debug.Print("starting udp read")
-                udpRecvBytes = udpRecvClient.Receive(remoteRecvEndPoint)
+                UdpRecvBytes = UdpRecvClient.Receive(RemoteRecvEndPoint)
                 '---Dim receivedData As String = Encoding.ASCII.GetString(receivedBytes)
                 '---------Process the received data (e.g., display in a TextBox)
                 '---------Example:  Me.Invoke(Sub() TextBox1.AppendText($"Received from {remoteIpEndPoint.Address}: {receivedData}{Environment.NewLine}"))
-                '--Debug.Print("recieved " & udpRecvBytes.Length.ToString & " bytes")
+                '--Debug.Print("recieved " & UdpRecvBytes.Length.ToString & " bytes")
                 '--Debug.Print("calling delegate to process")
-                Me.Invoke(Sub() myDelProc(udpRecvBytes))
+                Me.Invoke(Sub() MyDelProc(UdpRecvBytes))
 
             Catch ex As Exception
                 ' Handle exceptions (e.g., if the client is closed)
@@ -439,8 +454,10 @@ Public Class frmMain
 
     Private Sub UDP_Recv_Init()
         '--------Open UDP recieve client.  Listen on any address..
-        udpRecvClient = New UdpClient(listenPort)
-        remoteRecvEndPoint = New IPEndPoint(IPAddress.Any, 0)
+        UdpRecvClient = New UdpClient(ListenPort)
+
+        '--------receive from any
+        RemoteRecvEndPoint = New IPEndPoint(IPAddress.Any, 0)
 
         '--------Start a new thread for receiving to prevent UI blocking
         Dim receiveThread As New Threading.Thread(AddressOf UDP_Recv_Thread)
@@ -451,7 +468,7 @@ Public Class frmMain
 
     Private Sub UDP_Send_Init()
         '--------Open UDP send client.  Send to local address...
-        udpSendClient = New UdpClient(SendPort)
+        UdpSendClient = New UdpClient(SendPort)
 
         '--------Get the host name of the current machine
         Dim hostName As String = Dns.GetHostName()
@@ -462,7 +479,7 @@ Public Class frmMain
 
         Dim useIp As New IPAddress(0)
         Dim done As Boolean = False
-        ' Loop through and find the IPv4 address
+        '--------Loop through and find the IPv4 address
         For Each ip As IPAddress In ipAddresses
             If ip.AddressFamily = Sockets.AddressFamily.InterNetwork Then
                 Debug.WriteLine("IPv4 Address: " & ip.ToString())
@@ -473,9 +490,9 @@ Public Class frmMain
             End If
         Next
 
-        remoteSendEndPoint = New IPEndPoint(useIp, SendPort)
+        RemoteSendEndPoint = New IPEndPoint(useIp, SendPort)
 
-        '--------Start a new thread for receiving to prevent UI blocking
+        '--------Start a new thread for sending to prevent UI blocking
         '--Dim sendThread As New Threading.Thread(AddressOf UDP_Send_Thread)
         '--sendThread.IsBackground = True ' Allow the application to exit even if the thread is running
         '--sendThread.Start()
@@ -573,6 +590,72 @@ Public Class frmMain
         RegSelSwitch12.Toggle()
         '--------update switch value
         '--------send new value to simulator..
+    End Sub
+
+    Private Sub SingleStepSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles SingleStepSwitch.MouseClick
+        Debug.WriteLine("got mouseclick - single step")
+        SingleStepSwitch.Toggle()
+        SingleStepSwitch.Refresh()
+        Thread.Sleep(200)
+        SingleStepSwitch.Toggle()
+        SingleStepSwitch.Refresh()
+
+    End Sub
+
+    Private Sub RunHaltSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles RunHaltSwitch.MouseClick
+        Debug.WriteLine("got mouseclick - run/halt")
+        RunHaltSwitch.Toggle()
+    End Sub
+
+    Private Sub FillSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles FillSwitch.MouseClick
+        Debug.WriteLine("got mouseclick - fill")
+        FillSwitch.Toggle()
+        FillSwitch.Refresh()
+        Thread.Sleep(200)
+        FillSwitch.Toggle()
+        FillSwitch.Refresh()
+
+    End Sub
+
+    Private Sub MasterClearSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles MasterClearSwitch.MouseClick
+        Debug.WriteLine("got mouseclick - master clear")
+        MasterClearSwitch.Toggle()
+        MasterClearSwitch.Refresh()
+        Thread.Sleep(200)
+        MasterClearSwitch.Toggle()
+        MasterClearSwitch.Refresh()
+
+    End Sub
+
+    Private Sub EntRegCslIntSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles EntRegCslIntSwitch.MouseClick
+        Debug.WriteLine("got mouseclick - console int")
+        EntRegCslIntSwitch.Toggle()
+        EntRegCslIntSwitch.Refresh()
+        Thread.Sleep(200)
+        EntRegCslIntSwitch.Toggle()
+        EntRegCslIntSwitch.Refresh()
+
+    End Sub
+
+    Private Sub ClearBpHaltSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles ClearBpHaltSwitch.MouseClick
+        Debug.WriteLine("got mouseclick - ClearBpHalt")
+        ClearBpHaltSwitch.Toggle()
+        ClearBpHaltSwitch.Refresh()
+        Thread.Sleep(200)
+        ClearBpHaltSwitch.Toggle()
+        ClearBpHaltSwitch.Refresh()
+
+    End Sub
+
+    Private Sub InstOperSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles InstOperSwitch.MouseClick
+        Debug.WriteLine("got mouseclick - inst/oper")
+        InstOperSwitch.Toggle()
+
+    End Sub
+
+    Private Sub VirtualActualSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles VirtualActualSwitch.MouseClick
+        Debug.WriteLine("got mouseclick - virt/act")
+        VirtualActualSwitch.Toggle()
     End Sub
 
 End Class

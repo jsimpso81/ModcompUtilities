@@ -5,13 +5,19 @@ Imports System.Drawing
 Imports System.Drawing.Drawing2D
 
 
-Public Class RockerSwitch
+''' <summary>
+''' 
+''' </summary>
+Public Class RockerSwitchOrange
 
     Inherits UserControl
 
     Private _isOn As Boolean = False
 
-
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    ''' <returns></returns>
     Public Property IsOn As Boolean
         Get
             Return _isOn
@@ -22,21 +28,36 @@ Public Class RockerSwitch
         End Set
     End Property
 
+    ''' <summary>
+    ''' 
+    ''' </summary>
     Public Sub Toggle()
         _isOn = Not _isOn
         Debug.WriteLine(" isON = " & _isOn.ToString)
         Me.Invalidate()
     End Sub
 
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    ''' <param name="sender"></param>
+    ''' <param name="e"></param>
     Public Event Toggled(ByVal sender As Object, ByVal e As EventArgs)
 
-
+    ''' <summary>
+    ''' 
+    ''' </summary>
     Public Sub New()
+        MyBase.New
         Me.DoubleBuffered = True
         Me.Size = New Size(40, 80) ' Default size
     End Sub
 
-
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    ''' <param name="e"></param>
     Protected Overrides Sub OnPaint(e As PaintEventArgs)
         MyBase.OnPaint(e)
 
@@ -46,10 +67,10 @@ Public Class RockerSwitch
         ' -------- Background
         '--Dim bgColor As Color = If(_isOn, Color.Orange, Color.DarkOrange)
         '--g.FillRectangle(New SolidBrush(bgColor), Me.ClientRectangle)
-        Dim bgColor0 As Color = Color.Goldenrod
-        Dim bgColor1 As Color = If(_isOn, Color.Gold, Color.Goldenrod)          ' light     medium
-        Dim bgColor2 As Color = If(_isOn, Color.DarkGoldenrod, Color.Gold)               ' dark      light
-        Dim bgColor3 As Color = If(_isOn, Color.Goldenrod, Color.DarkGoldenrod)         ' medium,   dark
+        Dim bgColor0 As Color = Color.Orange                                    ' medium
+        Dim bgColor1 As Color = If(_isOn, Color.DarkGoldenrod, Color.Orange)    ' light     medium
+        Dim bgColor2 As Color = If(_isOn, Color.DarkOrange, Color.DarkGoldenrod) ' dark      light
+        Dim bgColor3 As Color = If(_isOn, Color.Orange, Color.DarkOrange)       ' medium,   dark
         g.FillRectangle(New SolidBrush(bgColor0), Me.ClientRectangle)
 
         ' -------- Rocker switch
@@ -80,13 +101,16 @@ Public Class RockerSwitch
         g.DrawRectangle(Pens.Black, 0, 0, Me.Width - 1, Me.Height - 1)
     End Sub
 
+    ''' <summary>
+    ''' 
+    ''' </summary>
     Private Sub InitializeComponent()
         SuspendLayout()
         ' 
-        ' RockerSwitch
+        ' RockerSwitchOrange
         ' 
         BackColor = Color.Black
-        Name = "RockerSwitch"
+        Name = "RockerSwitchOrange"
         Size = New Size(47, 70)
         ResumeLayout(False)
 
@@ -101,4 +125,5 @@ Public Class RockerSwitch
     '--Me.Invalidate() ' Redraw the control
     '--End Sub
 End Class
+
 

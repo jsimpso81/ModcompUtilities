@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
     <StartupObject>Sub Main</StartupObject>
     <UseWindowsForms>true</UseWindowsForms>
     <MyType>WindowsForms</MyType>
@@ -28,6 +28,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Update="RockerSwitchYellow.Designer.vb">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RockerSwitchYellow.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -36,8 +41,9 @@
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.vb</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="RockerSwitch.resx">
-      <Generator></Generator>
+    <EmbeddedResource Update="RockerSwitchYellow.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>RockerSwitchYellow.Designer.vb</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

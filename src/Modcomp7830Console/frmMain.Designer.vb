@@ -104,18 +104,26 @@ Partial Class frmMain
         LED_MemErr = New VariableLED()
         LED_TaskInt = New VariableLED()
         LED_IoInt = New VariableLED()
-        RegSelSwitch08 = New RockerSwitch()
-        RegSelSwitch07 = New RockerSwitch()
-        RegSelSwitch06 = New RockerSwitch()
-        RegSelSwitch05 = New RockerSwitch()
-        RegSelSwitch04 = New RockerSwitch()
-        RegSelSwitch03 = New RockerSwitch()
-        RegSelSwitch02 = New RockerSwitch()
-        RegSelSwitch01 = New RockerSwitch()
-        RegSelSwitch09 = New RockerSwitch()
-        RegSelSwitch10 = New RockerSwitch()
-        RegSelSwitch11 = New RockerSwitch()
-        RegSelSwitch12 = New RockerSwitch()
+        RegSelSwitch08 = New RockerSwitchYellow()
+        RegSelSwitch07 = New RockerSwitchYellow()
+        RegSelSwitch06 = New RockerSwitchYellow()
+        RegSelSwitch05 = New RockerSwitchYellow()
+        RegSelSwitch04 = New RockerSwitchYellow()
+        RegSelSwitch03 = New RockerSwitchYellow()
+        RegSelSwitch02 = New RockerSwitchYellow()
+        RegSelSwitch01 = New RockerSwitchYellow()
+        RegSelSwitch09 = New RockerSwitchYellow()
+        RegSelSwitch10 = New RockerSwitchYellow()
+        RegSelSwitch11 = New RockerSwitchYellow()
+        RegSelSwitch12 = New RockerSwitchYellow()
+        SingleStepSwitch = New RockerSwitchOrange()
+        RunHaltSwitch = New RockerSwitchOrange()
+        FillSwitch = New RockerSwitchOrange()
+        MasterClearSwitch = New RockerSwitchOrange()
+        VirtualActualSwitch = New RockerSwitchOrange()
+        InstOperSwitch = New RockerSwitchOrange()
+        ClearBpHaltSwitch = New RockerSwitchOrange()
+        EntRegCslIntSwitch = New RockerSwitchOrange()
         StatusStrip1.SuspendLayout()
         MenuStrip1.SuspendLayout()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
@@ -922,11 +930,83 @@ Partial Class frmMain
         RegSelSwitch12.Size = New Size(45, 70)
         RegSelSwitch12.TabIndex = 82
         ' 
+        ' SingleStepSwitch
+        ' 
+        SingleStepSwitch.IsOn = False
+        SingleStepSwitch.Location = New Point(308, 478)
+        SingleStepSwitch.Name = "SingleStepSwitch"
+        SingleStepSwitch.Size = New Size(45, 70)
+        SingleStepSwitch.TabIndex = 83
+        ' 
+        ' RunHaltSwitch
+        ' 
+        RunHaltSwitch.IsOn = False
+        RunHaltSwitch.Location = New Point(256, 477)
+        RunHaltSwitch.Name = "RunHaltSwitch"
+        RunHaltSwitch.Size = New Size(45, 70)
+        RunHaltSwitch.TabIndex = 84
+        ' 
+        ' FillSwitch
+        ' 
+        FillSwitch.IsOn = False
+        FillSwitch.Location = New Point(208, 478)
+        FillSwitch.Name = "FillSwitch"
+        FillSwitch.Size = New Size(45, 70)
+        FillSwitch.TabIndex = 85
+        ' 
+        ' MasterClearSwitch
+        ' 
+        MasterClearSwitch.IsOn = False
+        MasterClearSwitch.Location = New Point(157, 478)
+        MasterClearSwitch.Name = "MasterClearSwitch"
+        MasterClearSwitch.Size = New Size(45, 70)
+        MasterClearSwitch.TabIndex = 86
+        ' 
+        ' VirtualActualSwitch
+        ' 
+        VirtualActualSwitch.IsOn = False
+        VirtualActualSwitch.Location = New Point(1022, 478)
+        VirtualActualSwitch.Name = "VirtualActualSwitch"
+        VirtualActualSwitch.Size = New Size(45, 70)
+        VirtualActualSwitch.TabIndex = 87
+        ' 
+        ' InstOperSwitch
+        ' 
+        InstOperSwitch.IsOn = False
+        InstOperSwitch.Location = New Point(1073, 477)
+        InstOperSwitch.Name = "InstOperSwitch"
+        InstOperSwitch.Size = New Size(45, 70)
+        InstOperSwitch.TabIndex = 88
+        ' 
+        ' ClearBpHaltSwitch
+        ' 
+        ClearBpHaltSwitch.IsOn = False
+        ClearBpHaltSwitch.Location = New Point(1124, 477)
+        ClearBpHaltSwitch.Name = "ClearBpHaltSwitch"
+        ClearBpHaltSwitch.Size = New Size(45, 70)
+        ClearBpHaltSwitch.TabIndex = 89
+        ' 
+        ' EntRegCslIntSwitch
+        ' 
+        EntRegCslIntSwitch.IsOn = False
+        EntRegCslIntSwitch.Location = New Point(1175, 477)
+        EntRegCslIntSwitch.Name = "EntRegCslIntSwitch"
+        EntRegCslIntSwitch.Size = New Size(45, 70)
+        EntRegCslIntSwitch.TabIndex = 90
+        ' 
         ' frmMain
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(1297, 664)
+        Controls.Add(EntRegCslIntSwitch)
+        Controls.Add(ClearBpHaltSwitch)
+        Controls.Add(InstOperSwitch)
+        Controls.Add(VirtualActualSwitch)
+        Controls.Add(MasterClearSwitch)
+        Controls.Add(FillSwitch)
+        Controls.Add(RunHaltSwitch)
+        Controls.Add(SingleStepSwitch)
         Controls.Add(RegSelSwitch12)
         Controls.Add(RegSelSwitch11)
         Controls.Add(RegSelSwitch10)
@@ -1102,17 +1182,25 @@ Partial Class frmMain
     Friend WithEvents ExitToolStripMenuItem1 As ToolStripMenuItem
     Friend WithEvents lblComStatus As ToolStripStatusLabel
     Friend WithEvents lblComBytes As ToolStripStatusLabel
-    Friend WithEvents RegSelSwitch08 As RockerSwitch
-    Friend WithEvents RegSelSwitch07 As RockerSwitch
-    Friend WithEvents RegSelSwitch06 As RockerSwitch
-    Friend WithEvents RegSelSwitch05 As RockerSwitch
-    Friend WithEvents RegSelSwitch04 As RockerSwitch
-    Friend WithEvents RegSelSwitch03 As RockerSwitch
-    Friend WithEvents RegSelSwitch02 As RockerSwitch
-    Friend WithEvents RegSelSwitch01 As RockerSwitch
-    Friend WithEvents RegSelSwitch09 As RockerSwitch
-    Friend WithEvents RegSelSwitch10 As RockerSwitch
-    Friend WithEvents RegSelSwitch11 As RockerSwitch
-    Friend WithEvents RegSelSwitch12 As RockerSwitch
+    Friend WithEvents RegSelSwitch08 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch07 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch06 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch05 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch04 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch03 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch02 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch01 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch09 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch10 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch11 As RockerSwitchYellow
+    Friend WithEvents RegSelSwitch12 As RockerSwitchYellow
+    Friend WithEvents SingleStepSwitch As RockerSwitchOrange
+    Friend WithEvents RunHaltSwitch As RockerSwitchOrange
+    Friend WithEvents FillSwitch As RockerSwitchOrange
+    Friend WithEvents MasterClearSwitch As RockerSwitchOrange
+    Friend WithEvents VirtualActualSwitch As RockerSwitchOrange
+    Friend WithEvents InstOperSwitch As RockerSwitchOrange
+    Friend WithEvents ClearBpHaltSwitch As RockerSwitchOrange
+    Friend WithEvents EntRegCslIntSwitch As RockerSwitchOrange
 
 End Class

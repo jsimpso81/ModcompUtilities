@@ -25,7 +25,7 @@ Namespace Modcomp7830Console
     <Global.System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0"),  _
      Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
      Global.System.Runtime.CompilerServices.CompilerGeneratedAttribute()>  _
-    Friend Class RockerSwitch
+    Public Class RockerSwitchYellow
         
         Private Shared resourceMan As Global.System.Resources.ResourceManager
         
@@ -40,10 +40,10 @@ Namespace Modcomp7830Console
         '''  Returns the cached ResourceManager instance used by this class.
         '''</summary>
         <Global.System.ComponentModel.EditorBrowsableAttribute(Global.System.ComponentModel.EditorBrowsableState.Advanced)>  _
-        Friend Shared ReadOnly Property ResourceManager() As Global.System.Resources.ResourceManager
+        Public Shared ReadOnly Property ResourceManager() As Global.System.Resources.ResourceManager
             Get
                 If Object.ReferenceEquals(resourceMan, Nothing) Then
-                    Dim temp As Global.System.Resources.ResourceManager = New Global.System.Resources.ResourceManager("Modcomp7830Console.RockerSwitch", GetType(RockerSwitch).Assembly)
+                    Dim temp As Global.System.Resources.ResourceManager = New Global.System.Resources.ResourceManager("Modcomp7830Console.RockerSwitchYellow", GetType(RockerSwitchYellow).Assembly)
                     resourceMan = temp
                 End If
                 Return resourceMan
@@ -55,7 +55,7 @@ Namespace Modcomp7830Console
         '''  resource lookups using this strongly typed resource class.
         '''</summary>
         <Global.System.ComponentModel.EditorBrowsableAttribute(Global.System.ComponentModel.EditorBrowsableState.Advanced)>  _
-        Friend Shared Property Culture() As Global.System.Globalization.CultureInfo
+        Public Shared Property Culture() As Global.System.Globalization.CultureInfo
             Get
                 Return resourceCulture
             End Get
