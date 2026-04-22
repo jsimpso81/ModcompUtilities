@@ -53,6 +53,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 #include <synchapi.h>
 #pragma comment(lib, "ws2_32.lib") // Link with ws2_32.lib

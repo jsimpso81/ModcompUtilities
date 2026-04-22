@@ -1,0 +1,78 @@
+Front Panel Commands
+
+data packet
+	2 byte command
+	2 byte value
+
+0: noop
+	SendCmdNoop
+	data 0
+
+1: master clear
+	SendCmdMc
+	data 0
+
+2: fill
+	SendCmdFill
+	current front panel switches
+
+3: run
+	SendCmdRun
+	no data
+
+4: halt
+	SendCmdHalt
+	no data
+
+5: set switches value
+	SendCmdSetSwitches
+	new switch value
+
+6: set register display select value
+	SendCmdRegDispSel
+	new value
+
+7: set memory mode switch value
+	SendCmdMemMode
+	0: virt/inst
+	1: virt/oper
+	2: act/inst
+	3: act/oper
+
+8: clear breakpoint halt
+	SendCmdClrBp
+	no data
+
+9: console interrupt
+	SendCmdCI
+	only if running
+	no data
+
+10: enter register
+	SendCmdEntReg
+	only if halted
+	register number is register display swlect
+	value is current switches
+	send these commands first....
+
+11: enter next
+	SendCmdEntNext
+	value is current switch value
+
+12: enter mem
+	SendCmdEntMem
+	value is current switch value
+
+13: enter p/ma
+	SendCmdEntPc
+	value is current switch value
+
+14: step p/ma
+	SendCmdNextPc
+	no value
+
+15: single step
+	SendCmdSingleStep
+	no value
+
+	

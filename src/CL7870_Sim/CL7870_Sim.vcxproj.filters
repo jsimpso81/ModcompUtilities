@@ -239,5 +239,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="user_command_process_OLD.txt" />
+    <Text Include="cpu_notes.txt" />
+    <Text Include="Notes\Send_Command_Format.txt" />
   </ItemGroup>
 </Project>

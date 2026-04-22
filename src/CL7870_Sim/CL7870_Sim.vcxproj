@@ -210,6 +210,8 @@
     <ClInclude Include="modcomp_sim_globals.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="cpu_notes.txt" />
+    <Text Include="Notes\Send_Command_Format.txt" />
     <Text Include="user_command_process_OLD.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

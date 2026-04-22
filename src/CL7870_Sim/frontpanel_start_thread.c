@@ -57,9 +57,10 @@ DWORD   frontpanel_readthread_id;
 
 volatile static int frontpanel_writethread_stop_request = 0;
 volatile static int frontpanel_readthread_stop_request = 0;
+HANDLE frontpanel_readthread_stop_event = 0;
 
 HANDLE frontpanel_writetimer_handle = NULL;
-HANDLE frontpanel_readtimer_handle = NULL;
+// --no-- HANDLE frontpanel_readtimer_handle = NULL;
 
 DWORD WINAPI frontpanel_writethread_proc(LPVOID lpParam);
 DWORD WINAPI frontpanel_readthread_proc(LPVOID lpParam);
@@ -70,6 +71,9 @@ DWORD WINAPI frontpanel_readthread_proc(LPVOID lpParam);
 // --  } MYDATA;
 
 // --  MYDATA unused_data = { 0 };
+#define RECV_CMD_BUFFER_LEN 1024
+SIMJ_U8		recvCmdBuffer[RECV_CMD_BUFFER_LEN] = { 0 };
+int			recvCmdBytes = 0;
 
 
 // =============================================================================================================
@@ -82,12 +86,12 @@ void frontpanel_start_thread() {
 	const LARGE_INTEGER write_due_time = { .QuadPart = -040000LL };	// 4 milliseconds
 	const LONG write_periodic_time = 4;			// 4 milliseconds
 
-	const LARGE_INTEGER read_due_time = { .QuadPart = -200000LL };	// 20 milliseconds
-	const LONG read_periodic_time = 20;			// 20 milliseconds
+	// --no-- const LARGE_INTEGER read_due_time = { .QuadPart = -200000LL };	// 20 milliseconds
+	// --no-- const LONG read_periodic_time = 20;			// 20 milliseconds
 
 	// -------- initialize the stop request
 	frontpanel_writethread_stop_request = 0;
-	frontpanel_readthread_stop_request = 0;
+	// --no-- frontpanel_readthread_stop_request = 0;
 
 	// -------- WRITE 
 	// -------- create timer
@@ -144,31 +148,31 @@ void frontpanel_start_thread() {
 	}
 
 	// -------- READ
-	// -------- create timer
-	frontpanel_readtimer_handle =
-		CreateWaitableTimerExW(
-			NULL,			// security attributes
-			NULL,				// timer name
-			CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,	// flags
-			TIMER_ALL_ACCESS | TIMER_MODIFY_STATE);		// 
+	// --no-- // -------- create timer
+	// --no-- frontpanel_readtimer_handle =
+	// --no-- 	CreateWaitableTimerExW(
+	// --no-- 		NULL,			// security attributes
+	// --no-- 		NULL,				// timer name
+	// --no-- 		CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,	// flags
+	// --no-- 		TIMER_ALL_ACCESS | TIMER_MODIFY_STATE);		// 
 
-	// -------- check and deal with error
-	if (frontpanel_readtimer_handle == NULL) {
-		printf(" *** ERROR *** Front Panel Read Communications CreateWaitableTimerEx failed: 0x%08x\n", GetLastError());
-	}
-	else {
+	// --no-- // -------- check and deal with error
+	// --no-- if (frontpanel_readtimer_handle == NULL) {
+	// --no-- 	printf(" *** ERROR *** Front Panel Read Communications CreateWaitableTimerEx failed: 0x%08x\n", GetLastError());
+	// --no-- }
+	// --no-- else {
 
-		// -------- Schedule the wait
-		status = SetWaitableTimer(
-			frontpanel_readtimer_handle,	// handle
-			&read_due_time,				// due time 
-			read_periodic_time,			// periodic time
-			NULL,			// [in, optional] PTIMERAPCROUTINE    pfnCompletionRoutine,
-			NULL,		// [in, optional] LPVOID              lpArgToCompletionRoutine,
-			FALSE);					// [in] BOOL                fResume
+	// --no-- 	// -------- Schedule the wait
+	// --no-- 	status = SetWaitableTimer(
+	// --no-- 		frontpanel_readtimer_handle,	// handle
+	// --no-- 		&read_due_time,				// due time 
+	// --no-- 		read_periodic_time,			// periodic time
+	// --no-- 		NULL,			// [in, optional] PTIMERAPCROUTINE    pfnCompletionRoutine,
+	// --no-- 		NULL,		// [in, optional] LPVOID              lpArgToCompletionRoutine,
+	// --no-- 		FALSE);					// [in] BOOL                fResume
 
-		// -------- timer scheduled okay.
-		if (status) {
+	// --no-- 	// -------- timer scheduled okay.
+	// --no-- 	if (status) {
 
 			frontpanel_readthread_handle = _beginthreadex(NULL,
 				0,
@@ -190,12 +194,12 @@ void frontpanel_start_thread() {
 				printf(" Front Panel read communications started.\n");
 				printf(" Front Panel read communications thread created.  ID = %d\n", frontpanel_readthread_id);
 			}
-		}
-		else {
-			printf("SetWaitableTimer failed with error %d\n", GetLastError());
-			frontpanel_stop_thread();
-		}
-	}
+	// --no-- 	}
+	// --no-- 	else {
+	// --no-- 		printf("SetWaitableTimer failed with error %d\n", GetLastError());
+	// --no-- 		frontpanel_stop_thread();
+	// --no-- 	}
+	// --no-- }
 
 
 }
@@ -209,14 +213,15 @@ void frontpanel_stop_thread() {
 
 	// -------- request the thread to exit
 	frontpanel_writethread_stop_request = 1;
-	frontpanel_readthread_stop_request = 1;
+	// --no-- frontpanel_readthread_stop_request = 1;
+	SetEvent(frontpanel_readthread_stop_event);
 
 	stop_writecompare = 1; // frontpanel_writethread_stop_request;
 	stop_readcompare = 1; // frontpanel_readthread_stop_request;
 
 	// -------- wait a little bit for the write thread to exit.
 	WaitOnAddress(&frontpanel_writethread_stop_request, &stop_writecompare, 
-		sizeof(frontpanel_writethread_stop_request), 500);
+		sizeof(frontpanel_writethread_stop_request), 1000);
 
 	// -------- it didn't stop -- force it to terminate 
 	if (frontpanel_writethread_stop_request != 0) {
@@ -246,6 +251,135 @@ void frontpanel_stop_thread() {
 
 
 // =============================================================================================================
+void proc_recv_cmd() {
+
+	SIMJ_U16 cmdvalue;
+	SIMJ_U16 cmdHi;
+	SIMJ_U16 cmdLo;
+	SIMJ_U16 datavalue;
+	SIMJ_U16 dataHi;
+	SIMJ_U16 dataLo;
+
+	if (recvCmdBytes == 4 || recvCmdBytes == 5 ) {
+		printf(" --------received %d %d %d %d %d \n", recvCmdBuffer[0], recvCmdBuffer[1], recvCmdBuffer[2], recvCmdBuffer[3], recvCmdBuffer[4]);
+		cmdLo = recvCmdBuffer[0];
+		cmdHi = recvCmdBuffer[1];
+		dataLo = recvCmdBuffer[2];
+		dataHi = recvCmdBuffer[3];
+		cmdvalue = cmdHi << 8 | (0x00ff & cmdLo);
+		datavalue = dataHi << 8 | (0x00ff & dataLo);
+
+		switch (cmdvalue) {
+			// --------0: noop
+			case 0:
+				break;
+
+			// --------1: master clear
+			case 1:
+				cpu_master_clear();
+				break;
+
+			// --------2: fill <device address>
+			case 2:
+				if (!cpu_get_power_on()) {
+					printf(" *** ERROR ***  Cant perform fill.  CPU is not powered on.\n");
+				}
+				else if (gbl_fp_runlight) {
+					printf(" *** ERROR ***  Cant perform fill.  CPU is not halted.\n");
+				}
+				else if (gbl_fp_single_step) {
+					printf(" *** ERROR ***  Cant perform fill.  CPU is being single stepped.\n");
+				}
+				else {
+					// -------- perform the fill command
+					cpu_do_fill(datavalue);
+				}
+				break;
+
+			// --------3: run
+			case 3:
+				cpu_do_run();
+				break;
+
+			// --------4: halt
+			case 4:
+				gbl_fp_runlight = false;
+				break;
+
+			// --------5: set switches value <switch value>
+			case 5:
+				cpu_set_switches(datavalue);
+				printf(" Front panel switches 0x%04x\n", gbl_fp_switches);
+				break;
+
+			// --------6: set register display select value <reg display select value>
+			// TODO: update register display select
+			case 6:
+				break;
+
+			// --------set memory mode switch value <value> 
+			//		0: virt / inst
+			//		1 : virt / oper
+			//		2 : act / inst
+			//		3 : act / oper
+			// TODO: update memory mode switch value
+			case 7:
+				break;
+
+			// --------8: clear breakpoint halt
+			// TODO: clear breakpoint halt.
+			case 8:
+				break;
+
+			// --------9: console interrupt
+			case 9:
+				cpu_trigger_console_interrupt();
+				break;
+
+			// --------10: enter register <new value>, reg display select = register.
+			// TODO: Enter register value
+			case 10:
+				break;
+
+			// --------11: enter next
+			// TODO: Enter next
+			case 11:
+				break;
+
+			// --------12: enter mem
+			// TODO: Enter mem
+			case 12:
+				break;
+
+			// --------13: enter p/ma
+			// TODO: Enter p/ma
+			case 13:
+				break;
+
+			// --------14: step p/ma
+			// TODO: step p/ma
+			case 14:
+				break;
+
+			// --------15: single step
+			case 15:
+				cpu_do_step(1);
+				break;
+
+			// --------bad command value
+			default:
+				printf(" ------ bad command value %d \n", cmdvalue);
+				break;
+		}
+	}
+	else {
+		printf(" ------ number of bytes recived is strange %d \n", recvCmdBytes);
+	}
+
+}
+
+
+// =============================================================================================================
 DWORD WINAPI frontpanel_writethread_proc(LPVOID lpParam) {
 
 	bool status = false;
@@ -266,6 +400,7 @@ DWORD WINAPI frontpanel_writethread_proc(LPVOID lpParam) {
 	SIMJ_U16 loc_int_active = 0;
 	SIMJ_U32 loc_loop_count = 0;
 	int j = 0;
+	bool running = 1;
 
 #define BRIGHT_INC_HIGH 0x0400
 #define BRIGHT_INC 4
@@ -290,6 +425,7 @@ DWORD WINAPI frontpanel_writethread_proc(LPVOID lpParam) {
 	DWORD		loc_last_error = 9999;
 	struct sockaddr_in loc_udp_send_serverAddr = { 0 };
 	int			loc_send_addr_len = sizeof(loc_udp_send_serverAddr);
+	// IN_ADDR		loc_send_addr_struct;
 
 	// -------- 1. Initialize Winsock library
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -348,13 +484,16 @@ DWORD WINAPI frontpanel_writethread_proc(LPVOID lpParam) {
 
 
 	// -------- 3. Set up the server address structure
-	loc_udp_send_serverAddr.sin_family = AF_INET;
-	loc_udp_send_serverAddr.sin_port = htons(loc_send_port); // Destination port
-	loc_udp_send_serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); //INADDR_BROADCAST;	//    
+	memset(&loc_udp_send_serverAddr, 0, sizeof(loc_udp_send_serverAddr));
+	loc_udp_send_serverAddr.sin_family = AF_INET;						// IPv4
+	loc_udp_send_serverAddr.sin_port = htons(loc_send_port);   // Port in network byte order
+	inet_pton(AF_INET, "127.0.0.1", &loc_udp_send_serverAddr.sin_addr);
 
+	// --------set running
+	running = 1;
 
 	// -------- loop until requested to stop
-	while (frontpanel_writethread_stop_request == 0) {
+	while ( running ) {
 
 		WaitForSingleObject(frontpanel_writetimer_handle, 10);
 
@@ -524,7 +663,11 @@ DWORD WINAPI frontpanel_writethread_proc(LPVOID lpParam) {
 				send_words[4] |= 0x1000;
 				send_words[BRIGHT_MISC4_START + 1] |= 100; //  += BRIGHT_INC;
 			}
-
+			// --------0100 exit request.
+			if (frontpanel_writethread_stop_request != 0) {
+				send_words[4] |= 0x0100;
+				running = 0;
+			}
 			// -------- 0fff --future use--
 		}
 
@@ -604,6 +747,7 @@ DWORD WINAPI frontpanel_readthread_proc(LPVOID lpParam) {
 	DWORD		loc_last_error = 9999;
 	struct sockaddr_in loc_udp_recv_serverAddr = { 0 };
 	int			loc_send_addr_len = sizeof(loc_udp_recv_serverAddr);
+	bool		running = true;
 
 	// -------- 1. Initialize Winsock library
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -632,6 +776,20 @@ DWORD WINAPI frontpanel_readthread_proc(LPVOID lpParam) {
 		return 0;
 	}
 
+	// -------- 2a. bind to a port and address...
+	memset(&loc_udp_recv_serverAddr, 0, sizeof(loc_udp_recv_serverAddr));
+	loc_udp_recv_serverAddr.sin_family = AF_INET;						// IPv4
+	loc_udp_recv_serverAddr.sin_port = htons(loc_recv_port);   // Port in network byte order
+	inet_pton(AF_INET, "0.0.0.0", &loc_udp_recv_serverAddr.sin_addr);	// any adress..
+	int iBindResult = bind(loc_recv_udp_socket, (struct sockaddr*)&loc_udp_recv_serverAddr, sizeof(loc_udp_recv_serverAddr));
+	if (iBindResult == SOCKET_ERROR) {
+		fprintf(stderr, " *** ERROR *** front_panel_readthread_proc bind failed: %ld\n", WSAGetLastError());
+		closesocket(loc_recv_udp_socket);
+		WSACleanup();
+		_endthreadex(0);
+		return 0;
+	}
+
 	// -------- 3. Set the recv buffer size to 4096 (this should be much bigger than the 4 bytes needed each time)
 	int recvBufferSize = 4096;
 	int iResult = setsockopt(loc_recv_udp_socket, SOL_SOCKET, SO_SNDBUF, (char*)&recvBufferSize, sizeof(recvBufferSize));
@@ -643,45 +801,83 @@ DWORD WINAPI frontpanel_readthread_proc(LPVOID lpParam) {
 		return 0;
 	}
 
-	// --------4. set the send socket to be non-blocking..
-	unsigned long nonBlocking = 1;
-	int ioctl_return = 0;
-	ioctl_return = ioctlsocket(loc_recv_udp_socket, FIONBIO, &nonBlocking);
-	if (ioctl_return == SOCKET_ERROR) {
-		fprintf(stderr, " *** ERROR *** front_panel_readthread_proc - socket non block set failed: %d\n", WSAGetLastError());
-		loc_last_error = WSAGetLastError();
-		closesocket(loc_recv_udp_socket);
-		WSACleanup();
-		// -------- indicate we are exiting.
-		frontpanel_readthread_stop_request = 0;
-		// --------exit thread.
-		//  --  ExitThread(0);
-		_endthreadex(0);
-		return 0;
+
+	// -------- 4. Create Events
+	// -------- hEvents[0] for Network, hEvents[1] for Program Exit
+	WSAEVENT hEvents[2];
+	hEvents[0] = WSACreateEvent(); // Network event
+	hEvents[1] = CreateEvent(NULL, TRUE, FALSE, NULL); // Exit event
+	// --------save event.
+	frontpanel_readthread_stop_event = hEvents[1];
+
+	// -------- 5. Associate socket with event for reading
+	// -------- This call automatically sets the socket to non-blocking mode
+	int iSelectResult = WSAEventSelect(loc_recv_udp_socket, hEvents[0], FD_READ | FD_CLOSE);
+	if (iSelectResult == SOCKET_ERROR) {
+		fprintf(stderr, " *** ERROR *** front_panel_readthread_proc WSAEventSelect error: %ld\n", WSAGetLastError());
 	}
 
 
-	// -------- 3. Set up the server address structure
-	loc_udp_recv_serverAddr.sin_family = AF_INET;
-	loc_udp_recv_serverAddr.sin_port = htons(loc_recv_port); // Source port
-	loc_udp_recv_serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); //INADDR_BROADCAST;	//    
+	// --------4. set the send socket to be non-blocking..
+	// -- unsigned long nonBlocking = 1;
+	// -- int ioctl_return = 0;
+	// -- ioctl_return = ioctlsocket(loc_recv_udp_socket, FIONBIO, &nonBlocking);
+	// -- if (ioctl_return == SOCKET_ERROR) {
+	// -- 	fprintf(stderr, " *** ERROR *** front_panel_readthread_proc - socket non block set failed: %d\n", WSAGetLastError());
+	// -- 	loc_last_error = WSAGetLastError();
+	// -- 	closesocket(loc_recv_udp_socket);
+	// -- 	WSACleanup();
+	// -- 	// -------- indicate we are exiting.
+	// -- 	frontpanel_readthread_stop_request = 0;
+	// -- 	// --------exit thread.
+	// -- 	//  --  ExitThread(0);
+	// -- 	_endthreadex(0);
+	// -- 	return 0;
+	// -- }
 
+
+
+	// --------set we are running
+	running = true;
+
+	// -debug- printf("starting console read command loop\n");
 
 	// -------- loop until requested to stop
-	while (frontpanel_readthread_stop_request == 0) {
+	while (running) {
 
-		WaitForSingleObject(frontpanel_readtimer_handle, 10);
+		// --no-- WaitForSingleObject(frontpanel_readtimer_handle, 10);
+
+		// --------wait for events...
+		DWORD index = WSAWaitForMultipleEvents(2, hEvents, FALSE, WSA_INFINITE, FALSE);
 
 		// --------increment loop count
 		loc_loop_count++;
 
+		// --------socket event triggered.
+		if (index == WSA_WAIT_EVENT_0) {
+			WSANETWORKEVENTS networkEvents;
+			WSAEnumNetworkEvents(loc_recv_udp_socket, hEvents[0], &networkEvents);
+
+			// --------did we get a new message
+			if (networkEvents.lNetworkEvents & FD_READ) {
+				// -debug- printf(" console command triggered -----\n");
+				recvCmdBytes = recv(loc_recv_udp_socket, recvCmdBuffer, sizeof(recvCmdBuffer) - 1, 0);
+
+				if (recvCmdBytes > 0) {
+					// -debug- printf(" console command received %d -----\n", recvCmdBytes);
+					proc_recv_cmd();
+				}
+			}
+		}
+		// --------exit event triggered...
+		else if (index == WSA_WAIT_EVENT_0 + 1) {
+			// -debug- printf("Exit signal received. Closing loop.\n");
+			running = 0;
+		}
+
 	}	// -------- processing loop
 
-	// -------- waitable timer clock the clock handle
-	if (frontpanel_readtimer_handle != NULL) {
-		CloseHandle(frontpanel_readtimer_handle);
-	}
-
+	// --------close socket and perform WSACleanup...
 	closesocket(loc_recv_udp_socket);
 	WSACleanup();
 
@@ -697,3 +893,5 @@ DWORD WINAPI frontpanel_readthread_proc(LPVOID lpParam) {
 	return 0;
 
 }
+
+
