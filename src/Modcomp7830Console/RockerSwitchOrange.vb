@@ -14,6 +14,10 @@ Public Class RockerSwitchOrange
 
     Private _isOn As Boolean = False
 
+    Private color_B As Color = Color.FromArgb(255, 172, 28)
+    Private color_N As Color = Color.FromArgb(250, 100, 9)
+    Private color_D As Color = Color.FromArgb(180, 70, 0)
+
     ''' <summary>
     ''' 
     ''' </summary>
@@ -67,10 +71,14 @@ Public Class RockerSwitchOrange
         ' -------- Background
         '--Dim bgColor As Color = If(_isOn, Color.Orange, Color.DarkOrange)
         '--g.FillRectangle(New SolidBrush(bgColor), Me.ClientRectangle)
-        Dim bgColor0 As Color = Color.Orange                                    ' medium
-        Dim bgColor1 As Color = If(_isOn, Color.DarkGoldenrod, Color.Orange)    ' light     medium
-        Dim bgColor2 As Color = If(_isOn, Color.DarkOrange, Color.DarkGoldenrod) ' dark      light
-        Dim bgColor3 As Color = If(_isOn, Color.Orange, Color.DarkOrange)       ' medium,   dark
+        'Dim bgColor0 As Color = Color.Orange                                    ' medium
+        'Dim bgColor1 As Color = If(_isOn, Color.DarkGoldenrod, Color.Orange)    ' light     medium
+        'Dim bgColor2 As Color = If(_isOn, Color.DarkOrange, Color.DarkGoldenrod) ' dark      light
+        'Dim bgColor3 As Color = If(_isOn, Color.Orange, Color.DarkOrange)       ' medium,   dark
+        Dim bgColor0 As Color = color_N                        ' medium
+        Dim bgColor1 As Color = If(_isOn, color_B, color_N)    ' light     medium
+        Dim bgColor2 As Color = If(_isOn, color_D, color_B)    ' dark      light
+        Dim bgColor3 As Color = If(_isOn, color_N, color_D)    ' medium,   dark
         g.FillRectangle(New SolidBrush(bgColor0), Me.ClientRectangle)
 
         ' -------- Rocker switch
