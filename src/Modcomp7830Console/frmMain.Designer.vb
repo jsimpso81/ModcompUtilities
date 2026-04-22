@@ -27,6 +27,10 @@ Partial Class frmMain
         StatusStrip1 = New StatusStrip()
         lblComStatus = New ToolStripStatusLabel()
         lblComBytes = New ToolStripStatusLabel()
+        ToolStripStatusLabel1 = New ToolStripStatusLabel()
+        SwitchValue = New ToolStripStatusLabel()
+        ToolStripStatusLabel2 = New ToolStripStatusLabel()
+        RegDisplayValue = New ToolStripStatusLabel()
         MenuStrip1 = New MenuStrip()
         FileToolStripMenuItem = New ToolStripMenuItem()
         ExitToolStripMenuItem = New ToolStripMenuItem()
@@ -131,7 +135,7 @@ Partial Class frmMain
         ' 
         ' StatusStrip1
         ' 
-        StatusStrip1.Items.AddRange(New ToolStripItem() {lblComStatus, lblComBytes})
+        StatusStrip1.Items.AddRange(New ToolStripItem() {lblComStatus, lblComBytes, ToolStripStatusLabel1, SwitchValue, ToolStripStatusLabel2, RegDisplayValue})
         StatusStrip1.Location = New Point(0, 642)
         StatusStrip1.Name = "StatusStrip1"
         StatusStrip1.Size = New Size(1297, 22)
@@ -149,6 +153,30 @@ Partial Class frmMain
         lblComBytes.Name = "lblComBytes"
         lblComBytes.Size = New Size(13, 17)
         lblComBytes.Text = "0"
+        ' 
+        ' ToolStripStatusLabel1
+        ' 
+        ToolStripStatusLabel1.Name = "ToolStripStatusLabel1"
+        ToolStripStatusLabel1.Size = New Size(56, 17)
+        ToolStripStatusLabel1.Text = "Switches:"
+        ' 
+        ' SwitchValue
+        ' 
+        SwitchValue.Name = "SwitchValue"
+        SwitchValue.Size = New Size(31, 17)
+        SwitchValue.Text = "0000"
+        ' 
+        ' ToolStripStatusLabel2
+        ' 
+        ToolStripStatusLabel2.Name = "ToolStripStatusLabel2"
+        ToolStripStatusLabel2.Size = New Size(94, 17)
+        ToolStripStatusLabel2.Text = "Reg Disp Switch:"
+        ' 
+        ' RegDisplayValue
+        ' 
+        RegDisplayValue.Name = "RegDisplayValue"
+        RegDisplayValue.Size = New Size(31, 17)
+        RegDisplayValue.Text = "0000"
         ' 
         ' MenuStrip1
         ' 
@@ -1202,5 +1230,9 @@ Partial Class frmMain
     Friend WithEvents InstOperSwitch As RockerSwitchOrange
     Friend WithEvents ClearBpHaltSwitch As RockerSwitchOrange
     Friend WithEvents EntRegCslIntSwitch As RockerSwitchOrange
+    Friend WithEvents ToolStripStatusLabel1 As ToolStripStatusLabel
+    Friend WithEvents SwitchValue As ToolStripStatusLabel
+    Friend WithEvents ToolStripStatusLabel2 As ToolStripStatusLabel
+    Friend WithEvents RegDisplayValue As ToolStripStatusLabel
 
 End Class

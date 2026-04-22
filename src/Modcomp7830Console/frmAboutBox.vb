@@ -1,7 +1,7 @@
 ﻿Option Strict On
 
 
-Public NotInheritable Class frmAboutBox
+Public NotInheritable Class FrmAboutBox
 
     Private Sub frmAboutBox_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
         ' Set the title of the form.

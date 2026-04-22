@@ -2,6 +2,7 @@
 
 Imports System
 Imports System.ComponentModel
+Imports System.Drawing.Text
 Imports System.Net
 Imports System.Net.Sockets
 Imports System.Numerics
@@ -10,14 +11,15 @@ Imports System.Threading
 
 
 
-Public Class frmMain
+Public Class FrmMain
 
     Private DemoIndex As Integer = 0
 
     Private WithEvents UdpSendClient As UdpClient
-    Private WithEvents RemoteSendEndPoint As IPEndPoint
+    'Private WithEvents RemoteSendEndPoint As IPEndPoint
     Private SendPort As Integer = 57831
-    '--------implement a blocking concurrent queue...... for the data...
+    Private SendHostName As String = ""
+    Private SendLastError As Integer = 0
 
     Private WithEvents UdpRecvClient As UdpClient
     Private WithEvents RemoteRecvEndPoint As IPEndPoint
@@ -31,17 +33,19 @@ Public Class frmMain
     Private LocLastByteArray As Byte() = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
     Private LocByteArray As Byte() = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
 
+    '--------local copies of data
+    Private locRun As Boolean = False
+    Private locSwitches As UInt16 = 0
+    Private locRegDisplaySelect As UInt16 = 0
+    Private locMemoryMode As UInt16 = 0
+    Private locLock As Boolean = False
+
+    '--------exit program -- from recv data
+    Private locExit As Boolean = False
+
     Delegate Sub typProcSimData(ByRef loc_recv_bytes As Byte())
     Public MyDelProc As New typProcSimData(AddressOf ProcSimData)
 
-
-    Private Sub PictureBox1_Click(sender As Object, e As EventArgs) Handles PictureBox1.Click
-        If (LED_Power.Brightness > 50) Then
-            LED_Power.Brightness = 0
-        Else
-            LED_Power.Brightness = 100
-        End If
-    End Sub
 
     Private Sub FrmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
@@ -61,7 +65,8 @@ Public Class frmMain
     End Sub
 
     Private Sub FrmMain_Disposed(sender As Object, e As EventArgs) Handles Me.Disposed
-        Call UDP_Close(UdpRecvClient)
+        UdpRecvClient.Close()
+        UdpSendClient.Close()
         Debug.WriteLine("disposed")
     End Sub
 
@@ -160,28 +165,124 @@ Public Class frmMain
 
             '--------16 bit switch register.
             If (LocByteArray(5) <> LocLastByteArray(5)) Then
-                LED_Switch15.Brightness = If((LocByteArray(5) And &H80) <> 0, 100, 0)
-                LED_Switch14.Brightness = If((LocByteArray(5) And &H40) <> 0, 100, 0)
-                LED_Switch13.Brightness = If((LocByteArray(5) And &H20) <> 0, 100, 0)
-                LED_Switch12.Brightness = If((LocByteArray(5) And &H10) <> 0, 100, 0)
+                If (LocByteArray(5) And &H80) <> 0 Then
+                    LED_Switch15.Brightness = 100
+                    locSwitches = locSwitches Or &H8000US
+                Else
+                    LED_Switch15.Brightness = 0
+                    locSwitches = locSwitches And &H7FFFUS
+                End If
+                If (LocByteArray(5) And &H40) <> 0 Then
+                    LED_Switch14.Brightness = 100
+                    locSwitches = locSwitches Or &H4000US
+                Else
+                    LED_Switch14.Brightness = 0
+                    locSwitches = locSwitches And &HBFFFUS
+                End If
+                If (LocByteArray(5) And &H20) <> 0 Then
+                    LED_Switch13.Brightness = 100
+                    locSwitches = locSwitches Or &H2000US
+                Else
+                    LED_Switch13.Brightness = 0
+                    locSwitches = locSwitches And &HDFFFUS
+                End If
+                If (LocByteArray(5) And &H10) <> 0 Then
+                    LED_Switch12.Brightness = 100
+                    locSwitches = locSwitches Or &H1000US
+                Else
+                    LED_Switch12.Brightness = 0
+                    locSwitches = locSwitches And &HEFFFUS
+                End If
 
-                LED_Switch11.Brightness = If((LocByteArray(5) And &H8) <> 0, 100, 0)
-                LED_Switch10.Brightness = If((LocByteArray(5) And &H4) <> 0, 100, 0)
-                LED_Switch09.Brightness = If((LocByteArray(5) And &H2) <> 0, 100, 0)
-                LED_Switch08.Brightness = If((LocByteArray(5) And &H1) <> 0, 100, 0)
+                If (LocByteArray(5) And &H8) <> 0 Then
+                    LED_Switch11.Brightness = 100
+                    locSwitches = locSwitches Or &H800US
+                Else
+                    LED_Switch11.Brightness = 0
+                    locSwitches = locSwitches And &HF7FFUS
+                End If
+                If (LocByteArray(5) And &H4) <> 0 Then
+                    LED_Switch10.Brightness = 100
+                    locSwitches = locSwitches Or &H400US
+                Else
+                    LED_Switch10.Brightness = 0
+                    locSwitches = locSwitches And &HFBFFUS
+                End If
+                If (LocByteArray(5) And &H2) <> 0 Then
+                    LED_Switch09.Brightness = 100
+                    locSwitches = locSwitches Or &H200US
+                Else
+                    LED_Switch09.Brightness = 0
+                    locSwitches = locSwitches And &HFDFFUS
+                End If
+                If (LocByteArray(5) And &H1) <> 0 Then
+                    LED_Switch08.Brightness = 100
+                    locSwitches = locSwitches Or &H100US
+                Else
+                    LED_Switch08.Brightness = 0
+                    locSwitches = locSwitches And &HFEFFUS
+                End If
                 LocLastByteArray(5) = LocByteArray(5)
             End If
 
             If (LocByteArray(4) <> LocLastByteArray(4)) Then
-                LED_Switch07.Brightness = If((LocByteArray(4) And &H80) <> 0, 100, 0)
-                LED_Switch06.Brightness = If((LocByteArray(4) And &H40) <> 0, 100, 0)
-                LED_Switch05.Brightness = If((LocByteArray(4) And &H20) <> 0, 100, 0)
-                LED_Switch04.Brightness = If((LocByteArray(4) And &H10) <> 0, 100, 0)
+                If (LocByteArray(4) And &H80) <> 0 Then
+                    LED_Switch07.Brightness = 100
+                    locSwitches = locSwitches Or &H80US
+                Else
+                    LED_Switch07.Brightness = 0
+                    locSwitches = locSwitches And &HFF7FUS
+                End If
+                If (LocByteArray(4) And &H40) <> 0 Then
+                    LED_Switch06.Brightness = 100
+                    locSwitches = locSwitches Or &H40US
+                Else
+                    LED_Switch06.Brightness = 0
+                    locSwitches = locSwitches And &HFFBFUS
+                End If
+                If (LocByteArray(4) And &H20) <> 0 Then
+                    LED_Switch05.Brightness = 100
+                    locSwitches = locSwitches Or &H20US
+                Else
+                    LED_Switch05.Brightness = 0
+                    locSwitches = locSwitches And &HFFDFUS
+                End If
+                If (LocByteArray(4) And &H10) <> 0 Then
+                    LED_Switch04.Brightness = 100
+                    locSwitches = locSwitches Or &H10US
+                Else
+                    LED_Switch04.Brightness = 0
+                    locSwitches = locSwitches And &HFFEFUS
+                End If
 
-                LED_Switch03.Brightness = If((LocByteArray(4) And &H8) <> 0, 100, 0)
-                LED_Switch02.Brightness = If((LocByteArray(4) And &H4) <> 0, 100, 0)
-                LED_Switch01.Brightness = If((LocByteArray(4) And &H2) <> 0, 100, 0)
-                LED_Switch00.Brightness = If((LocByteArray(4) And &H1) <> 0, 100, 0)
+                If (LocByteArray(4) And &H8) <> 0 Then
+                    LED_Switch03.Brightness = 100
+                    locSwitches = locSwitches Or &H8US
+                Else
+                    LED_Switch03.Brightness = 0
+                    locSwitches = locSwitches And &HFFF7US
+                End If
+                If (LocByteArray(4) And &H4) <> 0 Then
+                    LED_Switch02.Brightness = 100
+                    locSwitches = locSwitches Or &H4US
+                Else
+                    LED_Switch02.Brightness = 0
+                    locSwitches = locSwitches And &HFFFBUS
+                End If
+                If (LocByteArray(4) And &H2) <> 0 Then
+                    LED_Switch01.Brightness = 100
+                    locSwitches = locSwitches Or &H2US
+                Else
+                    LED_Switch01.Brightness = 0
+                    locSwitches = locSwitches And &HFFFDUS
+                End If
+                If (LocByteArray(4) And &H1) <> 0 Then
+                    LED_Switch00.Brightness = 100
+                    locSwitches = locSwitches Or &H1US
+                Else
+                    LED_Switch00.Brightness = 0
+                    locSwitches = locSwitches And &HFFFEUS
+                End If
                 LocLastByteArray(4) = LocByteArray(4)
             End If
 
@@ -220,15 +321,20 @@ Public Class frmMain
                 If (LocByteArray(9) And &H10) <> 0 Then
                     LED_Run.Brightness = 100
                     RunHaltSwitch.IsOn = True
+                    locRun = True
                 Else
                     LED_Run.Brightness = 0
                     RunHaltSwitch.IsOn = False
+                    locRun = False
                 End If
 
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H8) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H4) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H2) <> 0, 100, 0)
-                '--unused--LED_xx.Brightness = If((locByteArray(9) And &H1) <> 0, 100, 0)
+                '--------exit command....
+                If (LocByteArray(9) And &H1) <> 0 Then
+                    System.Windows.Forms.Application.Exit()
+                End If
                 LocLastByteArray(9) = LocByteArray(9)
             End If
 
@@ -308,30 +414,124 @@ Public Class frmMain
 
             '--------16 bit switch register.   It doesn't change much so just use off / on
             If (LocByteArray(5) <> LocLastByteArray(5)) Then
-                LED_Switch15.Brightness = If((LocByteArray(5) And &H80) <> 0, 100, 0)
-                LED_Switch14.Brightness = If((LocByteArray(5) And &H40) <> 0, 100, 0)
-                LED_Switch13.Brightness = If((LocByteArray(5) And &H20) <> 0, 100, 0)
-                LED_Switch12.Brightness = If((LocByteArray(5) And &H10) <> 0, 100, 0)
+                If (LocByteArray(5) And &H80) <> 0 Then
+                    LED_Switch15.Brightness = 100
+                    locSwitches = locSwitches Or &H8000US
+                Else
+                    LED_Switch15.Brightness = 0
+                    locSwitches = locSwitches And &H7FFFUS
+                End If
+                If (LocByteArray(5) And &H40) <> 0 Then
+                    LED_Switch14.Brightness = 100
+                    locSwitches = locSwitches Or &H4000US
+                Else
+                    LED_Switch14.Brightness = 0
+                    locSwitches = locSwitches And &HBFFFUS
+                End If
+                If (LocByteArray(5) And &H20) <> 0 Then
+                    LED_Switch13.Brightness = 100
+                    locSwitches = locSwitches Or &H2000US
+                Else
+                    LED_Switch13.Brightness = 0
+                    locSwitches = locSwitches And &HDFFFUS
+                End If
+                If (LocByteArray(5) And &H10) <> 0 Then
+                    LED_Switch12.Brightness = 100
+                    locSwitches = locSwitches Or &H1000US
+                Else
+                    LED_Switch12.Brightness = 0
+                    locSwitches = locSwitches And &HEFFFUS
+                End If
 
-                LED_Switch11.Brightness = If((LocByteArray(5) And &H8) <> 0, 100, 0)
-                LED_Switch10.Brightness = If((LocByteArray(5) And &H4) <> 0, 100, 0)
-                LED_Switch09.Brightness = If((LocByteArray(5) And &H2) <> 0, 100, 0)
-                LED_Switch08.Brightness = If((LocByteArray(5) And &H1) <> 0, 100, 0)
-
+                If (LocByteArray(5) And &H8) <> 0 Then
+                    LED_Switch11.Brightness = 100
+                    locSwitches = locSwitches Or &H800US
+                Else
+                    LED_Switch11.Brightness = 0
+                    locSwitches = locSwitches And &HF7FFUS
+                End If
+                If (LocByteArray(5) And &H4) <> 0 Then
+                    LED_Switch10.Brightness = 100
+                    locSwitches = locSwitches Or &H400US
+                Else
+                    LED_Switch10.Brightness = 0
+                    locSwitches = locSwitches And &HFBFFUS
+                End If
+                If (LocByteArray(5) And &H2) <> 0 Then
+                    LED_Switch09.Brightness = 100
+                    locSwitches = locSwitches Or &H200US
+                Else
+                    LED_Switch09.Brightness = 0
+                    locSwitches = locSwitches And &HFDFFUS
+                End If
+                If (LocByteArray(5) And &H1) <> 0 Then
+                    LED_Switch08.Brightness = 100
+                    locSwitches = locSwitches Or &H100US
+                Else
+                    LED_Switch08.Brightness = 0
+                    locSwitches = locSwitches And &HFEFFUS
+                End If
                 LocLastByteArray(5) = LocByteArray(5)
             End If
 
             If (LocByteArray(4) <> LocLastByteArray(4)) Then
-                LED_Switch07.Brightness = If((LocByteArray(4) And &H80) <> 0, 100, 0)
-                LED_Switch06.Brightness = If((LocByteArray(4) And &H40) <> 0, 100, 0)
-                LED_Switch05.Brightness = If((LocByteArray(4) And &H20) <> 0, 100, 0)
-                LED_Switch04.Brightness = If((LocByteArray(4) And &H10) <> 0, 100, 0)
+                If (LocByteArray(4) And &H80) <> 0 Then
+                    LED_Switch07.Brightness = 100
+                    locSwitches = locSwitches Or &H80US
+                Else
+                    LED_Switch07.Brightness = 0
+                    locSwitches = locSwitches And &HFF7FUS
+                End If
+                If (LocByteArray(4) And &H40) <> 0 Then
+                    LED_Switch06.Brightness = 100
+                    locSwitches = locSwitches Or &H40US
+                Else
+                    LED_Switch06.Brightness = 0
+                    locSwitches = locSwitches And &HFFBFUS
+                End If
+                If (LocByteArray(4) And &H20) <> 0 Then
+                    LED_Switch05.Brightness = 100
+                    locSwitches = locSwitches Or &H20US
+                Else
+                    LED_Switch05.Brightness = 0
+                    locSwitches = locSwitches And &HFFDFUS
+                End If
+                If (LocByteArray(4) And &H10) <> 0 Then
+                    LED_Switch04.Brightness = 100
+                    locSwitches = locSwitches Or &H10US
+                Else
+                    LED_Switch04.Brightness = 0
+                    locSwitches = locSwitches And &HFFEFUS
+                End If
 
-                LED_Switch03.Brightness = If((LocByteArray(4) And &H8) <> 0, 100, 0)
-                LED_Switch02.Brightness = If((LocByteArray(4) And &H4) <> 0, 100, 0)
-                LED_Switch01.Brightness = If((LocByteArray(4) And &H2) <> 0, 100, 0)
-                LED_Switch00.Brightness = If((LocByteArray(4) And &H1) <> 0, 100, 0)
-
+                If (LocByteArray(4) And &H8) <> 0 Then
+                    LED_Switch03.Brightness = 100
+                    locSwitches = locSwitches Or &H8US
+                Else
+                    LED_Switch03.Brightness = 0
+                    locSwitches = locSwitches And &HFFF7US
+                End If
+                If (LocByteArray(4) And &H4) <> 0 Then
+                    LED_Switch02.Brightness = 100
+                    locSwitches = locSwitches Or &H4US
+                Else
+                    LED_Switch02.Brightness = 0
+                    locSwitches = locSwitches And &HFFFBUS
+                End If
+                If (LocByteArray(4) And &H2) <> 0 Then
+                    LED_Switch01.Brightness = 100
+                    locSwitches = locSwitches Or &H2US
+                Else
+                    LED_Switch01.Brightness = 0
+                    locSwitches = locSwitches And &HFFFDUS
+                End If
+                If (LocByteArray(4) And &H1) <> 0 Then
+                    LED_Switch00.Brightness = 100
+                    locSwitches = locSwitches Or &H1US
+                Else
+                    LED_Switch00.Brightness = 0
+                    locSwitches = locSwitches And &HFFFEUS
+                End If
                 LocLastByteArray(4) = LocByteArray(4)
             End If
 
@@ -365,16 +565,21 @@ Public Class frmMain
                 If (LocByteArray(9) And &H10) <> 0 Then
                     LED_Run.Brightness = 100
                     RunHaltSwitch.IsOn = True
+                    locRun = True
                 Else
                     LED_Run.Brightness = 0
                     RunHaltSwitch.IsOn = False
+                    locRun = False
                 End If
 
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H8) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H4) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H2) <> 0, 100, 0)
                 '--unused--LED_xx.Brightness = If((locByteArray(9) And &H1) <> 0, 100, 0)
-                LocLastByteArray(9) = LocByteArray(9)
+                '--------exit command....
+                If (LocByteArray(9) And &H1) <> 0 Then
+                    System.Windows.Forms.Application.Exit()
+                End If
             End If
 
             '--------nothing defined in byte 8 yet.
@@ -413,6 +618,12 @@ Public Class frmMain
                 lblComStatus.Text = "Communications Good"
             End If
         End If
+
+        '--------update switch value for debug
+        SwitchValue.Text = locSwitches.ToString("x4")
+
+        '--------update register display select for debug
+        RegDisplayValue.Text = locRegDisplaySelect.ToString("x3")
 
 
         Return
@@ -468,11 +679,12 @@ Public Class frmMain
 
     Private Sub UDP_Send_Init()
         '--------Open UDP send client.  Send to local address...
-        UdpSendClient = New UdpClient(SendPort)
+        UdpSendClient = New UdpClient() ' SendPort, AddressFamily.InterNetwork)
 
         '--------Get the host name of the current machine
         Dim hostName As String = Dns.GetHostName()
         Debug.WriteLine(" host name " & hostName)
+        SendHostName = hostName
 
         ' Retrieve all IP addresses associated with the host
         Dim ipAddresses = Dns.GetHostEntry(hostName).AddressList
@@ -490,7 +702,7 @@ Public Class frmMain
             End If
         Next
 
-        RemoteSendEndPoint = New IPEndPoint(useIp, SendPort)
+        'RemoteSendEndPoint = New IPEndPoint(useIp, SendPort)
 
         '--------Start a new thread for sending to prevent UI blocking
         '--Dim sendThread As New Threading.Thread(AddressOf UDP_Send_Thread)
@@ -511,56 +723,104 @@ Public Class frmMain
         Debug.WriteLine("got mouseclick")
         RegSelSwitch01.Toggle()
         '--------update switch value
+        If RegSelSwitch01.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H1US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFFFEUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch02_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch02.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch02.Toggle()
         '--------update switch value
+        If RegSelSwitch02.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H2US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFFFDUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch03_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch03.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch03.Toggle()
         '--------update switch value
+        If RegSelSwitch03.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H4US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFFFBUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch04_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch04.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch04.Toggle()
         '--------update switch value
+        If RegSelSwitch04.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H8US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFFF7US
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch05_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch05.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch05.Toggle()
         '--------update switch value
+        If RegSelSwitch05.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H10US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFFEFUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch06_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch06.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch06.Toggle()
         '--------update switch value
+        If RegSelSwitch06.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H20US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFFDFUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch07_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch07.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch07.Toggle()
         '--------update switch value
+        If RegSelSwitch07.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H40US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFFBFUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch08_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch08.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch08.Toggle()
         '--------update switch value
+        If RegSelSwitch08.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H80US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFF7FUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
 
@@ -568,81 +828,127 @@ Public Class frmMain
         Debug.WriteLine("got mouseclick")
         RegSelSwitch09.Toggle()
         '--------update switch value
+        If RegSelSwitch09.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H100US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFEFFUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch10_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch10.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch10.Toggle()
         '--------update switch value
+        If RegSelSwitch10.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H200US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFDFFUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch11_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch11.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch11.Toggle()
         '--------update switch value
+        If RegSelSwitch11.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H400US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HFBFFUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub RegSelSwitch12_MouseClick(sender As Object, e As MouseEventArgs) Handles RegSelSwitch12.MouseClick
         Debug.WriteLine("got mouseclick")
         RegSelSwitch12.Toggle()
         '--------update switch value
+        If RegSelSwitch12.IsOn Then
+            locRegDisplaySelect = locRegDisplaySelect Or &H800US
+        Else
+            locRegDisplaySelect = locRegDisplaySelect And &HF7FFUS
+        End If
         '--------send new value to simulator..
+        Call SendCmdRegDispSel()
     End Sub
 
     Private Sub SingleStepSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles SingleStepSwitch.MouseClick
         Debug.WriteLine("got mouseclick - single step")
-        SingleStepSwitch.Toggle()
-        SingleStepSwitch.Refresh()
-        Thread.Sleep(200)
-        SingleStepSwitch.Toggle()
-        SingleStepSwitch.Refresh()
-
+        If Not locLock And Not locRun Then
+            SingleStepSwitch.IsOn = True
+            SingleStepSwitch.Refresh()
+            Call SendCmdSingleStep()
+            Thread.Sleep(200)
+            SingleStepSwitch.IsOn = False
+            SingleStepSwitch.Refresh()
+        End If
     End Sub
 
     Private Sub RunHaltSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles RunHaltSwitch.MouseClick
         Debug.WriteLine("got mouseclick - run/halt")
-        RunHaltSwitch.Toggle()
+        If Not locLock Then
+            RunHaltSwitch.Toggle()
+            If RunHaltSwitch.IsOn Then
+                Call SendCmdRun()
+            Else
+                Call SendCmdHalt()
+            End If
+        End If
     End Sub
 
     Private Sub FillSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles FillSwitch.MouseClick
         Debug.WriteLine("got mouseclick - fill")
-        FillSwitch.Toggle()
-        FillSwitch.Refresh()
-        Thread.Sleep(200)
-        FillSwitch.Toggle()
-        FillSwitch.Refresh()
-
+        If Not locLock Then
+            FillSwitch.IsOn = True
+            FillSwitch.Refresh()
+            Call SendCmdFill()
+            Thread.Sleep(200)
+            FillSwitch.IsOn = False
+            FillSwitch.Refresh()
+        End If
     End Sub
 
     Private Sub MasterClearSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles MasterClearSwitch.MouseClick
         Debug.WriteLine("got mouseclick - master clear")
-        MasterClearSwitch.Toggle()
-        MasterClearSwitch.Refresh()
-        Thread.Sleep(200)
-        MasterClearSwitch.Toggle()
-        MasterClearSwitch.Refresh()
-
+        If Not locLock Then
+            MasterClearSwitch.IsOn = True
+            MasterClearSwitch.Refresh()
+            Call SendCmdMc()
+            Thread.Sleep(200)
+            MasterClearSwitch.IsOn = False
+            MasterClearSwitch.Refresh()
+        End If
     End Sub
 
     Private Sub EntRegCslIntSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles EntRegCslIntSwitch.MouseClick
         Debug.WriteLine("got mouseclick - console int")
-        EntRegCslIntSwitch.Toggle()
-        EntRegCslIntSwitch.Refresh()
-        Thread.Sleep(200)
-        EntRegCslIntSwitch.Toggle()
-        EntRegCslIntSwitch.Refresh()
-
+        If locRun Or (Not locRun And Not locLock) Then
+            EntRegCslIntSwitch.IsOn = True
+            EntRegCslIntSwitch.Refresh()
+            If locRun Then
+                Call SendCmdCI()
+            Else
+                If Not locLock Then
+                    Call SendCmdEntReg()
+                End If
+            End If
+            Thread.Sleep(200)
+            EntRegCslIntSwitch.IsOn = False
+            EntRegCslIntSwitch.Refresh()
+        End If
     End Sub
 
     Private Sub ClearBpHaltSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles ClearBpHaltSwitch.MouseClick
         Debug.WriteLine("got mouseclick - ClearBpHalt")
-        ClearBpHaltSwitch.Toggle()
+        ClearBpHaltSwitch.IsOn = True
         ClearBpHaltSwitch.Refresh()
+        Call SendCmdClrBp()
         Thread.Sleep(200)
-        ClearBpHaltSwitch.Toggle()
+        ClearBpHaltSwitch.IsOn = False
         ClearBpHaltSwitch.Refresh()
 
     End Sub
@@ -650,12 +956,230 @@ Public Class frmMain
     Private Sub InstOperSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles InstOperSwitch.MouseClick
         Debug.WriteLine("got mouseclick - inst/oper")
         InstOperSwitch.Toggle()
-
+        If InstOperSwitch.IsOn Then
+            locMemoryMode = locMemoryMode Or 1US
+        Else
+            locMemoryMode = locMemoryMode And &HFFFEUS
+        End If
+        Call SendCmdSetMemMode()
     End Sub
 
     Private Sub VirtualActualSwitch_MouseClick(sender As Object, e As MouseEventArgs) Handles VirtualActualSwitch.MouseClick
         Debug.WriteLine("got mouseclick - virt/act")
         VirtualActualSwitch.Toggle()
+        If VirtualActualSwitch.IsOn Then
+            locMemoryMode = locMemoryMode Or 2US
+        Else
+            locMemoryMode = locMemoryMode And &HFFFDUS
+        End If
+        Call SendCmdSetMemMode()
+    End Sub
+
+    ''' <summary>
+    ''' Send NOOP command to modcomp simulator. Cmd=0
+    ''' </summary>
+    Private Sub SendCmdNoop()
+        Dim msg(2) As UInt16
+        msg(0) = 0
+        msg(1) = 0
+        SendCmdMessage(msg)
+    End Sub
+
+    ''' <summary>
+    ''' If unlocked, send Master Clear command to modcomp simulator.  Cmd=1
+    ''' </summary>
+    Private Sub SendCmdMc()
+        Dim msg(2) As UInt16
+        If Not locLock Then
+            msg(0) = 1
+            msg(1) = 0
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' If unlocked, send Fill command to modcomp simulator. Cmd=2
+    ''' Data is current switch settings.
+    ''' </summary>
+    Private Sub SendCmdFill()
+        Dim msg(2) As UInt16
+        If Not locLock Then
+            msg(0) = 2
+            msg(1) = locSwitches
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' If unlocked, send Run command to modcomp simulator. Cmd=3
+    ''' </summary>
+    Private Sub SendCmdRun()
+        Dim msg(2) As UInt16
+        If Not locLock Then
+            msg(0) = 3
+            msg(1) = 0
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' If unlocked, send command to halt cpu.  Cmd=4
+    ''' </summary>
+    Private Sub SendCmdHalt()
+        Dim msg(2) As UInt16
+        If Not locLock Then
+            msg(0) = 4
+            msg(1) = 0
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdSetSwitches()
+        Dim msg(2) As UInt16
+        msg(0) = 5
+        msg(1) = locSwitches
+        SendCmdMessage(msg)
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdRegDispSel()
+        Dim msg(2) As UInt16
+        msg(0) = 6
+        msg(1) = locRegDisplaySelect
+        SendCmdMessage(msg)
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdSetMemMode()
+        Dim msg(2) As UInt16
+        msg(0) = 7
+        msg(1) = locMemoryMode
+        SendCmdMessage(msg)
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdClrBp()
+        Dim msg(2) As UInt16
+        msg(0) = 8
+        msg(1) = 0
+        SendCmdMessage(msg)
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdCI()
+        Dim msg(2) As UInt16
+        msg(0) = 9
+        msg(1) = 0
+        SendCmdMessage(msg)
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdEntReg()
+        Dim msg(2) As UInt16
+        If Not locLock And Not locRun Then
+            '--------just to be certain
+            Call SendCmdSetSwitches()
+            Call SendCmdRegDispSel()
+            msg(0) = 10
+            msg(1) = locSwitches
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdEntNext()
+        Dim msg(2) As UInt16
+        If Not locLock And Not locRun Then
+            '--------just to be certain
+            Call SendCmdSetSwitches()
+            msg(0) = 11
+            msg(1) = locSwitches
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdEntMem()
+        Dim msg(2) As UInt16
+        If Not locLock And Not locRun Then
+            '--------just to be certain
+            Call SendCmdSetSwitches()
+            msg(0) = 12
+            msg(1) = locSwitches
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdEntPC()
+        Dim msg(2) As UInt16
+        If Not locLock And Not locRun Then
+            '--------just to be certain
+            Call SendCmdSetSwitches()
+            msg(0) = 13
+            msg(1) = locSwitches
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdNextPc()
+        Dim msg(2) As UInt16
+        If Not locLock And Not locRun Then
+            msg(0) = 14
+            msg(1) = 0
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    Private Sub SendCmdSingleStep()
+        Dim msg(2) As UInt16
+        If Not locLock And Not locRun Then
+            msg(0) = 15
+            msg(1) = 0
+            SendCmdMessage(msg)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Send a command message to the modcomp simulator...  
+    ''' </summary>
+    Private Sub SendCmdMessage(msg As UInt16())
+        Dim byteMsg(4) As Byte
+        Dim bytesSent As Integer
+        Buffer.BlockCopy(msg, 0, byteMsg, 0, 4)
+        ' bytesSent = UdpSendClient.Send(byteMsg, RemoteSendEndPoint)
+        bytesSent = UdpSendClient.Send(byteMsg, SendHostName, SendPort)
+        If bytesSent = 4 Then
+            SendLastError = 0
+        Else
+            SendLastError = 1
+        End If
+
     End Sub
 
 End Class
