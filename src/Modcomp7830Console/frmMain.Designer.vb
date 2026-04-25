@@ -23,7 +23,7 @@ Partial Class frmMain
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmMain))
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(FrmMain))
         StatusStrip1 = New StatusStrip()
         lblComStatus = New ToolStripStatusLabel()
         lblComBytes = New ToolStripStatusLabel()
@@ -128,6 +128,23 @@ Partial Class frmMain
         InstOperSwitch = New RockerSwitchOrange()
         ClearBpHaltSwitch = New RockerSwitchOrange()
         EntRegCslIntSwitch = New RockerSwitchOrange()
+        FPSwitch15 = New ThreePosSwitchOrange()
+        FPSwitch14 = New ThreePosSwitchOrange()
+        FPClear = New ThreePosSwitchYellow()
+        FPSwitch13 = New ThreePosSwitchOrange()
+        FPSwitch12 = New ThreePosSwitchOrange()
+        FPSwitch07 = New ThreePosSwitchOrange()
+        FPSwitch06 = New ThreePosSwitchOrange()
+        FPSwitch05 = New ThreePosSwitchOrange()
+        FPSwitch04 = New ThreePosSwitchOrange()
+        FPSwitch11 = New ThreePosSwitchYellow()
+        FPSwitch10 = New ThreePosSwitchYellow()
+        FPSwitch09 = New ThreePosSwitchYellow()
+        FPSwitch08 = New ThreePosSwitchYellow()
+        FPSwitch03 = New ThreePosSwitchYellow()
+        FPSwitch02 = New ThreePosSwitchYellow()
+        FPSwitch01 = New ThreePosSwitchYellow()
+        FPSwitch00 = New ThreePosSwitchYellow()
         StatusStrip1.SuspendLayout()
         MenuStrip1.SuspendLayout()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
@@ -960,6 +977,7 @@ Partial Class frmMain
         ' 
         ' SingleStepSwitch
         ' 
+        SingleStepSwitch.BackColor = Color.Black
         SingleStepSwitch.IsOn = False
         SingleStepSwitch.Location = New Point(308, 478)
         SingleStepSwitch.Name = "SingleStepSwitch"
@@ -968,6 +986,7 @@ Partial Class frmMain
         ' 
         ' RunHaltSwitch
         ' 
+        RunHaltSwitch.BackColor = Color.Black
         RunHaltSwitch.IsOn = False
         RunHaltSwitch.Location = New Point(256, 477)
         RunHaltSwitch.Name = "RunHaltSwitch"
@@ -976,6 +995,7 @@ Partial Class frmMain
         ' 
         ' FillSwitch
         ' 
+        FillSwitch.BackColor = Color.Black
         FillSwitch.IsOn = False
         FillSwitch.Location = New Point(208, 478)
         FillSwitch.Name = "FillSwitch"
@@ -984,6 +1004,7 @@ Partial Class frmMain
         ' 
         ' MasterClearSwitch
         ' 
+        MasterClearSwitch.BackColor = Color.Black
         MasterClearSwitch.IsOn = False
         MasterClearSwitch.Location = New Point(157, 478)
         MasterClearSwitch.Name = "MasterClearSwitch"
@@ -992,6 +1013,7 @@ Partial Class frmMain
         ' 
         ' VirtualActualSwitch
         ' 
+        VirtualActualSwitch.BackColor = Color.Black
         VirtualActualSwitch.IsOn = False
         VirtualActualSwitch.Location = New Point(1022, 478)
         VirtualActualSwitch.Name = "VirtualActualSwitch"
@@ -1000,6 +1022,7 @@ Partial Class frmMain
         ' 
         ' InstOperSwitch
         ' 
+        InstOperSwitch.BackColor = Color.Black
         InstOperSwitch.IsOn = False
         InstOperSwitch.Location = New Point(1073, 477)
         InstOperSwitch.Name = "InstOperSwitch"
@@ -1008,6 +1031,7 @@ Partial Class frmMain
         ' 
         ' ClearBpHaltSwitch
         ' 
+        ClearBpHaltSwitch.BackColor = Color.Black
         ClearBpHaltSwitch.IsOn = False
         ClearBpHaltSwitch.Location = New Point(1124, 477)
         ClearBpHaltSwitch.Name = "ClearBpHaltSwitch"
@@ -1016,17 +1040,222 @@ Partial Class frmMain
         ' 
         ' EntRegCslIntSwitch
         ' 
+        EntRegCslIntSwitch.BackColor = Color.Black
         EntRegCslIntSwitch.IsOn = False
         EntRegCslIntSwitch.Location = New Point(1175, 477)
         EntRegCslIntSwitch.Name = "EntRegCslIntSwitch"
         EntRegCslIntSwitch.Size = New Size(45, 70)
         EntRegCslIntSwitch.TabIndex = 90
         ' 
-        ' frmMain
+        ' FPSwitch15
+        ' 
+        FPSwitch15.Latch = False
+        FPSwitch15.LatchEnable = True
+        FPSwitch15.Location = New Point(154, 337)
+        FPSwitch15.Name = "FPSwitch15"
+        FPSwitch15.Size = New Size(45, 74)
+        FPSwitch15.TabIndex = 91
+        FPSwitch15.Text = "FPSwitch15"
+        FPSwitch15.Value = False
+        ' 
+        ' FPSwitch14
+        ' 
+        FPSwitch14.Latch = False
+        FPSwitch14.LatchEnable = True
+        FPSwitch14.Location = New Point(206, 337)
+        FPSwitch14.Name = "FPSwitch14"
+        FPSwitch14.Size = New Size(45, 74)
+        FPSwitch14.TabIndex = 92
+        FPSwitch14.Text = "FPSwitch14"
+        FPSwitch14.Value = False
+        ' 
+        ' FPClear
+        ' 
+        FPClear.Latch = False
+        FPClear.LatchEnable = False
+        FPClear.Location = New Point(82, 337)
+        FPClear.Name = "FPClear"
+        FPClear.Size = New Size(45, 74)
+        FPClear.TabIndex = 93
+        FPClear.Text = "FPClear"
+        FPClear.Value = False
+        ' 
+        ' FPSwitch13
+        ' 
+        FPSwitch13.Latch = False
+        FPSwitch13.LatchEnable = True
+        FPSwitch13.Location = New Point(256, 336)
+        FPSwitch13.Name = "FPSwitch13"
+        FPSwitch13.Size = New Size(45, 74)
+        FPSwitch13.TabIndex = 94
+        FPSwitch13.Text = "FPSwith13"
+        FPSwitch13.Value = False
+        ' 
+        ' FPSwitch12
+        ' 
+        FPSwitch12.Latch = False
+        FPSwitch12.LatchEnable = True
+        FPSwitch12.Location = New Point(306, 337)
+        FPSwitch12.Name = "FPSwitch12"
+        FPSwitch12.Size = New Size(45, 74)
+        FPSwitch12.TabIndex = 95
+        FPSwitch12.Text = "FPSwith12"
+        FPSwitch12.Value = False
+        ' 
+        ' FPSwitch07
+        ' 
+        FPSwitch07.Latch = False
+        FPSwitch07.LatchEnable = True
+        FPSwitch07.Location = New Point(590, 337)
+        FPSwitch07.Name = "FPSwitch07"
+        FPSwitch07.Size = New Size(45, 74)
+        FPSwitch07.TabIndex = 96
+        FPSwitch07.Text = "FPSwitch07"
+        FPSwitch07.Value = False
+        ' 
+        ' FPSwitch06
+        ' 
+        FPSwitch06.Latch = False
+        FPSwitch06.LatchEnable = True
+        FPSwitch06.Location = New Point(641, 337)
+        FPSwitch06.Name = "FPSwitch06"
+        FPSwitch06.Size = New Size(45, 74)
+        FPSwitch06.TabIndex = 97
+        FPSwitch06.Text = "FPSwitch06"
+        FPSwitch06.Value = False
+        ' 
+        ' FPSwitch05
+        ' 
+        FPSwitch05.Latch = False
+        FPSwitch05.LatchEnable = True
+        FPSwitch05.Location = New Point(691, 337)
+        FPSwitch05.Name = "FPSwitch05"
+        FPSwitch05.Size = New Size(45, 74)
+        FPSwitch05.TabIndex = 98
+        FPSwitch05.Text = "FPSwitch05"
+        FPSwitch05.Value = False
+        ' 
+        ' FPSwitch04
+        ' 
+        FPSwitch04.Latch = False
+        FPSwitch04.LatchEnable = True
+        FPSwitch04.Location = New Point(739, 337)
+        FPSwitch04.Name = "FPSwitch04"
+        FPSwitch04.Size = New Size(45, 74)
+        FPSwitch04.TabIndex = 99
+        FPSwitch04.Text = "FPSwitch04"
+        FPSwitch04.Value = False
+        ' 
+        ' FPSwitch11
+        ' 
+        FPSwitch11.Latch = False
+        FPSwitch11.LatchEnable = True
+        FPSwitch11.Location = New Point(373, 337)
+        FPSwitch11.Name = "FPSwitch11"
+        FPSwitch11.Size = New Size(45, 74)
+        FPSwitch11.TabIndex = 100
+        FPSwitch11.Text = "FPSwitch11"
+        FPSwitch11.Value = False
+        ' 
+        ' FPSwitch10
+        ' 
+        FPSwitch10.Latch = False
+        FPSwitch10.LatchEnable = True
+        FPSwitch10.Location = New Point(425, 337)
+        FPSwitch10.Name = "FPSwitch10"
+        FPSwitch10.Size = New Size(45, 74)
+        FPSwitch10.TabIndex = 101
+        FPSwitch10.Text = "FPSwitch10"
+        FPSwitch10.Value = False
+        ' 
+        ' FPSwitch09
+        ' 
+        FPSwitch09.Latch = False
+        FPSwitch09.LatchEnable = True
+        FPSwitch09.Location = New Point(473, 337)
+        FPSwitch09.Name = "FPSwitch09"
+        FPSwitch09.Size = New Size(45, 74)
+        FPSwitch09.TabIndex = 102
+        FPSwitch09.Text = "FPSwitch09"
+        FPSwitch09.Value = False
+        ' 
+        ' FPSwitch08
+        ' 
+        FPSwitch08.Latch = False
+        FPSwitch08.LatchEnable = True
+        FPSwitch08.Location = New Point(523, 337)
+        FPSwitch08.Name = "FPSwitch08"
+        FPSwitch08.Size = New Size(45, 74)
+        FPSwitch08.TabIndex = 103
+        FPSwitch08.Text = "FPSwitch08"
+        FPSwitch08.Value = False
+        ' 
+        ' FPSwitch03
+        ' 
+        FPSwitch03.Latch = False
+        FPSwitch03.LatchEnable = True
+        FPSwitch03.Location = New Point(811, 337)
+        FPSwitch03.Name = "FPSwitch03"
+        FPSwitch03.Size = New Size(45, 74)
+        FPSwitch03.TabIndex = 104
+        FPSwitch03.Text = "FPSwitch03"
+        FPSwitch03.Value = False
+        ' 
+        ' FPSwitch02
+        ' 
+        FPSwitch02.Latch = False
+        FPSwitch02.LatchEnable = True
+        FPSwitch02.Location = New Point(860, 337)
+        FPSwitch02.Name = "FPSwitch02"
+        FPSwitch02.Size = New Size(45, 74)
+        FPSwitch02.TabIndex = 105
+        FPSwitch02.Text = "FPSwitch02"
+        FPSwitch02.Value = False
+        ' 
+        ' FPSwitch01
+        ' 
+        FPSwitch01.Latch = False
+        FPSwitch01.LatchEnable = True
+        FPSwitch01.Location = New Point(909, 337)
+        FPSwitch01.Name = "FPSwitch01"
+        FPSwitch01.Size = New Size(45, 74)
+        FPSwitch01.TabIndex = 106
+        FPSwitch01.Text = "FPSwitch01"
+        FPSwitch01.Value = False
+        ' 
+        ' FPSwitch00
+        ' 
+        FPSwitch00.Latch = False
+        FPSwitch00.LatchEnable = True
+        FPSwitch00.Location = New Point(959, 337)
+        FPSwitch00.Name = "FPSwitch00"
+        FPSwitch00.Size = New Size(45, 74)
+        FPSwitch00.TabIndex = 107
+        FPSwitch00.Text = "FPSwitch00"
+        FPSwitch00.Value = False
+        ' 
+        ' FrmMain
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(1297, 664)
+        Controls.Add(FPSwitch00)
+        Controls.Add(FPSwitch01)
+        Controls.Add(FPSwitch02)
+        Controls.Add(FPSwitch03)
+        Controls.Add(FPSwitch08)
+        Controls.Add(FPSwitch09)
+        Controls.Add(FPSwitch10)
+        Controls.Add(FPSwitch11)
+        Controls.Add(FPSwitch04)
+        Controls.Add(FPSwitch05)
+        Controls.Add(FPSwitch06)
+        Controls.Add(FPSwitch07)
+        Controls.Add(FPSwitch12)
+        Controls.Add(FPSwitch13)
+        Controls.Add(FPClear)
+        Controls.Add(FPSwitch14)
+        Controls.Add(FPSwitch15)
         Controls.Add(EntRegCslIntSwitch)
         Controls.Add(ClearBpHaltSwitch)
         Controls.Add(InstOperSwitch)
@@ -1119,7 +1348,7 @@ Partial Class frmMain
         Controls.Add(MenuStrip1)
         Controls.Add(PictureBox1)
         MainMenuStrip = MenuStrip1
-        Name = "frmMain"
+        Name = "FrmMain"
         Text = "Modcomp 7830 Front Panel"
         StatusStrip1.ResumeLayout(False)
         StatusStrip1.PerformLayout()
@@ -1234,5 +1463,22 @@ Partial Class frmMain
     Friend WithEvents SwitchValue As ToolStripStatusLabel
     Friend WithEvents ToolStripStatusLabel2 As ToolStripStatusLabel
     Friend WithEvents RegDisplayValue As ToolStripStatusLabel
+    Friend WithEvents FPSwitch15 As ThreePosSwitchOrange
+    Friend WithEvents FPSwitch14 As ThreePosSwitchOrange
+    Friend WithEvents FPClear As ThreePosSwitchYellow
+    Friend WithEvents FPSwitch13 As ThreePosSwitchOrange
+    Friend WithEvents FPSwitch12 As ThreePosSwitchOrange
+    Friend WithEvents FPSwitch07 As ThreePosSwitchOrange
+    Friend WithEvents FPSwitch06 As ThreePosSwitchOrange
+    Friend WithEvents FPSwitch05 As ThreePosSwitchOrange
+    Friend WithEvents FPSwitch04 As ThreePosSwitchOrange
+    Friend WithEvents FPSwitch11 As ThreePosSwitchYellow
+    Friend WithEvents FPSwitch10 As ThreePosSwitchYellow
+    Friend WithEvents FPSwitch09 As ThreePosSwitchYellow
+    Friend WithEvents FPSwitch08 As ThreePosSwitchYellow
+    Friend WithEvents FPSwitch03 As ThreePosSwitchYellow
+    Friend WithEvents FPSwitch02 As ThreePosSwitchYellow
+    Friend WithEvents FPSwitch01 As ThreePosSwitchYellow
+    Friend WithEvents FPSwitch00 As ThreePosSwitchYellow
 
 End Class

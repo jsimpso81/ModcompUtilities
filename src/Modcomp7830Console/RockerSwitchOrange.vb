@@ -56,6 +56,7 @@ Public Class RockerSwitchOrange
         MyBase.New
         Me.DoubleBuffered = True
         Me.Size = New Size(40, 80) ' Default size
+        InitializeComponent()
     End Sub
 
     ''' <summary>
@@ -79,6 +80,7 @@ Public Class RockerSwitchOrange
         Dim bgColor1 As Color = If(_isOn, color_B, color_N)    ' light     medium
         Dim bgColor2 As Color = If(_isOn, color_D, color_B)    ' dark      light
         Dim bgColor3 As Color = If(_isOn, color_N, color_D)    ' medium,   dark
+
         g.FillRectangle(New SolidBrush(bgColor0), Me.ClientRectangle)
 
         ' -------- Rocker switch

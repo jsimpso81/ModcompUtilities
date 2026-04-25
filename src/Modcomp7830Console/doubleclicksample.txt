@@ -1,0 +1,48 @@
+Public Class DualClickControl
+
+    '--------Define clickable areas
+    Private area1 As Rectangle
+    Private area2 As Rectangle
+
+    '--------Events to expose to the main form
+    Public Event Area1Clicked As EventHandler
+    Public Event Area2Clicked As EventHandler
+
+    Public Sub New()
+        InitializeComponent()
+        '--------Set up areas (e.g., split control in half vertically)
+        UpdateRectangles()
+    End Sub
+
+    '========Update rectangles if control resizes
+    Protected Overrides Sub OnResize(e As EventArgs)
+        MyBase.OnResize(e)
+        UpdateRectangles()
+    End Sub
+
+    Private Sub UpdateRectangles()
+        area1 = New Rectangle(0, 0, Me.Width \ 2, Me.Height)
+        area2 = New Rectangle(Me.Width \ 2, 0, Me.Width \ 2, Me.Height)
+    End Sub
+
+    ' Paint the areas so we can see them
+    Protected Overrides Sub OnPaint(e As PaintEventArgs)
+        MyBase.OnPaint(e)
+        e.Graphics.FillRectangle(Brushes.LightBlue, area1)
+        e.Graphics.FillRectangle(Brushes.LightGreen, area2)
+        e.Graphics.DrawString("Area 1", Me.Font, Brushes.Black, 10, 10)
+        e.Graphics.DrawString("Area 2", Me.Font, Brushes.Black, (Me.Width \ 2) + 10, 10)
+    End Sub
+
+    '--------Detect clicks
+    Protected Overrides Sub OnMouseClick(e As MouseEventArgs)
+        MyBase.OnMouseClick(e)
+
+        If area1.Contains(e.Location) Then
+            RaiseEvent Area1Clicked(Me, EventArgs.Empty)
+        ElseIf area2.Contains(e.Location) Then
+            RaiseEvent Area2Clicked(Me, EventArgs.Empty)
+        End If
+    End Sub
+
+End Class

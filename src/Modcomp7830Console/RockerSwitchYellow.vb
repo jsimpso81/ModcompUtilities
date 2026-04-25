@@ -51,6 +51,7 @@ Public Class RockerSwitchYellow
         Dim bgColor1 As Color = If(_isOn, Color.Gold, Color.Goldenrod)          ' light     medium
         Dim bgColor2 As Color = If(_isOn, Color.DarkGoldenrod, Color.Gold)      ' dark      light
         Dim bgColor3 As Color = If(_isOn, Color.Goldenrod, Color.DarkGoldenrod) ' medium,   dark
+
         g.FillRectangle(New SolidBrush(bgColor0), Me.ClientRectangle)
 
         ' -------- Rocker switch
